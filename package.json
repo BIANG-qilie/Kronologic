@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 4317",
     "lint": "next lint",
-    "validate:scenario": "node scripts/validate-scenario.mjs"
+    "validate:scenario": "node scripts/validate-scenario.mjs",
+    "test": "tsx --test src/lib/game/*.test.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
@@ -33,6 +34,7 @@
     "eslint-config-next": "^15.5.7",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.20.5"
   }
 }

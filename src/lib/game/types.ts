@@ -144,3 +144,6 @@ export interface NotesState {
   text: string;
   updatedAt: number;
 }
+
+/** Player-persisted notes: see `notes-format.ts` (v2 inference-only JSON). */
+export type { NotesPayloadV2, NotesInference } from "./notes-format";

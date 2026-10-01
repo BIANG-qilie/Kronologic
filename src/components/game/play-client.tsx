@@ -11,9 +11,8 @@ import {
   type Session,
 } from "@/hooks/use-room";
 import { QueryPanel } from "@/components/game/query-panel";
-import { NotesPanel } from "@/components/game/notes-panel";
 import { SubmitDialog } from "@/components/game/submit-dialog";
-import { BoardMap } from "@/components/game/board-map";
+import { DeskTimeline } from "@/components/game/desk-timeline";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -501,14 +500,12 @@ export function PlayClient({
       <OpeningStrip view={view} />
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
-        <TabsList className="grid w-full grid-cols-3 bg-[var(--stage)]">
+        <TabsList className="grid w-full grid-cols-2 bg-[var(--stage)]">
           <TabsTrigger value="desk">桌面</TabsTrigger>
           <TabsTrigger value="ask">提问</TabsTrigger>
-          <TabsTrigger value="notes">笔记</TabsTrigger>
         </TabsList>
 
         <TabsContent value="desk" className="space-y-4 pt-4">
-          <BoardMap scenario={view.scenario} />
           <div className="grid gap-4 md:grid-cols-2">
             <QueryLog view={view} />
             <PrivateClues view={view} />
@@ -529,22 +526,9 @@ export function PlayClient({
               </span>
             ))}
           </div>
-        </TabsContent>
-
-        <TabsContent value="ask" className="pt-4">
-          <QueryPanel
-            scenario={view.scenario}
-            canAct={!!view.you?.canAct}
-            askAgain={!!lastAskAgain && !!view.you?.canAct}
-            busy={busy}
-            onAsk={ask}
-          />
-        </TabsContent>
-
-        <TabsContent value="notes" className="pt-4">
-          <NotesPanel
+          <DeskTimeline
             view={view}
-            onSave={async (text) => {
+            onSaveNotes={async (text) => {
               const data = await apiJson<{ view: RoomPublicView }>(
                 `/api/rooms/${view.code}/notes`,
                 {
@@ -554,6 +538,16 @@ export function PlayClient({
               );
               setView(data.view);
             }}
+          />
+        </TabsContent>
+
+        <TabsContent value="ask" className="pt-4">
+          <QueryPanel
+            scenario={view.scenario}
+            canAct={!!view.you?.canAct}
+            askAgain={!!lastAskAgain && !!view.you?.canAct}
+            busy={busy}
+            onAsk={ask}
           />
         </TabsContent>
       </Tabs>
