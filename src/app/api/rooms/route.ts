@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { createRoom } from "@/lib/server/rooms";
-import { projectRoom } from "@/lib/server/rooms";
+import { createRoom, projectRoom } from "@/lib/server/rooms";
 import { listScenariosPublic } from "@/lib/game/scenarios";
+
+export const runtime = "nodejs";
 
 export async function GET() {
   return NextResponse.json({ scenarios: listScenariosPublic() });

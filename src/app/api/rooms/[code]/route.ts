@@ -9,6 +9,8 @@ import {
   kickPlayer,
 } from "@/lib/server/rooms";
 
+export const runtime = "nodejs";
+
 type Ctx = { params: Promise<{ code: string }> };
 
 export async function GET(req: Request, ctx: Ctx) {

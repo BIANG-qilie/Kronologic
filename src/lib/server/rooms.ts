@@ -7,7 +7,6 @@ import {
 } from "@/lib/game/query";
 import { getScenarioBundle } from "@/lib/game/scenarios";
 import type {
-  NotesState,
   PlaceId,
   PersonId,
   PlayerPublic,
@@ -22,6 +21,10 @@ import type {
   TimeId,
 } from "@/lib/game/types";
 
+export interface NotesState {
+  text: string;
+  updatedAt: number;
+}
 const SUBMIT_WINDOW_MS = 12_000;
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { askQuery, getRoom, projectRoom } from "@/lib/server/rooms";
 import type { PlaceId, PersonId, QueryKind, TimeId } from "@/lib/game/types";
 
+export const runtime = "nodejs";
+
 type Ctx = { params: Promise<{ code: string }> };
 
 export async function POST(req: Request, ctx: Ctx) {

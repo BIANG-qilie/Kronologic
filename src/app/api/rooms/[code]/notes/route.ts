@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getRoom, projectRoom, saveNotes } from "@/lib/server/rooms";
 
+export const runtime = "nodejs";
+
 type Ctx = { params: Promise<{ code: string }> };
 
 export async function POST(req: Request, ctx: Ctx) {

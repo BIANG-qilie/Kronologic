@@ -257,10 +257,22 @@ export function PlayClient({
   initialToken?: string;
 }) {
   const session = useMemo(() => {
+    const stored = loadSession();
     if (initialCode && initialToken) {
-      return { code: initialCode, token: initialToken, playerId: "" };
+      return {
+        code: initialCode.toUpperCase(),
+        token: initialToken,
+        playerId: "",
+      };
     }
-    return loadSession();
+    if (
+      stored &&
+      (!initialCode ||
+        stored.code.toUpperCase() === initialCode.toUpperCase())
+    ) {
+      return stored;
+    }
+    return null;
   }, [initialCode, initialToken]);
 
   const { view, setView, connected } = useRoomStream(
