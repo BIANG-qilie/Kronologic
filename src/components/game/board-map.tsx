@@ -125,11 +125,8 @@ export function BoardMap({
                   !onSelect && "cursor-default"
                 )}
               >
-                <span className="font-display text-lg tracking-wide text-[var(--ink)]">
+<span className="font-display text-lg tracking-wide text-[var(--ink)]">
                   {place.name}
-                </span>
-                <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-[var(--ink-muted)]">
-                  {id}
                 </span>
               </button>
             );

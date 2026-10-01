@@ -25,127 +25,6 @@ function personName(view: RoomPublicView, id: string) {
   return p ? `${p.letter}·${p.name}` : id;
 }
 
-function queryLabel(view: RoomPublicView, q: RoomPublicView["queryLog"][number]) {
-  if (q.kind === "place_time") {
-    return `${placeName(view, q.placeId)} × 时间 ${q.timeId}`;
-  }
-  return `${placeName(view, q.placeId)} × ${personName(view, q.personId!)}`;
-}
-
-function privateQueryLabel(
-  view: RoomPublicView,
-  c: NonNullable<RoomPublicView["you"]>["privateClues"][number]
-) {
-  if (c.kind === "place_time") {
-    return `${placeName(view, c.placeId)} × 时间 ${c.timeId}`;
-  }
-  return `${placeName(view, c.placeId)} × ${personName(view, c.personId!)}`;
-}
-
-function OpeningStrip({ view }: { view: RoomPublicView }) {
-  return (
-    <div className="rounded-sm border border-[var(--ink-faint)] bg-[var(--stage)]/70 px-3 py-2">
-      <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-[var(--amber)]">
-        时间 1 · 开场已知
-      </p>
-      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-muted)]">
-        {view.scenario.people.map((p) => {
-          const place = view.scenario.places.find(
-            (x) => x.id === view.scenario.opening[p.id]
-          );
-          return (
-            <span key={p.id}>
-              <span className="font-mono text-[var(--ink)]">{p.letter}</span>
-              <span className="mx-1">{p.name}</span>
-              <span>@ {place?.name ?? "?"}</span>
-            </span>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function QueryLog({ view }: { view: RoomPublicView }) {
-  const latest = view.queryLog[view.queryLog.length - 1];
-  const older = [...view.queryLog].slice(0, -1).reverse();
-  return (
-    <div id="reveal-panel" className="space-y-3 scroll-mt-4">
-      {latest && (
-        <div
-          key={latest.id}
-          className="animate-reveal-green rounded-sm border border-[var(--green-win)]/40 bg-[var(--green-win)]/10 px-4 py-3"
-        >
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--green-win)]">
-            绿窗 · 全桌共享
-          </p>
-          <p className="mt-1 font-display text-xl text-[var(--ink)]">
-            {queryLabel(view, latest)}
-            <span className="ml-3 font-mono text-[var(--green-win)]">
-              {latest.sharedLabel}
-            </span>
-          </p>
-          <p className="mt-1 text-xs text-[var(--ink-muted)]">
-            {latest.askerNickname} 提问
-            {latest.askAgain ? " · 再问一次" : ""}
-          </p>
-        </div>
-      )}
-      {older.length > 0 && (
-        <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-[var(--ink-muted)]">
-          {older.map((q) => (
-            <li
-              key={q.id}
-              className="flex justify-between gap-2 border-b border-[var(--ink-faint)]/40 py-1"
-            >
-              <span>
-                {q.askerNickname} · {queryLabel(view, q)}
-              </span>
-              <span className="font-mono text-[var(--ink)]">{q.sharedLabel}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {!latest && (
-        <p className="text-sm text-[var(--ink-muted)]">尚无提问</p>
-      )}
-    </div>
-  );
-}
-
-function PrivateClues({ view }: { view: RoomPublicView }) {
-  const clues = view.you?.privateClues ?? [];
-  const latest = clues[clues.length - 1];
-  const older = [...clues].slice(0, -1).reverse();
-  return (
-    <div className="space-y-2">
-      {latest && (
-        <div className="animate-reveal-white rounded-sm border border-[var(--ink-faint)] bg-[var(--parchment)] px-4 py-3 text-[var(--ink-deep)]">
-          <p className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
-            白窗 · 仅你可见
-          </p>
-          <p className="mt-1 font-display text-xl">{latest.privateLabel}</p>
-          <p className="mt-1 text-xs text-[var(--ink-muted)]">
-            {privateQueryLabel(view, latest)}
-          </p>
-        </div>
-      )}
-      {clues.length === 0 && (
-        <p className="text-sm text-[var(--ink-muted)]">尚无私密线索</p>
-      )}
-      {older.length > 0 && (
-        <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-[var(--ink-muted)]">
-          {older.map((c) => (
-            <li key={c.queryId}>
-              {privateQueryLabel(view, c)} → {c.privateLabel}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 function Lobby({
   view,
   token,
@@ -497,8 +376,6 @@ export function PlayClient({
 
       {err && <p className="text-sm text-destructive">{err}</p>}
 
-      <OpeningStrip view={view} />
-
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
         <TabsList className="grid w-full grid-cols-2 bg-[var(--stage)]">
           <TabsTrigger value="desk">桌面</TabsTrigger>
@@ -506,11 +383,8 @@ export function PlayClient({
         </TabsList>
 
         <TabsContent value="desk" className="space-y-4 pt-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <QueryLog view={view} />
-            <PrivateClues view={view} />
-          </div>
-          <div className="flex flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
+          <div id="reveal-panel" className="scroll-mt-4" />
+          <div className="flex flex-wrap justify-center gap-2 text-xs text-[var(--ink-muted)]">
             {view.players.map((p) => (
               <span
                 key={p.id}
