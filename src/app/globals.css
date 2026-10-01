@@ -1,0 +1,137 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Theater ink & amber footlights — not purple, not cream terracotta */
+    --ink: #e8efe8;
+    --ink-deep: #1a2420;
+    --ink-muted: #9aada3;
+    --ink-faint: #3a4a42;
+    --curtain: #121a17;
+    --stage: #1c2923;
+    --parchment: #d7c9a8;
+    --amber: #d4a15a;
+    --amber-dim: #a67b3d;
+    --green-win: #6fbf8a;
+
+    --background: 160 18% 8%;
+    --foreground: 140 12% 92%;
+    --card: 160 16% 12%;
+    --card-foreground: 140 12% 92%;
+    --popover: 160 16% 12%;
+    --popover-foreground: 140 12% 92%;
+    --primary: 36 58% 59%;
+    --primary-foreground: 160 20% 10%;
+    --secondary: 160 14% 18%;
+    --secondary-foreground: 140 12% 92%;
+    --muted: 160 12% 16%;
+    --muted-foreground: 150 10% 64%;
+    --accent: 160 14% 20%;
+    --accent-foreground: 140 12% 92%;
+    --destructive: 6 70% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 160 12% 26%;
+    --input: 160 12% 26%;
+    --ring: 36 58% 59%;
+    --radius: 0.35rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "IBM Plex Sans", sans-serif;
+    background-color: var(--curtain);
+    color: var(--ink);
+  }
+
+  .font-display {
+    font-family: "Fraunces", Georgia, serif;
+    font-optical-sizing: auto;
+  }
+
+  .font-mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
+}
+
+@layer utilities {
+  .bg-atmosphere {
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212, 161, 90, 0.18), transparent 55%),
+      radial-gradient(ellipse 60% 40% at 85% 80%, rgba(111, 191, 138, 0.08), transparent 50%),
+      linear-gradient(180deg, #15201b 0%, #0e1412 55%, #121a17 100%);
+  }
+
+  .animate-reveal-green {
+    animation: reveal-green 0.55s ease-out both;
+  }
+
+  .animate-reveal-white {
+    animation: reveal-white 0.45s ease-out both;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 0.4s ease-out both;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes reveal-green {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+    filter: brightness(1.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes reveal-white {
+  from {
+    opacity: 0;
+    clip-path: inset(0 40% 0 40%);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}

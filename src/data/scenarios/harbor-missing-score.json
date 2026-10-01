@@ -1,0 +1,119 @@
+{
+  "public": {
+    "id": "harbor-missing-score",
+    "title": "失踪的乐谱",
+    "subtitle": "港湾剧院 · 1924",
+    "synopsis": "首演前夜，作曲家把总谱锁进夹层的铁匣。黎明时匣锁完好，谱却换成了空白页。窃贼必须在某个时刻独自守在夹层，才能调换乐谱。找出是谁、在哪个时间、于夹层得手。",
+    "difficulty": 1,
+    "places": [
+      { "id": "porch", "name": "门廊" },
+      { "id": "hall", "name": "正厅" },
+      { "id": "stage", "name": "舞台" },
+      { "id": "dress", "name": "妆室" },
+      { "id": "gallery", "name": "夹层" },
+      { "id": "prop", "name": "库房" }
+    ],
+    "people": [
+      { "id": "A", "name": "安澜", "letter": "A" },
+      { "id": "R", "name": "容川", "letter": "R" },
+      { "id": "M", "name": "明铎", "letter": "M" },
+      { "id": "E", "name": "艾玲", "letter": "E" },
+      { "id": "T", "name": "棠舟", "letter": "T" },
+      { "id": "K", "name": "柯朔", "letter": "K" }
+    ],
+    "adjacency": {
+      "porch": ["hall", "dress"],
+      "hall": ["porch", "stage", "gallery"],
+      "stage": ["hall", "prop"],
+      "dress": ["porch", "gallery"],
+      "gallery": ["hall", "dress", "prop"],
+      "prop": ["stage", "gallery"]
+    },
+    "opening": {
+      "A": "hall",
+      "R": "stage",
+      "M": "dress",
+      "E": "prop",
+      "T": "gallery",
+      "K": "porch"
+    },
+    "winQuestions": [
+      {
+        "id": "who",
+        "prompt": "谁偷换了乐谱？",
+        "kind": "person"
+      },
+      {
+        "id": "where",
+        "prompt": "得手地点是哪里？（本题答案固定为夹层，仍须填写以核对）",
+        "kind": "place"
+      },
+      {
+        "id": "when",
+        "prompt": "在哪个时间得手？",
+        "kind": "time"
+      }
+    ],
+    "soloBands": {
+      "goldMax": 8,
+      "silverMax": 14
+    }
+  },
+  "sealed": {
+    "trajectory": {
+      "A": {
+        "1": "hall",
+        "2": "stage",
+        "3": "prop",
+        "4": "gallery",
+        "5": "dress",
+        "6": "porch"
+      },
+      "R": {
+        "1": "stage",
+        "2": "hall",
+        "3": "porch",
+        "4": "dress",
+        "5": "gallery",
+        "6": "prop"
+      },
+      "M": {
+        "1": "dress",
+        "2": "gallery",
+        "3": "prop",
+        "4": "stage",
+        "5": "hall",
+        "6": "porch"
+      },
+      "E": {
+        "1": "prop",
+        "2": "stage",
+        "3": "hall",
+        "4": "porch",
+        "5": "dress",
+        "6": "gallery"
+      },
+      "T": {
+        "1": "gallery",
+        "2": "dress",
+        "3": "porch",
+        "4": "hall",
+        "5": "stage",
+        "6": "prop"
+      },
+      "K": {
+        "1": "porch",
+        "2": "dress",
+        "3": "gallery",
+        "4": "hall",
+        "5": "stage",
+        "6": "prop"
+      }
+    },
+    "answers": {
+      "who": "A",
+      "where": "gallery",
+      "when": "4"
+    }
+  }
+}
