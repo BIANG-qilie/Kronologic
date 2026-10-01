@@ -36,10 +36,21 @@ export function LobbyHome() {
       .catch(() => undefined);
   }, []);
 
+  function requireNickname(): boolean {
+    if (nickname.trim()) return true;
+    setErr("请填写昵称");
+    return false;
+  }
+
   async function create() {
+    if (!requireNickname()) return;
     setBusy(true);
     setErr(null);
     try {
+      if (resume) {
+        clearSession();
+        setResume(null);
+      }
       const data = await apiJson<{
         code: string;
         token: string;
@@ -63,9 +74,18 @@ export function LobbyHome() {
   }
 
   async function join() {
+    if (!requireNickname()) return;
+    if (joinCode.trim().length < 4) {
+      setErr("请输入有效房间码");
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
+      if (resume) {
+        clearSession();
+        setResume(null);
+      }
       const code = joinCode.trim().toUpperCase();
       const data = await apiJson<{
         code: string;
@@ -101,7 +121,11 @@ export function LobbyHome() {
     } catch (e) {
       clearSession();
       setResume(null);
-      setErr(e instanceof Error ? e.message : "重连失败");
+      setErr(
+        e instanceof Error
+          ? `上一局已失效：${e.message}`
+          : "上一局已失效，请重新开房"
+      );
     } finally {
       setBusy(false);
     }
@@ -128,11 +152,25 @@ export function LobbyHome() {
         {resume && (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-sm border border-[var(--amber)]/30 bg-[var(--stage)]/70 px-4 py-3">
             <p className="text-sm text-[var(--ink-muted)]">
-              检测到未结束的房间 <span className="font-mono text-[var(--ink)]">{resume.code}</span>
+              检测到未结束的房间{" "}
+              <span className="font-mono text-[var(--ink)]">{resume.code}</span>
             </p>
-            <Button size="sm" onClick={reconnect} disabled={busy}>
-              继续调查
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={reconnect} disabled={busy}>
+                继续调查
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => {
+                  clearSession();
+                  setResume(null);
+                }}
+              >
+                放弃
+              </Button>
+            </div>
           </div>
         )}
 
@@ -170,7 +208,10 @@ export function LobbyHome() {
                 value={nickname}
                 maxLength={16}
                 placeholder="今晚的调查员"
-                onChange={(e) => setNickname(e.target.value)}
+                onChange={(e) => {
+                  setNickname(e.target.value);
+                  if (err === "请填写昵称") setErr(null);
+                }}
               />
             </div>
 
@@ -209,11 +250,16 @@ export function LobbyHome() {
             <Button
               className="w-full"
               size="lg"
-              disabled={busy || !nickname.trim() || (mode === "join" && joinCode.length < 4)}
+              disabled={busy}
               onClick={mode === "create" ? create : join}
             >
               {busy ? "请稍候…" : mode === "create" ? "开一间房" : "进入房间"}
             </Button>
+            {resume && mode === "create" && (
+              <p className="text-xs text-[var(--amber)]">
+                开新房将放弃房间 {resume.code}
+              </p>
+            )}
             <p className="text-xs text-[var(--ink-muted)]">
               v1 无需账号：房间码 + 昵称 + 本机重连令牌。账号与战绩留待 v2。
             </p>

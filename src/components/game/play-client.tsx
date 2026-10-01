@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { RoomPublicView } from "@/lib/game/types";
 import {
   apiJson,
@@ -8,6 +8,7 @@ import {
   loadSession,
   saveSession,
   useRoomStream,
+  type Session,
 } from "@/hooks/use-room";
 import { QueryPanel } from "@/components/game/query-panel";
 import { NotesPanel } from "@/components/game/notes-panel";
@@ -25,10 +26,52 @@ function personName(view: RoomPublicView, id: string) {
   return p ? `${p.letter}·${p.name}` : id;
 }
 
+function queryLabel(view: RoomPublicView, q: RoomPublicView["queryLog"][number]) {
+  if (q.kind === "place_time") {
+    return `${placeName(view, q.placeId)} × 时间 ${q.timeId}`;
+  }
+  return `${placeName(view, q.placeId)} × ${personName(view, q.personId!)}`;
+}
+
+function privateQueryLabel(
+  view: RoomPublicView,
+  c: NonNullable<RoomPublicView["you"]>["privateClues"][number]
+) {
+  if (c.kind === "place_time") {
+    return `${placeName(view, c.placeId)} × 时间 ${c.timeId}`;
+  }
+  return `${placeName(view, c.placeId)} × ${personName(view, c.personId!)}`;
+}
+
+function OpeningStrip({ view }: { view: RoomPublicView }) {
+  return (
+    <div className="rounded-sm border border-[var(--ink-faint)] bg-[var(--stage)]/70 px-3 py-2">
+      <p className="mb-1 text-[10px] uppercase tracking-[0.2em] text-[var(--amber)]">
+        时间 1 · 开场已知
+      </p>
+      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--ink-muted)]">
+        {view.scenario.people.map((p) => {
+          const place = view.scenario.places.find(
+            (x) => x.id === view.scenario.opening[p.id]
+          );
+          return (
+            <span key={p.id}>
+              <span className="font-mono text-[var(--ink)]">{p.letter}</span>
+              <span className="mx-1">{p.name}</span>
+              <span>@ {place?.name ?? "?"}</span>
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function QueryLog({ view }: { view: RoomPublicView }) {
   const latest = view.queryLog[view.queryLog.length - 1];
+  const older = [...view.queryLog].slice(0, -1).reverse();
   return (
-    <div className="space-y-3">
+    <div id="reveal-panel" className="space-y-3 scroll-mt-4">
       {latest && (
         <div
           key={latest.id}
@@ -38,9 +81,7 @@ function QueryLog({ view }: { view: RoomPublicView }) {
             绿窗 · 全桌共享
           </p>
           <p className="mt-1 font-display text-xl text-[var(--ink)]">
-            {latest.kind === "place_time"
-              ? `${placeName(view, latest.placeId)} × 时间 ${latest.timeId}`
-              : `${placeName(view, latest.placeId)} × ${personName(view, latest.personId!)}`}
+            {queryLabel(view, latest)}
             <span className="ml-3 font-mono text-[var(--green-win)]">
               {latest.sharedLabel}
             </span>
@@ -51,19 +92,24 @@ function QueryLog({ view }: { view: RoomPublicView }) {
           </p>
         </div>
       )}
-      <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-[var(--ink-muted)]">
-        {[...view.queryLog].reverse().map((q) => (
-          <li key={q.id} className="flex justify-between gap-2 border-b border-[var(--ink-faint)]/40 py-1">
-            <span>
-              {q.askerNickname} ·{" "}
-              {q.kind === "place_time"
-                ? `${placeName(view, q.placeId)}×T${q.timeId}`
-                : `${placeName(view, q.placeId)}×${q.personId}`}
-            </span>
-            <span className="font-mono text-[var(--ink)]">{q.sharedLabel}</span>
-          </li>
-        ))}
-      </ul>
+      {older.length > 0 && (
+        <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-[var(--ink-muted)]">
+          {older.map((q) => (
+            <li
+              key={q.id}
+              className="flex justify-between gap-2 border-b border-[var(--ink-faint)]/40 py-1"
+            >
+              <span>
+                {q.askerNickname} · {queryLabel(view, q)}
+              </span>
+              <span className="font-mono text-[var(--ink)]">{q.sharedLabel}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {!latest && (
+        <p className="text-sm text-[var(--ink-muted)]">尚无提问</p>
+      )}
     </div>
   );
 }
@@ -71,6 +117,7 @@ function QueryLog({ view }: { view: RoomPublicView }) {
 function PrivateClues({ view }: { view: RoomPublicView }) {
   const clues = view.you?.privateClues ?? [];
   const latest = clues[clues.length - 1];
+  const older = [...clues].slice(0, -1).reverse();
   return (
     <div className="space-y-2">
       {latest && (
@@ -78,24 +125,24 @@ function PrivateClues({ view }: { view: RoomPublicView }) {
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--ink-muted)]">
             白窗 · 仅你可见
           </p>
-          <p className="mt-1 font-display text-xl">
-            {latest.privateLabel}
+          <p className="mt-1 font-display text-xl">{latest.privateLabel}</p>
+          <p className="mt-1 text-xs text-[var(--ink-muted)]">
+            {privateQueryLabel(view, latest)}
           </p>
         </div>
       )}
       {clues.length === 0 && (
         <p className="text-sm text-[var(--ink-muted)]">尚无私密线索</p>
       )}
-      <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-[var(--ink-muted)]">
-        {[...clues].reverse().map((c) => (
-          <li key={c.queryId} className="font-mono">
-            {c.kind === "place_time"
-              ? `${c.placeId}×T${c.timeId}`
-              : `${c.placeId}×${c.personId}`}{" "}
-            → {c.privateLabel}
-          </li>
-        ))}
-      </ul>
+      {older.length > 0 && (
+        <ul className="max-h-32 space-y-1 overflow-y-auto text-xs text-[var(--ink-muted)]">
+          {older.map((c) => (
+            <li key={c.queryId}>
+              {privateQueryLabel(view, c)} → {c.privateLabel}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -174,7 +221,11 @@ function Lobby({
       {err && <p className="text-sm text-destructive">{err}</p>}
       {you?.isHost ? (
         <Button className="w-full" disabled={busy} onClick={start}>
-          {busy ? "封存案件…" : view.players.length === 1 ? "独自开查" : "开始调查"}
+          {busy
+            ? "封存案件…"
+            : view.players.length === 1
+              ? "独自开查"
+              : "开始调查"}
         </Button>
       ) : (
         <p className="text-center text-sm text-[var(--ink-muted)]">
@@ -186,6 +237,16 @@ function Lobby({
 }
 
 function EndScreen({ view }: { view: RoomPublicView }) {
+  const isSolo = view.players.length === 1;
+  const isFail = view.phase === "all_eliminated";
+  const [showAnswers, setShowAnswers] = useState(!(isSolo && isFail));
+
+  useEffect(() => {
+    if (!(isSolo && isFail)) return;
+    const t = setTimeout(() => setShowAnswers(true), 1600);
+    return () => clearTimeout(t);
+  }, [isSolo, isFail]);
+
   const ratingLabel =
     view.soloRating === "gold"
       ? "金放大镜"
@@ -195,11 +256,21 @@ function EndScreen({ view }: { view: RoomPublicView }) {
           ? "铜放大镜"
           : null;
 
+  const title =
+    view.phase === "reveal"
+      ? "真相揭晓"
+      : isSolo
+        ? "答错淘汰"
+        : "全员淘汰";
+
   return (
     <div className="mx-auto max-w-lg space-y-6 px-4 py-12 text-center">
-      <h1 className="font-display text-4xl text-[var(--ink)]">
-        {view.phase === "reveal" ? "真相揭晓" : "全员淘汰"}
-      </h1>
+      <h1 className="font-display text-4xl text-[var(--ink)]">{title}</h1>
+      {isSolo && isFail && !showAnswers && (
+        <p className="animate-fade-up text-[var(--ink-muted)]">
+          你的答案不正确。本场已结束，答案即将显示…
+        </p>
+      )}
       {view.phase === "reveal" && (
         <p className="text-[var(--ink-muted)]">
           胜者：
@@ -214,7 +285,7 @@ function EndScreen({ view }: { view: RoomPublicView }) {
           单人评级：{ratingLabel}（{view.players[0]?.queryCount ?? 0} 问）
         </p>
       )}
-      {view.revealAnswers && (
+      {showAnswers && view.revealAnswers && (
         <div className="animate-fade-up rounded-sm border border-[var(--amber)]/40 bg-[var(--stage)] p-4 text-left">
           <p className="mb-2 text-xs uppercase tracking-[0.2em] text-[var(--amber)]">
             答案摘要
@@ -256,54 +327,58 @@ export function PlayClient({
   initialCode?: string;
   initialToken?: string;
 }) {
-  const session = useMemo(() => {
+  const [bootstrapped, setBootstrapped] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
+
+  useEffect(() => {
     const stored = loadSession();
     if (initialCode && initialToken) {
-      return {
+      const s = {
         code: initialCode.toUpperCase(),
         token: initialToken,
         playerId: "",
       };
-    }
-    if (
+      setSession(s);
+      saveSession(s);
+    } else if (
       stored &&
       (!initialCode ||
         stored.code.toUpperCase() === initialCode.toUpperCase())
     ) {
-      return stored;
+      setSession(stored);
+    } else {
+      setSession(null);
     }
-    return null;
+    setBootstrapped(true);
   }, [initialCode, initialToken]);
 
   const { view, setView, connected } = useRoomStream(
-    session?.code ?? null,
-    session?.token ?? null
+    bootstrapped ? session?.code ?? null : null,
+    bootstrapped ? session?.token ?? null : null
   );
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("desk");
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!session) return;
-    // ensure session persisted when coming from URL
-    if (initialCode && initialToken) {
-      saveSession({
-        code: initialCode,
-        token: initialToken,
-        playerId: view?.you?.playerId ?? "",
-      });
-    }
-  }, [session, initialCode, initialToken, view?.you?.playerId]);
-
-  useEffect(() => {
     if (view?.you?.playerId && session) {
-      saveSession({
+      const next = {
         code: view.code,
         token: session.token,
         playerId: view.you.playerId,
-      });
+      };
+      saveSession(next);
+      setSession(next);
     }
-  }, [view?.you?.playerId, view?.code, session]);
+  }, [view?.you?.playerId, view?.code, session?.token]);
+
+  if (!bootstrapped) {
+    return (
+      <div className="px-4 py-20 text-center text-[var(--ink-muted)]">
+        连接房间{initialCode ? ` ${initialCode.toUpperCase()}` : ""}…
+      </div>
+    );
+  }
 
   if (!session) {
     return (
@@ -326,11 +401,7 @@ export function PlayClient({
 
   if (view.phase === "lobby") {
     return (
-      <Lobby
-        view={view}
-        token={session.token}
-        onRefresh={setView}
-      />
+      <Lobby view={view} token={session.token} onRefresh={setView} />
     );
   }
 
@@ -338,7 +409,9 @@ export function PlayClient({
     return <EndScreen view={view} />;
   }
 
-  const turnPlayer = view.players.find((p) => p.id === view.currentTurnPlayerId);
+  const turnPlayer = view.players.find(
+    (p) => p.id === view.currentTurnPlayerId
+  );
   const lastAskAgain = view.queryLog[view.queryLog.length - 1]?.askAgain;
 
   async function ask(input: {
@@ -358,6 +431,12 @@ export function PlayClient({
         }
       );
       setView(data.view);
+      setTab("desk");
+      requestAnimationFrame(() => {
+        document
+          .getElementById("reveal-panel")
+          ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "提问失败");
     } finally {
@@ -384,7 +463,7 @@ export function PlayClient({
             className={cn(
               "rounded-sm px-2 py-1",
               view.phase === "submit_window"
-                ? "bg-[var(--amber)]/20 text-[var(--amber)] animate-pulse-soft"
+                ? "animate-pulse-soft bg-[var(--amber)]/20 text-[var(--amber)]"
                 : "text-[var(--ink-muted)]"
             )}
           >
@@ -418,6 +497,8 @@ export function PlayClient({
       )}
 
       {err && <p className="text-sm text-destructive">{err}</p>}
+
+      <OpeningStrip view={view} />
 
       <Tabs value={tab} onValueChange={setTab} className="flex-1">
         <TabsList className="grid w-full grid-cols-3 bg-[var(--stage)]">
