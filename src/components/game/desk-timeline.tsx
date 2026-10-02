@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { CellMarkPicker, VisitPicker } from "./cell-mark-picker";
-import { GlyphToken, SourceGlyph } from "./source-glyph";
+import { GlyphToken, SOURCE_COLOR, SourceGlyph } from "./source-glyph";
 import { SuspectBoard } from "./suspect-board";
 
 const TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
@@ -297,7 +297,7 @@ function MiniRoom({ merged, verdict }: { merged: MergedCell; verdict?: "target" 
       {merged.count && (
         <span
           className={cn(
-            "font-mono text-[10px] font-bold leading-none",
+            "font-mono text-[11px] font-bold leading-none",
             merged.count.sources.includes("public")
               ? "text-[var(--mark-public)]"
               : "text-[var(--mark-inference)]",
@@ -308,13 +308,20 @@ function MiniRoom({ merged, verdict }: { merged: MergedCell; verdict?: "target" 
         </span>
       )}
       {shown.length > 0 && (
-        <span className="flex items-center gap-px">
+        <span className="flex items-center font-mono text-[10px] font-bold leading-none">
           {shown.map((p) => (
-            <GlyphToken key={p.person} sources={p.sources} size="xs">
+            <span
+              key={p.person}
+              className={cn(
+                "px-px",
+                p.sources.includes("inference") && !p.sources.includes("public") && "underline decoration-dotted"
+              )}
+              style={{ color: SOURCE_COLOR[p.sources[0]] }}
+            >
               {p.person}
-            </GlyphToken>
+            </span>
           ))}
-          {extra > 0 && <span className="font-mono text-[7px] leading-none">+{extra}</span>}
+          {extra > 0 && <span className="text-[8px] text-[var(--ink-deep)]/60">+{extra}</span>}
         </span>
       )}
     </div>
