@@ -5,7 +5,7 @@ import {
   resolvePlaceTime,
   soloRating,
 } from "@/lib/game/query";
-import { getScenarioBundle } from "@/lib/game/scenarios";
+import { getScenarioBundle, getDefaultScenarioId } from "@/lib/game/scenarios";
 import type {
   PlaceId,
   PersonId,
@@ -95,7 +95,7 @@ function getBundleOrThrow(id: string) {
 }
 
 export function createRoom(nickname: string, scenarioId?: string) {
-  const id = scenarioId || "harbor-missing-score";
+  const id = scenarioId || getDefaultScenarioId();
   const resolved = getBundleOrThrow(id);
 
   let code = genCode();
