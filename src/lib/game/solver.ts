@@ -5,7 +5,11 @@ import type {
   ScenarioRule,
   TimeId,
 } from "./types";
-import { resolvePlacePerson, resolvePlaceTime } from "./query";
+import {
+  privateRevealSalt,
+  resolvePlacePerson,
+  resolvePlaceTime,
+} from "./query";
 
 export const SOLVER_TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
 
@@ -80,7 +84,7 @@ export function observationsFromSealed(
   const places = pub.places.map((p) => p.id);
   const people = pub.people.map((p) => p.id);
   const obs: QueryObservation[] = [];
-  const salt = "validator";
+  const salt = privateRevealSalt(pub.seed ?? pub.id);
   for (const placeId of places) {
     for (const timeId of SOLVER_TIMES) {
       const r = resolvePlaceTime(sealed, placeId, timeId, salt);

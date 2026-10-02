@@ -419,9 +419,31 @@ export function LobbyHome() {
           </ol>
         </section>
 
-        <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--ink-faint)]/60 py-6 text-[11px] text-[var(--ink-muted)]/70">
-          <span>1–4 人 · 房间码开局 · 无需注册</span>
-          <span className="font-display italic">灯序 · 时间推理</span>
+        <footer className="flex flex-col gap-4 border-t border-[var(--ink-faint)]/60 py-8 text-[11px] text-[var(--ink-muted)]/80 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+          <div className="space-y-1.5">
+            <p className="font-display text-sm tracking-[0.18em] text-[var(--ink)]">
+              BY BIANG
+            </p>
+            <p className="max-w-md leading-[1.7] text-[var(--ink-muted)]/75">
+              规则与节奏启发自桌游{" "}
+              <span className="text-[var(--ink-muted)]">Kronologic</span>
+              ，此为非商业致敬之作。
+            </p>
+            <p>
+              <a
+                href="https://github.com/BIANG-qilie/Kronologic"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[var(--amber)]/90 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+              >
+                GitHub · BIANG-qilie/Kronologic
+              </a>
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 sm:items-end">
+            <span>1–4 人 · 房间码开局 · 无需注册</span>
+            <span className="font-display italic text-[var(--ink-muted)]/70">灯序 · 时间推理</span>
+          </div>
         </footer>
       </div>
     </main>

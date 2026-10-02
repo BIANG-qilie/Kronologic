@@ -8,6 +8,26 @@ import type {
   TimeId,
 } from "./types";
 
+/**
+ * Namespace used when calibrating greedySteps / soloBands for bank v1.
+ * Changing this token changes private picks and invalidates the case bank.
+ */
+export const PRIVATE_REVEAL_NAMESPACE = "validator";
+
+/**
+ * Stable salt for white-window private reveals.
+ * Same sealed case + same (place, time|person) → same private label for
+ * every player and every repeat ask. Must NOT include room code or query order.
+ *
+ * `caseKey` (seed / scenario id) is accepted so call sites stay case-aware;
+ * bank v1 was scored under {@link PRIVATE_REVEAL_NAMESPACE}, so the effective
+ * salt stays that namespace for compatibility. A future bank regen can fold
+ * `caseKey` into the salt without changing the call shape.
+ */
+export function privateRevealSalt(_caseKey?: string): string {
+  return PRIVATE_REVEAL_NAMESPACE;
+}
+
 function pickDeterministic<T>(items: T[], salt: string): T {
   let h = 0;
   for (let i = 0; i < salt.length; i++) {
@@ -20,7 +40,7 @@ export function resolvePlaceTime(
   sealed: ScenarioCase,
   placeId: PlaceId,
   timeId: TimeId,
-  salt: string
+  salt: string = PRIVATE_REVEAL_NAMESPACE
 ): { shared: SharedQueryPayload; private: PrivateQueryPayload } {
   const present = peopleAt(sealed, timeId, placeId);
   const count = present.length;
@@ -46,7 +66,7 @@ export function resolvePlacePerson(
   sealed: ScenarioCase,
   placeId: PlaceId,
   personId: PersonId,
-  salt: string
+  salt: string = PRIVATE_REVEAL_NAMESPACE
 ): { shared: SharedQueryPayload; private: PrivateQueryPayload } {
   const times = visitsOf(sealed, personId, placeId);
   const count = times.length;

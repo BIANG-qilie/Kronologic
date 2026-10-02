@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import {
   checkAnswers,
+  privateRevealSalt,
   resolvePlacePerson,
   resolvePlaceTime,
   soloRating,
@@ -285,7 +286,8 @@ export function askQuery(
 
   let shared;
   let priv;
-  const salt = `${room.code}:${room.queryLog.length}`;
+  // Case-stable only — never room code / query order (those broke greedy calibration).
+  const salt = privateRevealSalt(room.scenario.seed ?? room.scenarioId);
 
   if (input.kind === "place_time") {
     if (!input.timeId || input.timeId < 1 || input.timeId > 6) {
