@@ -186,6 +186,18 @@ export function projectFacts(input: ProjectFactsInput): FactProjection {
         if (!visit.private.sources.includes(q.id)) {
           visit.private.sources.push(q.id);
         }
+        // Mirror onto the desk cell so film + floor show 「其中有 S」
+        if (Number.isFinite(timeNum) && timeNum >= 1 && timeNum <= 6) {
+          const cell = ensureCell(cells, String(timeNum), q.placeId);
+          const letter = String(q.personId);
+          if (!cell.private.amongLetters.includes(letter)) {
+            cell.private.amongLetters.push(letter);
+            cell.private.amongLetters.sort();
+          }
+          if (!cell.private.sources.includes(q.id)) {
+            cell.private.sources.push(q.id);
+          }
+        }
       }
     }
   }

@@ -30,15 +30,6 @@ const PLACE_ORDER: PlaceId[] = [
   "prop",
 ];
 
-const LAYOUT: Record<PlaceId, { col: number; row: number }> = {
-  porch: { col: 1, row: 1 },
-  hall: { col: 2, row: 1 },
-  stage: { col: 3, row: 1 },
-  dress: { col: 1, row: 2 },
-  gallery: { col: 2, row: 2 },
-  prop: { col: 3, row: 2 },
-};
-
 type LayerFlags = {
   public: boolean;
   private: boolean;
@@ -86,47 +77,6 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
   );
 }
 
-/** Gap-only corridor between adjacent room boxes (viewBox 0–100). */
-function corridorSegment(
-  a: PlaceId,
-  b: PlaceId
-): { x1: number; y1: number; x2: number; y2: number } {
-  const box = (id: PlaceId) => {
-    const { col, row } = LAYOUT[id];
-    const cw = 100 / 3;
-    const ch = 50;
-    const inset = 4.5;
-    return {
-      left: (col - 1) * cw + inset,
-      right: col * cw - inset,
-      top: (row - 1) * ch + inset,
-      bottom: row * ch - inset,
-      cx: (col - 0.5) * cw,
-      cy: (row - 0.5) * ch,
-    };
-  };
-  const A = box(a);
-  const B = box(b);
-  if (LAYOUT[a].row === LAYOUT[b].row) {
-    const left = A.cx < B.cx ? A : B;
-    const right = A.cx < B.cx ? B : A;
-    return {
-      x1: left.right,
-      y1: left.cy,
-      x2: right.left,
-      y2: right.cy,
-    };
-  }
-  const top = A.cy < B.cy ? A : B;
-  const bottom = A.cy < B.cy ? B : A;
-  return {
-    x1: top.cx,
-    y1: top.bottom,
-    x2: bottom.cx,
-    y2: bottom.top,
-  };
-}
-
 function FloorPlan({
   view,
   time,
@@ -148,25 +98,175 @@ function FloorPlan({
   onEdit: (key: { time: TimeId; place: PlaceId } | null) => void;
   onSetCell: (time: TimeId, place: PlaceId, value: string) => void;
 }) {
-  const edges = useMemo(() => {
+  const edgeSet = useMemo(() => {
     const seen = new Set<string>();
-    const list: [PlaceId, PlaceId][] = [];
     for (const [a, neighbors] of Object.entries(view.scenario.adjacency) as [
       PlaceId,
       PlaceId[],
     ][]) {
       for (const b of neighbors) {
-        const key = [a, b].sort().join("-");
-        if (seen.has(key)) continue;
-        seen.add(key);
-        list.push([a, b]);
+        seen.add([a, b].sort().join("-"));
       }
     }
-    return list;
+    return seen;
   }, [view.scenario.adjacency]);
 
   const placeName = (id: PlaceId) =>
     view.scenario.places.find((p) => p.id === id)?.name ?? id;
+
+  const linked = (a: PlaceId, b: PlaceId) =>
+    edgeSet.has([a, b].sort().join("-"));
+
+  /** 5×3 track: room / door / room / door / room */
+  function HDoor({ a, b }: { a: PlaceId; b: PlaceId }) {
+    if (!linked(a, b)) return <div />;
+    return (
+      <div className="flex items-center justify-center self-stretch">
+        <div
+          title="通道"
+          className={cn("w-full rounded-sm", compact ? "h-1" : "h-2")}
+          style={{ backgroundColor: "var(--ink-deep)", opacity: 0.65 }}
+        />
+      </div>
+    );
+  }
+
+  function VDoor({ a, b }: { a: PlaceId; b: PlaceId }) {
+    if (!linked(a, b)) return <div />;
+    return (
+      <div className="flex items-center justify-center self-stretch">
+        <div
+          title="通道"
+          className={cn("h-full rounded-sm", compact ? "w-1" : "w-2")}
+          style={{ backgroundColor: "var(--ink-deep)", opacity: 0.65 }}
+        />
+      </div>
+    );
+  }
+
+  function RoomCell({ placeId }: { placeId: PlaceId }) {
+    const cellFact = facts.cells[String(time)]?.[placeId];
+    const inference =
+      payload.inference.cells[String(time)]?.[placeId] ?? "";
+    const conflict =
+      !!cellFact &&
+      cellHasConflict(cellFact.public, cellFact.private, inference);
+    const isEditing =
+      !compact && editing?.time === time && editing?.place === placeId;
+
+    const roomClass = cn(
+      "relative z-10 flex h-full min-h-0 flex-col items-center justify-start rounded-sm border border-[var(--ink-deep)]/25 bg-[var(--parchment)] text-left",
+      compact ? "overflow-visible px-0.5 py-0.5" : "overflow-hidden px-2 py-2",
+      !compact &&
+        "cursor-pointer transition-colors hover:border-[var(--ink-deep)]/45",
+      isEditing && "border-[var(--amber)]/70"
+    );
+
+    const hasPublicCount = layers.public && cellFact?.public.count != null;
+    const publicLetters =
+      layers.public && cellFact ? cellFact.public.letters : [];
+    const privateLetters =
+      layers.private && cellFact ? cellFact.private.amongLetters : [];
+
+    const inner = compact ? (
+      <>
+        {hasPublicCount && (
+          <span className="rounded-[1px] bg-[var(--green-win)] px-0.5 font-mono text-[9px] font-bold leading-none text-[var(--curtain)]">
+            {cellFact!.public.count}
+          </span>
+        )}
+        <div className="mt-0.5 flex flex-wrap items-center justify-center gap-px">
+          {publicLetters.map((letter) => (
+            <span
+              key={letter}
+              className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--amber)] font-mono text-[8px] font-semibold leading-none text-[var(--ink-deep)]"
+            >
+              {letter}
+            </span>
+          ))}
+          {privateLetters.map((letter) => (
+            <span
+              key={`p-${letter}`}
+              className="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-[1px] bg-[var(--stage)] px-0.5 font-mono text-[7px] font-semibold leading-none text-[var(--parchment)]"
+              title={`私 · 其中有 ${letter}`}
+            >
+              {letter}
+            </span>
+          ))}
+        </div>
+        {!hasPublicCount &&
+          publicLetters.length === 0 &&
+          privateLetters.length === 0 && (
+            <span className="mt-1 block h-1 w-1 rounded-full bg-[var(--ink-deep)]/15" />
+          )}
+      </>
+    ) : (
+      <>
+        {conflict && layers.inference && (
+          <span
+            className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--amber)]"
+            title="事实与推理冲突"
+          />
+        )}
+        {hasPublicCount && (
+          <span className="absolute left-1 top-1 rounded-sm bg-[var(--green-win)] px-1 font-mono text-[12px] font-semibold leading-none text-[var(--curtain)]">
+            {cellFact!.public.count} 人
+          </span>
+        )}
+        <span className="mb-1 w-full text-center text-[11px] text-[var(--ink-deep)]">
+          {placeName(placeId)}
+        </span>
+        <div className="flex min-h-[1.75rem] flex-wrap items-center justify-center gap-0.5">
+          {publicLetters.map((letter) => (
+            <span
+              key={letter}
+              className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--amber)] bg-[var(--parchment)] font-mono text-sm text-[var(--ink-deep)]"
+            >
+              {letter}
+            </span>
+          ))}
+        </div>
+        {privateLetters.length > 0 && (
+          <p className="mt-1 w-full truncate rounded-sm bg-[var(--stage)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--parchment)]">
+            {`私 · 其中有 ${privateLetters.join("、")}`}
+          </p>
+        )}
+        {layers.inference && (
+          <div className="mt-auto w-full pt-1">
+            {isEditing ? (
+              <RoomInferenceInput
+                value={inference}
+                autoFocus
+                onChange={(v) => onSetCell(time, placeId, v)}
+                onBlur={() => onEdit(null)}
+                ariaLabel={`时间${time} ${placeName(placeId)} 推理`}
+              />
+            ) : inference ? (
+              <p className="text-center font-mono text-xs tracking-wide text-[var(--ink-deep)]">
+                {inference}
+              </p>
+            ) : null}
+          </div>
+        )}
+      </>
+    );
+
+    if (compact) {
+      return <div className={roomClass}>{inner}</div>;
+    }
+    return (
+      <button
+        type="button"
+        onClick={() => {
+          if (!layers.inference) return;
+          onEdit(isEditing ? null : { time, place: placeId });
+        }}
+        className={roomClass}
+      >
+        {inner}
+      </button>
+    );
+  }
 
   return (
     <div
@@ -175,157 +275,33 @@ function FloorPlan({
         compact ? "aspect-[3/2]" : "aspect-[3/2] max-h-[420px]"
       )}
     >
-      <svg
-        className="pointer-events-none absolute inset-0 z-0 h-full w-full"
-        viewBox="0 0 100 100"
-        aria-hidden
+      <div
+        className={cn(
+          "absolute inset-0 grid h-full w-full",
+          compact ? "p-0.5" : "p-1 sm:p-1.5"
+        )}
+        style={{
+          gridTemplateColumns: `1fr ${compact ? "8px" : "16px"} 1fr ${compact ? "8px" : "16px"} 1fr`,
+          gridTemplateRows: `1fr ${compact ? "8px" : "16px"} 1fr`,
+        }}
       >
-        {edges.map(([a, b]) => {
-          const s = corridorSegment(a, b);
-          return (
-            <line
-              key={`${a}-${b}`}
-              x1={s.x1}
-              y1={s.y1}
-              x2={s.x2}
-              y2={s.y2}
-              stroke="var(--ink-deep)"
-              strokeOpacity={0.45}
-              strokeWidth={compact ? 1.1 : 1.4}
-              strokeLinecap="round"
-            />
-          );
-        })}
-      </svg>
-      <div className="absolute inset-0 z-10 grid grid-cols-3 grid-rows-2 gap-2 p-1 sm:gap-3 sm:p-2">
-        {PLACE_ORDER.map((placeId) => {
-          const cellFact = facts.cells[String(time)]?.[placeId];
-          const inference =
-            payload.inference.cells[String(time)]?.[placeId] ?? "";
-          const conflict =
-            !!cellFact &&
-            cellHasConflict(cellFact.public, cellFact.private, inference);
-          const isEditing =
-            !compact &&
-            editing?.time === time &&
-            editing?.place === placeId;
+        <RoomCell placeId="porch" />
+        <HDoor a="porch" b="hall" />
+        <RoomCell placeId="hall" />
+        <HDoor a="hall" b="stage" />
+        <RoomCell placeId="stage" />
 
-          const roomClass = cn(
-            "relative z-10 flex flex-col items-center justify-start overflow-hidden rounded-sm border border-[var(--ink-deep)]/25 bg-[var(--parchment)] text-left",
-            compact ? "px-1 py-1" : "px-2 py-2",
-            !compact && "cursor-pointer transition-colors hover:border-[var(--ink-deep)]/45",
-            isEditing && "border-[var(--amber)]/70"
-          );
+        <VDoor a="porch" b="dress" />
+        <div />
+        <VDoor a="hall" b="gallery" />
+        <div />
+        <VDoor a="stage" b="prop" />
 
-          const inner = (
-            <>
-              {conflict && layers.inference && (
-                <span
-                  className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--amber)]"
-                  title="事实与推理冲突"
-                />
-              )}
-              {layers.public && cellFact?.public.count != null && (
-                <span
-                  className={cn(
-                    "absolute left-1 top-1 rounded-sm bg-[var(--green-win)] px-1 font-mono font-semibold leading-none text-[var(--curtain)]",
-                    compact ? "text-[8px]" : "text-[12px]"
-                  )}
-                >
-                  {cellFact.public.count} 人
-                </span>
-              )}
-              <span
-                className={cn(
-                  "mb-1 w-full text-center text-[var(--ink-deep)]",
-                  compact ? "text-[8px] leading-tight" : "text-[11px]"
-                )}
-              >
-                {placeName(placeId)}
-              </span>
-
-              <div
-                className={cn(
-                  "flex flex-wrap items-center justify-center gap-0.5",
-                  compact ? "min-h-[0.9rem]" : "min-h-[1.75rem]"
-                )}
-              >
-                {layers.public &&
-                  cellFact?.public.letters.map((letter) => (
-                    <span
-                      key={letter}
-                      className={cn(
-                        "inline-flex items-center justify-center rounded-full border-2 border-[var(--amber)] bg-[var(--parchment)] font-mono text-[var(--ink-deep)]",
-                        compact ? "h-4 w-4 text-[9px]" : "h-7 w-7 text-sm"
-                      )}
-                    >
-                      {letter}
-                    </span>
-                  ))}
-              </div>
-
-              {layers.private &&
-                cellFact &&
-                cellFact.private.amongLetters.length > 0 && (
-                  <p
-                    className={cn(
-                      "mt-1 w-full truncate rounded-sm bg-[var(--stage)] px-1 py-0.5 text-center leading-tight text-[var(--parchment)]",
-                      compact ? "text-[7px]" : "text-[11px]"
-                    )}
-                  >
-                    {compact
-                      ? `私·${cellFact.private.amongLetters.join("")}`
-                      : `私 · 其中有 ${cellFact.private.amongLetters.join("、")}`}
-                  </p>
-                )}
-
-              {layers.inference && !compact && (
-                <div className="mt-auto w-full pt-1">
-                  {isEditing ? (
-                    <RoomInferenceInput
-                      value={inference}
-                      autoFocus
-                      onChange={(v) => onSetCell(time, placeId, v)}
-                      onBlur={() => onEdit(null)}
-                      ariaLabel={`时间${time} ${placeName(placeId)} 推理`}
-                    />
-                  ) : inference ? (
-                    <p className="text-center font-mono text-xs tracking-wide text-[var(--ink-deep)]">
-                      {inference}
-                    </p>
-                  ) : null}
-                </div>
-              )}
-              {layers.inference && compact && inference ? (
-                <p className="mt-0.5 font-mono text-[8px] text-[var(--ink-deep)]">
-                  {inference}
-                </p>
-              ) : null}
-            </>
-          );
-
-          if (compact) {
-            return (
-              <div key={placeId} className={roomClass}>
-                {inner}
-              </div>
-            );
-          }
-
-          return (
-            <button
-              key={placeId}
-              type="button"
-              onClick={() => {
-                if (!layers.inference) return;
-                onEdit(isEditing ? null : { time, place: placeId });
-              }}
-              className={roomClass}
-            >
-              {inner}
-            </button>
-          );
-        })}
+        <RoomCell placeId="dress" />
+        <HDoor a="dress" b="gallery" />
+        <RoomCell placeId="gallery" />
+        <HDoor a="gallery" b="prop" />
+        <RoomCell placeId="prop" />
       </div>
     </div>
   );
@@ -501,14 +477,14 @@ export function DeskTimeline({
                   setEditing(null);
                 }}
                 className={cn(
-                  "shrink-0 overflow-hidden rounded-sm border transition-all",
+                  "shrink-0 rounded-sm border transition-all",
                   active
-                    ? "w-[4.5rem] border-[var(--amber)] opacity-100 sm:w-24"
-                    : "w-14 border-[var(--ink-deep)]/20 opacity-70 hover:opacity-90 sm:w-16"
+                    ? "w-[5.75rem] border-[var(--amber)] opacity-100 sm:w-28"
+                    : "w-[4.75rem] border-[var(--ink-deep)]/20 opacity-80 hover:opacity-100 sm:w-[5.5rem]"
                 )}
               >
-                <div className="bg-[var(--parchment)]/80 px-0.5 py-0.5">
-                  <p className="text-center font-mono text-[9px] text-[var(--ink-deep)]/60">
+                <div className="overflow-hidden bg-[var(--parchment)]/80 px-0.5 py-0.5">
+                  <p className="text-center font-mono text-[10px] font-semibold text-[var(--ink-deep)]/70">
                     {t}
                   </p>
                   <FloorPlan
