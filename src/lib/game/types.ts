@@ -161,5 +161,5 @@ export interface NotesState {
   updatedAt: number;
 }
 
-/** Player-persisted notes: see `notes-format.ts` (v2 inference-only JSON). */
-export type { NotesPayloadV2, NotesInference } from "./notes-format";
+/** Player-persisted notes: see `notes-format.ts` (v3 structured inference JSON). */
+export type { NotesPayloadV3, NotesInference, CellMark } from "./notes-format";

@@ -2,14 +2,14 @@
 
 /**
  * Notes UI lives on the desk timeline (`DeskTimeline`).
- * This module re-exports the v2 notes JSON helpers used for persistence.
+ * This module re-exports the v3 notes JSON helpers used for persistence.
  */
 export {
   parseNotes,
   serializeNotes,
-  emptyNotesV2,
-  type NotesPayloadV2,
-  type NotesPayloadV2 as NotesPayload,
+  emptyNotesV3,
+  type NotesPayloadV3,
+  type NotesPayloadV3 as NotesPayload,
   type NotesInference,
 } from "@/lib/game/notes-format";
 

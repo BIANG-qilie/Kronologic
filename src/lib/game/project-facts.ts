@@ -234,55 +234,127 @@ export function publicLayerOnly(proj: FactProjection): {
   return { cells, visits };
 }
 
+export type MarkSource = "public" | "private" | "inference";
+
+export const SOURCE_ORDER: MarkSource[] = ["public", "private", "inference"];
+
+export const SOURCE_LABEL: Record<MarkSource, string> = {
+  public: "公",
+  private: "私",
+  inference: "推",
+};
+
+export function sourcesLabel(sources: MarkSource[]): string {
+  return SOURCE_ORDER.filter((s) => sources.includes(s))
+    .map((s) => SOURCE_LABEL[s])
+    .join("·");
+}
+
+export type MergedPerson = { person: string; sources: MarkSource[] };
+
+export type MergedCount = {
+  value: number;
+  sources: MarkSource[];
+  /** Inference count when it disagrees with the public count. */
+  inferred?: number;
+};
+
+export type MergedCell = {
+  people: MergedPerson[];
+  /** Persons the player pencilled as not here. */
+  absent: string[];
+  count: MergedCount | null;
+  conflict: boolean;
+};
+
+export type LayerVisibility = Record<MarkSource, boolean>;
+
+const ALL_LAYERS: LayerVisibility = { public: true, private: true, inference: true };
+
+/** Structured inference for one cell; mirrors `CellMark` in notes-format. */
+export type CellInference = {
+  in: string[];
+  out: string[];
+  count: number | null;
+};
+
+/**
+ * Fold public, private and inference marks on one cell into a single token per
+ * person (with every layer that names them) plus one count token.
+ * Hidden layers neither appear nor contribute sources.
+ */
+export function mergeCellMarks(
+  facts: CellFactLayers,
+  mark: CellInference,
+  layers: LayerVisibility = ALL_LAYERS
+): MergedCell {
+  const bySource = new Map<string, MarkSource[]>();
+  const add = (person: string, src: MarkSource) => {
+    const list = bySource.get(person) ?? [];
+    if (!list.includes(src)) list.push(src);
+    bySource.set(person, list);
+  };
+  if (layers.public) for (const p of facts.public.letters) add(p, "public");
+  if (layers.private) for (const p of facts.private.amongLetters) add(p, "private");
+  if (layers.inference) for (const p of mark.in) add(p, "inference");
+
+  const people = [...bySource.entries()]
+    .map(([person, sources]) => ({
+      person,
+      sources: SOURCE_ORDER.filter((s) => sources.includes(s)),
+    }))
+    .sort((a, b) => a.person.localeCompare(b.person));
+
+  const pub = layers.public ? facts.public.count : undefined;
+  const inf = layers.inference ? mark.count ?? undefined : undefined;
+  let count: MergedCount | null = null;
+  if (pub != null && inf != null) {
+    count =
+      pub === inf
+        ? { value: pub, sources: ["public", "inference"] }
+        : { value: pub, sources: ["public"], inferred: inf };
+  } else if (pub != null) {
+    count = { value: pub, sources: ["public"] };
+  } else if (inf != null) {
+    count = { value: inf, sources: ["inference"] };
+  }
+
+  return {
+    people,
+    absent: layers.inference ? [...mark.out].sort() : [],
+    count,
+    conflict: layers.inference ? cellHasConflict(facts.public, facts.private, mark) : false,
+  };
+}
+
 export function cellHasConflict(
   publicFact: CellPublicFact,
   privateFact: CellPrivateFact,
-  inference: string
+  mark: CellInference
 ): boolean {
-  const text = inference.trim();
-  if (!text) return false;
-  if (publicFact.count === 0) return true;
-  const inferredLetters = text
-    .toUpperCase()
-    .match(/[A-Z]/g)?.filter((c, i, a) => a.indexOf(c) === i) ?? [];
+  const known = new Set([...publicFact.letters, ...privateFact.amongLetters]);
+  const present = new Set([...known, ...mark.in]);
+  if (mark.out.some((p) => known.has(p))) return true;
+  // Opening letters are the complete roster of that cell.
   if (
     publicFact.letters.length > 0 &&
-    inferredLetters.length > 0 &&
-    inferredLetters.some((l) => !publicFact.letters.includes(l)) &&
-    // conflict only when inference asserts letters that contradict known opening set
-    // e.g. opening has A at cell but inference is only R
-    !inferredLetters.every((l) => publicFact.letters.includes(l))
-  ) {
-    // If public has definite letters and inference letters don't overlap at all
-    if (
-      inferredLetters.every((l) => !publicFact.letters.includes(l))
-    ) {
-      return true;
-    }
-  }
-  if (
-    privateFact.amongLetters.length > 0 &&
-    inferredLetters.length === 1 &&
-    !privateFact.amongLetters.includes(inferredLetters[0])
+    mark.in.some((p) => !publicFact.letters.includes(p))
   ) {
     return true;
   }
-  if (
-    publicFact.count != null &&
-    inferredLetters.length > publicFact.count
-  ) {
-    return true;
+  if (publicFact.count != null) {
+    if (mark.count != null && mark.count !== publicFact.count) return true;
+    if (present.size > publicFact.count) return true;
   }
+  if (mark.count != null && present.size > mark.count) return true;
   return false;
 }
 
 export function visitHasConflict(
   publicFact: VisitPublicFact,
-  inference: string
+  inference: number | null
 ): boolean {
-  const text = inference.trim();
-  if (!text) return false;
-  if (publicFact.count == null) return false;
-  if (!/^\d+$/.test(text)) return false;
-  return Number(text) !== publicFact.count;
+  if (inference == null || publicFact.count == null) return false;
+  return inference !== publicFact.count;
 }
+
