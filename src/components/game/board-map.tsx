@@ -1,26 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { PlaceId, ScenarioPublic } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 
-const LAYOUT: Record<PlaceId, { col: number; row: number }> = {
-  porch: { col: 1, row: 1 },
-  hall: { col: 2, row: 1 },
-  stage: { col: 3, row: 1 },
-  dress: { col: 1, row: 2 },
-  gallery: { col: 2, row: 2 },
-  prop: { col: 3, row: 2 },
-};
-
-const PLACE_ORDER: PlaceId[] = [
-  "porch",
-  "hall",
-  "stage",
-  "dress",
-  "gallery",
-  "prop",
-];
+const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
 
 export function BoardMap({
   scenario,
@@ -34,105 +18,91 @@ export function BoardMap({
   selected?: PlaceId | null;
 }) {
   const [hovered, setHovered] = useState<PlaceId | null>(null);
-
-  const byId = useMemo(() => {
-    const m = new Map(scenario.places.map((p) => [p.id, p]));
-    return m;
-  }, [scenario.places]);
-
-  const edges = useMemo(() => {
-    const seen = new Set<string>();
-    const list: [PlaceId, PlaceId][] = [];
-    for (const [a, neighbors] of Object.entries(scenario.adjacency) as [
-      PlaceId,
-      PlaceId[],
-    ][]) {
-      for (const b of neighbors) {
-        const key = [a, b].sort().join("-");
-        if (seen.has(key)) continue;
-        seen.add(key);
-        list.push([a, b]);
-      }
-    }
-    return list;
-  }, [scenario.adjacency]);
+  const byId = useMemo(() => new Map(scenario.places.map((p) => [p.id, p])), [scenario.places]);
+  const linked = (a: PlaceId, b: PlaceId) =>
+    (scenario.adjacency[a] ?? []).includes(b) || (scenario.adjacency[b] ?? []).includes(a);
 
   const focus = selected ?? hovered;
-  const neighbors = useMemo(() => {
-    if (!focus) return new Set<PlaceId>();
-    return new Set(scenario.adjacency[focus] ?? []);
-  }, [focus, scenario.adjacency]);
+  const neighbors = new Set(focus ? scenario.adjacency[focus] ?? [] : []);
 
-  function center(id: PlaceId) {
-    const { col, row } = LAYOUT[id];
-    return { x: (col - 0.5) * (100 / 3), y: (row - 0.5) * 50 };
-  }
+  const door = (a: PlaceId, b: PlaceId, dir: "h" | "v") => {
+    if (!linked(a, b)) return <div />;
+    const lit = !!focus && (a === focus || b === focus);
+    return (
+      <div className="flex items-center justify-center">
+        <div
+          className={cn(
+            "rounded-full transition-all duration-300",
+            dir === "h" ? "h-[3px] w-full" : "h-full w-[3px]",
+            lit ? "bg-[var(--amber)] shadow-[0_0_10px_rgba(212,161,90,0.8)]" : "bg-[var(--ink-faint)]"
+          )}
+        />
+      </div>
+    );
+  };
+
+  const room = (id: PlaceId, i: number) => {
+    const place = byId.get(id)!;
+    const isSel = selected === id;
+    const isNeighbor = !!focus && neighbors.has(id) && id !== focus;
+    return (
+      <button
+        key={id}
+        type="button"
+        disabled={!onSelect}
+        aria-pressed={isSel}
+        onClick={() => onSelect?.(id)}
+        onMouseEnter={() => setHovered(id)}
+        onMouseLeave={() => setHovered(null)}
+        onFocus={() => setHovered(id)}
+        onBlur={() => setHovered(null)}
+        className={cn(
+          "group relative flex flex-col justify-between rounded-[3px] p-3 text-left transition-all duration-300 sm:p-4",
+          isSel
+            ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_18px_40px_-16px_rgba(212,161,90,0.9)]"
+            : isNeighbor
+              ? "bg-[var(--amber)]/10 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+              : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
+          highlight === id && "animate-pulse-soft",
+          !onSelect && "cursor-default"
+        )}
+      >
+        <span
+          className={cn(
+            "font-display text-xs italic",
+            isSel ? "text-[var(--curtain)]/60" : "text-[var(--ink-faint)] group-hover:text-[var(--amber-dim)]"
+          )}
+        >
+          0{i + 1}
+        </span>
+        <span className="font-display text-lg leading-none sm:text-2xl">{place.name}</span>
+      </button>
+    );
+  };
 
   return (
-    <div className="mx-auto w-full max-w-xl">
-      <div className="relative aspect-[3/2] w-full">
-        <svg
-          className="pointer-events-none absolute inset-0 h-full w-full"
-          viewBox="0 0 100 100"
-          aria-hidden
-        >
-          {edges.map(([a, b]) => {
-            const pa = center(a);
-            const pb = center(b);
-            const active =
-              !!focus &&
-              ((a === focus && neighbors.has(b)) ||
-                (b === focus && neighbors.has(a)));
-            return (
-              <line
-                key={`${a}-${b}`}
-                x1={pa.x}
-                y1={pa.y}
-                x2={pb.x}
-                y2={pb.y}
-                stroke={active ? "var(--amber)" : "var(--ink-muted)"}
-                strokeWidth={active ? 2.2 : 1.6}
-                strokeOpacity={active ? 0.95 : 0.55}
-              />
-            );
-          })}
-        </svg>
-        <div className="absolute inset-0 grid grid-cols-3 grid-rows-2 gap-3 p-2">
-          {PLACE_ORDER.map((id) => {
-            const place = byId.get(id)!;
-            const isSel = selected === id;
-            const isHi = highlight === id;
-            const isNeighbor = !!focus && neighbors.has(id) && id !== focus;
-            return (
-              <button
-                key={id}
-                type="button"
-                disabled={!onSelect}
-                onClick={() => onSelect?.(id)}
-                onMouseEnter={() => setHovered(id)}
-                onMouseLeave={() => setHovered(null)}
-                onFocus={() => setHovered(id)}
-                onBlur={() => setHovered(null)}
-                className={cn(
-                  "relative z-10 flex flex-col items-center justify-center rounded-sm border px-2 py-3 text-center transition-all duration-200",
-                  "bg-[var(--stage)]/85 backdrop-blur-sm",
-                  isSel
-                    ? "scale-[1.02] border-[var(--amber)] shadow-[0_0_0_1px_var(--amber)]"
-                    : isNeighbor
-                      ? "border-[var(--amber-dim)] bg-[var(--amber)]/10"
-                      : "border-[var(--ink-faint)] hover:border-[var(--amber-dim)]",
-                  isHi && "animate-pulse-soft border-[var(--green-win)]",
-                  !onSelect && "cursor-default"
-                )}
-              >
-<span className="font-display text-lg tracking-wide text-[var(--ink)]">
-                  {place.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+    <div className="relative aspect-[3/2] w-full">
+      <div
+        className="absolute inset-0 grid"
+        style={{ gridTemplateColumns: "1fr 14px 1fr 14px 1fr", gridTemplateRows: "1fr 14px 1fr" }}
+      >
+        {room("porch", 0)}
+        {door("porch", "hall", "h")}
+        {room("hall", 1)}
+        {door("hall", "stage", "h")}
+        {room("stage", 2)}
+        {door("porch", "dress", "v")}
+        <div />
+        {door("hall", "gallery", "v")}
+        <div />
+        {door("stage", "prop", "v")}
+        {room("dress", 3)}
+        {door("dress", "gallery", "h")}
+        {room("gallery", 4)}
+        {door("gallery", "prop", "h")}
+        {room("prop", 5)}
       </div>
+      <span className="sr-only">{PLACE_ORDER.map((id) => byId.get(id)?.name).join("、")}</span>
     </div>
   );
 }

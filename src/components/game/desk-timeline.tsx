@@ -70,7 +70,12 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
   return (
     <div className="mb-4 border-b border-[var(--ink-deep)]/15 pb-3 text-[var(--ink-deep)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
-        <span className="font-mono text-[var(--mark-public)]">{latest.sharedLabel}</span>
+        <span className="font-mono font-semibold text-[var(--mark-public)]">
+          {(() => {
+            const n = /^x?(\d+)$/i.exec(latest.sharedLabel)?.[1];
+            return n != null ? `${n} ${latest.kind === "place_time" ? "人" : "次"}` : latest.sharedLabel;
+          })()}
+        </span>
         <span className="text-[var(--ink-deep)]/80">{q}</span>
         {privateClue && privateClue.privateLabel && privateClue.privateLabel !== "—" && (
           <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">

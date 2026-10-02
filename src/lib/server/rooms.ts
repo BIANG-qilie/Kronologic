@@ -488,6 +488,9 @@ export function projectRoom(
     submitWindowEndsAt: room.submitWindowEndsAt,
     winners: room.winners,
     revealAnswers: revealed,
+    revealTrajectory: revealed ? room.sealed?.trajectory ?? null : null,
+    revealVictimId:
+      revealed && room.sealed?.rule.type === "alone_with_victim" ? room.sealed.rule.victimId : null,
     soloRating: rating,
     you: viewer
       ? {

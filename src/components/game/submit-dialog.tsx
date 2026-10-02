@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { RoomPublicView } from "@/lib/game/types";
 import { soleTarget, type SuspectBoard } from "@/lib/game/notes-format";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -29,21 +29,25 @@ export function SubmitDialog({
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [prefilled, setPrefilled] = useState(0);
 
   if (!view.you?.canSubmit) return null;
 
   function openWithPrefill(next: boolean) {
     if (next && board) {
-      setAnswers((prev) => {
-        const filled = { ...prev };
-        for (const q of view.scenario.winQuestions) {
-          const sameKind = view.scenario.winQuestions.filter((x) => x.kind === q.kind);
-          if (filled[q.id] || sameKind.length !== 1) continue;
-          const target = soleTarget(board[BOARD_ROW[q.kind]]);
-          if (target) filled[q.id] = target;
+      const filled = { ...answers };
+      let n = 0;
+      for (const q of view.scenario.winQuestions) {
+        const sameKind = view.scenario.winQuestions.filter((x) => x.kind === q.kind);
+        if (filled[q.id] || sameKind.length !== 1) continue;
+        const target = soleTarget(board[BOARD_ROW[q.kind]]);
+        if (target) {
+          filled[q.id] = target;
+          n++;
         }
-        return filled;
-      });
+      }
+      setAnswers(filled);
+      setPrefilled(n);
     }
     setOpen(next);
   }
@@ -61,73 +65,67 @@ export function SubmitDialog({
     }
   }
 
+  const options = (kind: "person" | "place" | "time") =>
+    kind === "person"
+      ? view.scenario.people.map((p) => ({ value: p.id, label: p.name, mark: p.letter }))
+      : kind === "place"
+        ? view.scenario.places.map((p) => ({ value: p.id, label: p.name, mark: null }))
+        : [1, 2, 3, 4, 5, 6].map((t) => ({ value: String(t), label: `时间 ${t}`, mark: null }));
+  const complete = view.scenario.winQuestions.every((q) => !!answers[q.id]);
+
   return (
     <Dialog open={open} onOpenChange={openWithPrefill}>
       <DialogTrigger asChild>
-        <Button variant="outline">交卷</Button>
+        <Button variant="outline" size="sm" className="h-9 px-4">
+          交卷
+        </Button>
       </DialogTrigger>
-      <DialogContent className="border-[var(--ink-faint)] bg-[var(--curtain)] text-[var(--ink)]">
-        <DialogHeader>
-          <DialogTitle className="font-display text-2xl">提交答案</DialogTitle>
-          <DialogDescription className="text-[var(--ink-muted)]">
-            提交后进入 12 秒同时交卷窗。答错即淘汰。嫌疑板上唯一的目标会先填好。
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-0 bg-[var(--curtain)] p-6 text-[var(--ink)] shadow-[0_0_0_1px_var(--ink-faint),0_40px_120px_-30px_rgba(0,0,0,0.9)] sm:max-w-xl sm:p-8">
+        <DialogHeader className="text-left">
+          <DialogTitle className="font-display text-3xl">交卷</DialogTitle>
+          <DialogDescription className="leading-relaxed text-[var(--ink-muted)]">
+            答错就出局，没有第二次。有人交卷后，其余人还有 12 秒。
+            {prefilled > 0 && `已按嫌疑板上的目标填好 ${prefilled} 项。`}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          {view.scenario.winQuestions.map((q) => (
-            <div key={q.id} className="space-y-2">
-              <Label>{q.prompt}</Label>
-              {q.kind === "person" ? (
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={answers[q.id] ?? ""}
-                  onChange={(e) =>
-                    setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
-                  }
-                >
-                  <option value="">选择人物</option>
-                  {view.scenario.people.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.letter} · {p.name}
-                    </option>
-                  ))}
-                </select>
-              ) : q.kind === "place" ? (
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={answers[q.id] ?? ""}
-                  onChange={(e) =>
-                    setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
-                  }
-                >
-                  <option value="">选择地点</option>
-                  {view.scenario.places.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <select
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={answers[q.id] ?? ""}
-                  onChange={(e) =>
-                    setAnswers((a) => ({ ...a, [q.id]: e.target.value }))
-                  }
-                >
-                  <option value="">选择时间</option>
-                  {[1, 2, 3, 4, 5, 6].map((t) => (
-                    <option key={t} value={String(t)}>
-                      时间 {t}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+        <div className="space-y-6 py-2">
+          {view.scenario.winQuestions.map((q, qi) => (
+            <fieldset key={q.id}>
+              <legend className="mb-2.5 flex items-baseline gap-3">
+                <span className="font-display text-sm italic text-[var(--amber)]">0{qi + 1}</span>
+                <span className="text-sm text-[var(--ink)]">{q.prompt}</span>
+              </legend>
+              <div className={cn("grid gap-1.5", q.kind === "time" ? "grid-cols-6" : "grid-cols-3")} role="radiogroup">
+                {options(q.kind).map((o) => {
+                  const on = answers[q.id] === o.value;
+                  return (
+                    <button
+                      key={o.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      aria-label={o.label}
+                      onClick={() => setAnswers((a) => ({ ...a, [q.id]: o.value }))}
+                      className={cn(
+                        "flex h-11 items-center justify-center gap-1.5 rounded-[3px] text-sm transition-all duration-200",
+                        on
+                          ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_10px_24px_-12px_rgba(212,161,90,0.9)]"
+                          : "text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+                      )}
+                    >
+                      {o.mark && <span className="font-mono font-semibold">{o.mark}</span>}
+                      <span className={cn(q.kind === "time" && "font-display text-lg")}>
+                        {q.kind === "time" ? o.value : o.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
           ))}
-          {err && <p className="text-sm text-destructive">{err}</p>}
-          <Button className="w-full" disabled={busy} onClick={go}>
-            {busy ? "提交中…" : "确认交卷（不可悔）"}
+          {err && <p className="text-sm text-[#e07a5f]">{err}</p>}
+          <Button className="w-full" size="lg" disabled={busy || !complete} onClick={go}>
+            {busy ? "封卷中…" : complete ? "确认交卷 · 不能反悔" : "每一项都选好才能交"}
           </Button>
         </div>
       </DialogContent>

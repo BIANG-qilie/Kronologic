@@ -145,6 +145,9 @@ export interface RoomPublicView {
   submitWindowEndsAt: number | null;
   winners: string[];
   revealAnswers: Record<string, string> | null;
+  /** Full trajectory, only after the case is closed. */
+  revealTrajectory: Record<PersonId, Record<string, PlaceId>> | null;
+  revealVictimId: PersonId | null;
   soloRating: "gold" | "silver" | "copper" | null;
   you: {
     playerId: string;

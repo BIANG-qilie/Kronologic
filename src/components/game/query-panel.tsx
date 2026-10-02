@@ -10,7 +10,7 @@ import type {
 } from "@/lib/game/types";
 import { BoardMap } from "./board-map";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+import { ArrowRight, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function QueryPanel({
@@ -61,116 +61,138 @@ export function QueryPanel({
 
   if (!canAct) {
     return (
-      <div className="rounded-sm border border-[var(--ink-faint)] bg-[var(--stage)]/50 p-4 text-sm text-[var(--ink-muted)]">
-        {askAgain
-          ? "再问一次——等待提问者续问。"
-          : "等待当前调查员提问。"}
+      <div className="flex flex-col items-center justify-center gap-4 rounded-[3px] px-6 py-20 text-center shadow-[inset_0_0_0_1px_var(--ink-faint)]">
+        <Hourglass className="animate-pulse-soft h-6 w-6 text-[var(--amber)]" aria-hidden />
+        <p className="font-display text-2xl text-[var(--ink)]">
+          {askAgain ? "再问一次" : "还没轮到你"}
+        </p>
+        <p className="max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
+          {askAgain
+            ? "上一问答案是 0，提问者可以续问，等他问完。"
+            : "趁这会儿去桌面上推一推，问到你时这里会亮起来。"}
+        </p>
       </div>
     );
   }
 
+  const placeName = scenario.places.find((p) => p.id === placeId)?.name;
+  const personName = scenario.people.find((p) => p.id === personId)?.name;
+  const ready = !!placeId && (kind === "place_time" ? !!timeId : !!personId);
+
+  const Step = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => (
+    <section>
+      <p className="mb-3 flex items-baseline gap-3">
+        <span className="font-display text-sm italic text-[var(--amber)]">0{n}</span>
+        <span className="text-[11px] tracking-[0.28em] text-[var(--ink-muted)]">{title}</span>
+      </p>
+      {children}
+    </section>
+  );
+
+  const chip = (on: boolean) =>
+    cn(
+      "rounded-[3px] transition-all duration-200",
+      on
+        ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_10px_24px_-12px_rgba(212,161,90,0.9)]"
+        : "text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+    );
+
   return (
-    <div className="space-y-4">
-      {askAgain && (
-        <p className="animate-fade-up text-sm text-[var(--amber)]">
-          再问一次。
-        </p>
-      )}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          className={cn(
-            "flex-1 rounded-sm border px-3 py-2 text-sm transition-colors",
-            kind === "place_time"
-              ? "border-[var(--amber)] bg-[var(--amber)]/10 text-[var(--ink)]"
-              : "border-[var(--ink-faint)] text-[var(--ink-muted)]"
-          )}
-          onClick={() => setKind("place_time")}
-        >
-          地点 × 时间
-        </button>
-        <button
-          type="button"
-          className={cn(
-            "flex-1 rounded-sm border px-3 py-2 text-sm transition-colors",
-            kind === "place_person"
-              ? "border-[var(--amber)] bg-[var(--amber)]/10 text-[var(--ink)]"
-              : "border-[var(--ink-faint)] text-[var(--ink-muted)]"
-          )}
-          onClick={() => setKind("place_person")}
-        >
-          地点 × 人物
-        </button>
-      </div>
-
-      <div>
-        <Label className="mb-2 block text-[var(--ink-muted)]">选择地点</Label>
-        <BoardMap
-          scenario={scenario}
-          selected={placeId}
-          highlight={flash}
-          onSelect={setPlaceId}
-        />
-      </div>
-
-      {kind === "place_time" ? (
-        <div>
-          <Label className="mb-2 block text-[var(--ink-muted)]">选择时间</Label>
-          <div className="grid grid-cols-6 gap-2">
-            {([1, 2, 3, 4, 5, 6] as TimeId[]).map((t) => (
+    <div className="grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:gap-14">
+      <div className="space-y-8">
+        {askAgain && (
+          <p className="animate-fade-up rounded-[3px] bg-[var(--green-win)]/10 px-4 py-2.5 text-sm text-[var(--green-win)]">
+            上一问的答案是 0，可以再问一次。
+          </p>
+        )}
+        <Step n={1} title="问什么">
+          <div className="grid grid-cols-2 gap-2" role="radiogroup">
+            {(
+              [
+                ["place_time", "地点 × 时间", "那一刻房里有几个人"],
+                ["place_person", "地点 × 人物", "这人去过那里几次"],
+              ] as const
+            ).map(([k, label, hint]) => (
               <button
-                key={t}
+                key={k}
                 type="button"
-                onClick={() => setTimeId(t)}
-                className={cn(
-                  "h-10 rounded-sm border font-mono text-sm",
-                  timeId === t
-                    ? "border-[var(--amber)] bg-[var(--amber)]/15"
-                    : "border-[var(--ink-faint)]"
-                )}
+                role="radio"
+                aria-checked={kind === k}
+                onClick={() => setKind(k)}
+                className={cn(chip(kind === k), "px-4 py-3 text-left")}
               >
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div>
-          <Label className="mb-2 block text-[var(--ink-muted)]">选择人物</Label>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            {scenario.people.map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                onClick={() => setPersonId(p.id)}
-                className={cn(
-                  "rounded-sm border px-2 py-2 text-sm",
-                  personId === p.id
-                    ? "border-[var(--amber)] bg-[var(--amber)]/15"
-                    : "border-[var(--ink-faint)]"
-                )}
-              >
-                <span className="font-mono font-semibold">{p.letter}</span>
-                <span className="mt-0.5 block text-xs text-[var(--ink-muted)]">
-                  {p.name}
+                <span className="block font-display text-lg">{label}</span>
+                <span className={cn("mt-0.5 block text-xs", kind === k ? "text-[var(--curtain)]/70" : "text-[var(--ink-muted)]")}>
+                  {hint}
                 </span>
               </button>
             ))}
           </div>
-        </div>
-      )}
+        </Step>
 
-      <Button
-        className="w-full"
-        disabled={
-          busy ||
-          !placeId ||
-          (kind === "place_time" ? !timeId : !personId)
-        }
-        onClick={submit}
-      >
-        确认提问
-      </Button>
+        <Step n={2} title="哪个房间">
+          <BoardMap scenario={scenario} selected={placeId} highlight={flash} onSelect={setPlaceId} />
+        </Step>
+      </div>
+
+      <div className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+        {kind === "place_time" ? (
+          <Step n={3} title="哪个时间">
+            <div className="grid grid-cols-6 gap-1.5" role="radiogroup">
+              {([1, 2, 3, 4, 5, 6] as TimeId[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  role="radio"
+                  aria-checked={timeId === t}
+                  onClick={() => setTimeId(t)}
+                  className={cn(chip(timeId === t), "h-14 font-display text-2xl tabular")}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </Step>
+        ) : (
+          <Step n={3} title="哪个人">
+            <div className="grid grid-cols-3 gap-1.5" role="radiogroup">
+              {scenario.people.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={personId === p.id}
+                  onClick={() => setPersonId(p.id)}
+                  className={cn(chip(personId === p.id), "px-3 py-2.5 text-left")}
+                >
+                  <span className="font-mono text-base font-semibold">{p.letter}</span>
+                  <span className={cn("ml-2 text-sm", personId === p.id ? "text-[var(--curtain)]/80" : "text-[var(--ink-muted)]")}>
+                    {p.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </Step>
+        )}
+
+        <div className="border-t border-[var(--ink-faint)]/60 pt-6">
+          <p className="min-h-[2.5rem] font-display text-2xl leading-snug text-[var(--ink-muted)]" aria-live="polite">
+            {placeName ? <span className="text-[var(--ink)]">{placeName}</span> : "某个房间"}
+            <span className="mx-2 text-[var(--ink-faint)]">×</span>
+            {kind === "place_time" ? (
+              timeId ? <span className="text-[var(--ink)]">时间 {timeId}</span> : "某个时间"
+            ) : personName ? (
+              <span className="text-[var(--ink)]">{personName}</span>
+            ) : (
+              "某个人"
+            )}
+          </p>
+          <Button className="group mt-5 w-full" size="lg" disabled={busy || !ready} onClick={submit}>
+            {busy ? "灯在亮…" : "提问"}
+            {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
