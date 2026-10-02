@@ -63,8 +63,12 @@ export interface ScenarioPublic {
   winQuestions: WinQuestion[];
   soloBands: SoloBands;
   difficulty: number;
-  /** Lobby badge, e.g. 「入门」 */
+  /** Lobby badge, e.g. 「5 问」 */
   tier?: string;
+  /** Generator seed (reproducible bank entry) */
+  seed?: string;
+  /** Greedy min-query difficulty rung */
+  greedyMin?: number;
 }
 
 export interface ScenarioCase {

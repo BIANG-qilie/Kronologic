@@ -1,0 +1,1058 @@
+{
+  "family": "night-tea-poison",
+  "generatedAt": "2026-10-02T09:28:17.519Z",
+  "selection": "pregenerated",
+  "rationale": "求解校验（开场多解/全信息唯一/贪心步数/单题锁）单次常需数百毫秒且失败需重试，开房即时生成无法在 1 秒内稳定命中目标难度；故离线预生成题库，开房只选题。",
+  "tiers": [
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "cases": [
+    {
+      "id": "night-tea-poison-g5-30f283",
+      "seed": "lampxu-night-tea-bank-v1|g5|#0",
+      "greedySteps": 5,
+      "fingerprint": "A:-,R:-,M:-,E:stage,T:-,K:prop#porch>hall>stage>prop>stage>hall|prop>stage>hall>porch>dress>gallery|gallery>hall>gallery>dress>gallery>prop|stage>prop>stage>hall>porch>hall|prop>gallery>prop>gallery>prop>stage|prop>gallery>hall>porch>dress>gallery",
+      "opening": {
+        "K": "prop",
+        "E": "stage"
+      },
+      "trajectory": {
+        "A": {
+          "1": "porch",
+          "2": "hall",
+          "3": "stage",
+          "4": "prop",
+          "5": "stage",
+          "6": "hall"
+        },
+        "R": {
+          "1": "prop",
+          "2": "stage",
+          "3": "hall",
+          "4": "porch",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "M": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "gallery",
+          "4": "dress",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "E": {
+          "1": "stage",
+          "2": "prop",
+          "3": "stage",
+          "4": "hall",
+          "5": "porch",
+          "6": "hall"
+        },
+        "T": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "prop",
+          "6": "stage"
+        },
+        "K": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "hall",
+          "4": "porch",
+          "5": "dress",
+          "6": "gallery"
+        }
+      },
+      "answers": {
+        "who": "A",
+        "where": "hall",
+        "when": "2"
+      },
+      "soloBands": {
+        "goldMax": 5,
+        "silverMax": 9
+      }
+    },
+    {
+      "id": "night-tea-poison-g5-13ddce",
+      "seed": "lampxu-night-tea-bank-v1|g5|#1",
+      "greedySteps": 5,
+      "fingerprint": "A:-,R:gallery,M:porch,E:-,T:stage,K:hall#gallery>hall>stage>prop>gallery>dress|gallery>hall>gallery>dress>gallery>hall|porch>dress>porch>hall>porch>dress|hall>stage>hall>stage>hall>porch|stage>hall>gallery>prop>gallery>hall|hall>gallery>dress>porch>dress>gallery",
+      "opening": {
+        "R": "gallery",
+        "T": "stage",
+        "M": "porch",
+        "K": "hall"
+      },
+      "trajectory": {
+        "A": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "stage",
+          "4": "prop",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "R": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "gallery",
+          "4": "dress",
+          "5": "gallery",
+          "6": "hall"
+        },
+        "M": {
+          "1": "porch",
+          "2": "dress",
+          "3": "porch",
+          "4": "hall",
+          "5": "porch",
+          "6": "dress"
+        },
+        "E": {
+          "1": "hall",
+          "2": "stage",
+          "3": "hall",
+          "4": "stage",
+          "5": "hall",
+          "6": "porch"
+        },
+        "T": {
+          "1": "stage",
+          "2": "hall",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "hall"
+        },
+        "K": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "dress",
+          "4": "porch",
+          "5": "dress",
+          "6": "gallery"
+        }
+      },
+      "answers": {
+        "who": "A",
+        "where": "dress",
+        "when": "6"
+      },
+      "soloBands": {
+        "goldMax": 5,
+        "silverMax": 9
+      }
+    },
+    {
+      "id": "night-tea-poison-g5-1e466d",
+      "seed": "lampxu-night-tea-bank-v1|g5|#2",
+      "greedySteps": 5,
+      "fingerprint": "A:-,R:-,M:-,E:-,T:porch,K:gallery#dress>gallery>prop>gallery>hall>stage|gallery>hall>gallery>prop>gallery>prop|hall>stage>hall>porch>hall>porch|gallery>prop>gallery>prop>stage>prop|porch>dress>gallery>dress>porch>dress|gallery>prop>gallery>hall>gallery>hall",
+      "opening": {
+        "K": "gallery",
+        "T": "porch"
+      },
+      "trajectory": {
+        "A": {
+          "1": "dress",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "hall",
+          "6": "stage"
+        },
+        "R": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "M": {
+          "1": "hall",
+          "2": "stage",
+          "3": "hall",
+          "4": "porch",
+          "5": "hall",
+          "6": "porch"
+        },
+        "E": {
+          "1": "gallery",
+          "2": "prop",
+          "3": "gallery",
+          "4": "prop",
+          "5": "stage",
+          "6": "prop"
+        },
+        "T": {
+          "1": "porch",
+          "2": "dress",
+          "3": "gallery",
+          "4": "dress",
+          "5": "porch",
+          "6": "dress"
+        },
+        "K": {
+          "1": "gallery",
+          "2": "prop",
+          "3": "gallery",
+          "4": "hall",
+          "5": "gallery",
+          "6": "hall"
+        }
+      },
+      "answers": {
+        "who": "A",
+        "where": "hall",
+        "when": "5"
+      },
+      "soloBands": {
+        "goldMax": 5,
+        "silverMax": 9
+      }
+    },
+    {
+      "id": "night-tea-poison-g6-1627cb",
+      "seed": "lampxu-night-tea-bank-v1|g6|#0",
+      "greedySteps": 6,
+      "fingerprint": "A:-,R:-,M:hall,E:-,T:-,K:gallery#gallery>hall>porch>dress>gallery>dress|prop>gallery>prop>gallery>hall>porch|hall>stage>hall>gallery>dress>gallery|porch>hall>gallery>dress>porch>dress|gallery>prop>gallery>prop>stage>hall|gallery>hall>gallery>dress>porch>hall",
+      "opening": {
+        "M": "hall",
+        "K": "gallery"
+      },
+      "trajectory": {
+        "A": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "porch",
+          "4": "dress",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "R": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "hall",
+          "6": "porch"
+        },
+        "M": {
+          "1": "hall",
+          "2": "stage",
+          "3": "hall",
+          "4": "gallery",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "E": {
+          "1": "porch",
+          "2": "hall",
+          "3": "gallery",
+          "4": "dress",
+          "5": "porch",
+          "6": "dress"
+        },
+        "T": {
+          "1": "gallery",
+          "2": "prop",
+          "3": "gallery",
+          "4": "prop",
+          "5": "stage",
+          "6": "hall"
+        },
+        "K": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "gallery",
+          "4": "dress",
+          "5": "porch",
+          "6": "hall"
+        }
+      },
+      "answers": {
+        "who": "R",
+        "where": "gallery",
+        "when": "4"
+      },
+      "soloBands": {
+        "goldMax": 6,
+        "silverMax": 11
+      }
+    },
+    {
+      "id": "night-tea-poison-g6-ae430c",
+      "seed": "lampxu-night-tea-bank-v1|g6|#1",
+      "greedySteps": 6,
+      "fingerprint": "A:stage,R:porch,M:-,E:-,T:-,K:hall#stage>hall>stage>hall>gallery>prop|porch>hall>stage>hall>gallery>prop|porch>dress>porch>dress>porch>hall|prop>stage>hall>gallery>dress>gallery|hall>gallery>dress>porch>dress>gallery|hall>gallery>prop>gallery>hall>stage",
+      "opening": {
+        "R": "porch",
+        "K": "hall",
+        "A": "stage"
+      },
+      "trajectory": {
+        "A": {
+          "1": "stage",
+          "2": "hall",
+          "3": "stage",
+          "4": "hall",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "R": {
+          "1": "porch",
+          "2": "hall",
+          "3": "stage",
+          "4": "hall",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "M": {
+          "1": "porch",
+          "2": "dress",
+          "3": "porch",
+          "4": "dress",
+          "5": "porch",
+          "6": "hall"
+        },
+        "E": {
+          "1": "prop",
+          "2": "stage",
+          "3": "hall",
+          "4": "gallery",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "T": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "dress",
+          "4": "porch",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "K": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "hall",
+          "6": "stage"
+        }
+      },
+      "answers": {
+        "who": "R",
+        "where": "porch",
+        "when": "1"
+      },
+      "soloBands": {
+        "goldMax": 6,
+        "silverMax": 11
+      }
+    },
+    {
+      "id": "night-tea-poison-g6-154046",
+      "seed": "lampxu-night-tea-bank-v1|g6|#2",
+      "greedySteps": 6,
+      "fingerprint": "A:-,R:gallery,M:-,E:hall,T:-,K:porch#stage>prop>gallery>hall>gallery>prop|gallery>prop>gallery>dress>gallery>hall|gallery>hall>gallery>dress>porch>dress|hall>porch>hall>gallery>hall>gallery|gallery>dress>gallery>dress>gallery>prop|porch>dress>porch>hall>porch>hall",
+      "opening": {
+        "R": "gallery",
+        "E": "hall",
+        "K": "porch"
+      },
+      "trajectory": {
+        "A": {
+          "1": "stage",
+          "2": "prop",
+          "3": "gallery",
+          "4": "hall",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "R": {
+          "1": "gallery",
+          "2": "prop",
+          "3": "gallery",
+          "4": "dress",
+          "5": "gallery",
+          "6": "hall"
+        },
+        "M": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "gallery",
+          "4": "dress",
+          "5": "porch",
+          "6": "dress"
+        },
+        "E": {
+          "1": "hall",
+          "2": "porch",
+          "3": "hall",
+          "4": "gallery",
+          "5": "hall",
+          "6": "gallery"
+        },
+        "T": {
+          "1": "gallery",
+          "2": "dress",
+          "3": "gallery",
+          "4": "dress",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "K": {
+          "1": "porch",
+          "2": "dress",
+          "3": "porch",
+          "4": "hall",
+          "5": "porch",
+          "6": "hall"
+        }
+      },
+      "answers": {
+        "who": "K",
+        "where": "porch",
+        "when": "5"
+      },
+      "soloBands": {
+        "goldMax": 6,
+        "silverMax": 11
+      }
+    },
+    {
+      "id": "night-tea-poison-g7-e4b982",
+      "seed": "lampxu-night-tea-bank-v1|g7|#0",
+      "greedySteps": 7,
+      "fingerprint": "A:-,R:-,M:-,E:prop,T:dress,K:-#prop>gallery>hall>porch>hall>stage|hall>gallery>dress>porch>dress>gallery|stage>prop>gallery>prop>stage>prop|prop>stage>hall>stage>prop>stage|dress>gallery>hall>porch>hall>gallery|gallery>dress>porch>hall>stage>hall",
+      "opening": {
+        "E": "prop",
+        "T": "dress"
+      },
+      "trajectory": {
+        "A": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "hall",
+          "4": "porch",
+          "5": "hall",
+          "6": "stage"
+        },
+        "R": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "dress",
+          "4": "porch",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "M": {
+          "1": "stage",
+          "2": "prop",
+          "3": "gallery",
+          "4": "prop",
+          "5": "stage",
+          "6": "prop"
+        },
+        "E": {
+          "1": "prop",
+          "2": "stage",
+          "3": "hall",
+          "4": "stage",
+          "5": "prop",
+          "6": "stage"
+        },
+        "T": {
+          "1": "dress",
+          "2": "gallery",
+          "3": "hall",
+          "4": "porch",
+          "5": "hall",
+          "6": "gallery"
+        },
+        "K": {
+          "1": "gallery",
+          "2": "dress",
+          "3": "porch",
+          "4": "hall",
+          "5": "stage",
+          "6": "hall"
+        }
+      },
+      "answers": {
+        "who": "K",
+        "where": "stage",
+        "when": "5"
+      },
+      "soloBands": {
+        "goldMax": 7,
+        "silverMax": 13
+      }
+    },
+    {
+      "id": "night-tea-poison-g7-398be4",
+      "seed": "lampxu-night-tea-bank-v1|g7|#1",
+      "greedySteps": 7,
+      "fingerprint": "A:hall,R:gallery,M:-,E:-,T:-,K:-#hall>gallery>prop>gallery>prop>stage|gallery>hall>porch>dress>porch>dress|porch>hall>gallery>prop>gallery>prop|dress>porch>dress>porch>hall>stage|prop>stage>prop>stage>hall>stage|hall>porch>hall>porch>hall>gallery",
+      "opening": {
+        "A": "hall",
+        "R": "gallery"
+      },
+      "trajectory": {
+        "A": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "prop",
+          "6": "stage"
+        },
+        "R": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "porch",
+          "4": "dress",
+          "5": "porch",
+          "6": "dress"
+        },
+        "M": {
+          "1": "porch",
+          "2": "hall",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "E": {
+          "1": "dress",
+          "2": "porch",
+          "3": "dress",
+          "4": "porch",
+          "5": "hall",
+          "6": "stage"
+        },
+        "T": {
+          "1": "prop",
+          "2": "stage",
+          "3": "prop",
+          "4": "stage",
+          "5": "hall",
+          "6": "stage"
+        },
+        "K": {
+          "1": "hall",
+          "2": "porch",
+          "3": "hall",
+          "4": "porch",
+          "5": "hall",
+          "6": "gallery"
+        }
+      },
+      "answers": {
+        "who": "R",
+        "where": "hall",
+        "when": "2"
+      },
+      "soloBands": {
+        "goldMax": 7,
+        "silverMax": 13
+      }
+    },
+    {
+      "id": "night-tea-poison-g7-e6f31e",
+      "seed": "lampxu-night-tea-bank-v1|g7|#2",
+      "greedySteps": 7,
+      "fingerprint": "A:-,R:-,M:-,E:prop,T:-,K:gallery#stage>prop>gallery>prop>gallery>dress|porch>dress>gallery>prop>gallery>dress|hall>stage>hall>stage>prop>stage|prop>stage>prop>gallery>hall>porch|dress>porch>dress>porch>hall>porch|gallery>dress>gallery>hall>porch>hall",
+      "opening": {
+        "E": "prop",
+        "K": "gallery"
+      },
+      "trajectory": {
+        "A": {
+          "1": "stage",
+          "2": "prop",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "R": {
+          "1": "porch",
+          "2": "dress",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "M": {
+          "1": "hall",
+          "2": "stage",
+          "3": "hall",
+          "4": "stage",
+          "5": "prop",
+          "6": "stage"
+        },
+        "E": {
+          "1": "prop",
+          "2": "stage",
+          "3": "prop",
+          "4": "gallery",
+          "5": "hall",
+          "6": "porch"
+        },
+        "T": {
+          "1": "dress",
+          "2": "porch",
+          "3": "dress",
+          "4": "porch",
+          "5": "hall",
+          "6": "porch"
+        },
+        "K": {
+          "1": "gallery",
+          "2": "dress",
+          "3": "gallery",
+          "4": "hall",
+          "5": "porch",
+          "6": "hall"
+        }
+      },
+      "answers": {
+        "who": "E",
+        "where": "stage",
+        "when": "2"
+      },
+      "soloBands": {
+        "goldMax": 7,
+        "silverMax": 13
+      }
+    },
+    {
+      "id": "night-tea-poison-g8-285831",
+      "seed": "lampxu-night-tea-bank-v1|g8|#0",
+      "greedySteps": 8,
+      "fingerprint": "A:prop,R:-,M:-,E:-,T:gallery,K:-#prop>gallery>hall>stage>hall>porch|porch>dress>gallery>dress>gallery>prop|hall>stage>prop>gallery>hall>gallery|gallery>dress>gallery>hall>gallery>dress|gallery>prop>gallery>dress>porch>hall|porch>hall>stage>hall>stage>prop",
+      "opening": {
+        "A": "prop",
+        "T": "gallery"
+      },
+      "trajectory": {
+        "A": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "hall",
+          "4": "stage",
+          "5": "hall",
+          "6": "porch"
+        },
+        "R": {
+          "1": "porch",
+          "2": "dress",
+          "3": "gallery",
+          "4": "dress",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "M": {
+          "1": "hall",
+          "2": "stage",
+          "3": "prop",
+          "4": "gallery",
+          "5": "hall",
+          "6": "gallery"
+        },
+        "E": {
+          "1": "gallery",
+          "2": "dress",
+          "3": "gallery",
+          "4": "hall",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "T": {
+          "1": "gallery",
+          "2": "prop",
+          "3": "gallery",
+          "4": "dress",
+          "5": "porch",
+          "6": "hall"
+        },
+        "K": {
+          "1": "porch",
+          "2": "hall",
+          "3": "stage",
+          "4": "hall",
+          "5": "stage",
+          "6": "prop"
+        }
+      },
+      "answers": {
+        "who": "A",
+        "where": "hall",
+        "when": "5"
+      },
+      "soloBands": {
+        "goldMax": 8,
+        "silverMax": 14
+      }
+    },
+    {
+      "id": "night-tea-poison-g8-eb4dea",
+      "seed": "lampxu-night-tea-bank-v1|g8|#1",
+      "greedySteps": 8,
+      "fingerprint": "A:-,R:-,M:hall,E:gallery,T:-,K:-#gallery>hall>porch>hall>gallery>hall|hall>stage>prop>gallery>dress>gallery|hall>gallery>hall>stage>hall>porch|gallery>prop>gallery>prop>stage>prop|hall>porch>dress>gallery>dress>gallery|prop>stage>hall>gallery>dress>gallery",
+      "opening": {
+        "E": "gallery",
+        "M": "hall"
+      },
+      "trajectory": {
+        "A": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "porch",
+          "4": "hall",
+          "5": "gallery",
+          "6": "hall"
+        },
+        "R": {
+          "1": "hall",
+          "2": "stage",
+          "3": "prop",
+          "4": "gallery",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "M": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "hall",
+          "4": "stage",
+          "5": "hall",
+          "6": "porch"
+        },
+        "E": {
+          "1": "gallery",
+          "2": "prop",
+          "3": "gallery",
+          "4": "prop",
+          "5": "stage",
+          "6": "prop"
+        },
+        "T": {
+          "1": "hall",
+          "2": "porch",
+          "3": "dress",
+          "4": "gallery",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "K": {
+          "1": "prop",
+          "2": "stage",
+          "3": "hall",
+          "4": "gallery",
+          "5": "dress",
+          "6": "gallery"
+        }
+      },
+      "answers": {
+        "who": "K",
+        "where": "hall",
+        "when": "3"
+      },
+      "soloBands": {
+        "goldMax": 8,
+        "silverMax": 14
+      }
+    },
+    {
+      "id": "night-tea-poison-g8-5c160e",
+      "seed": "lampxu-night-tea-bank-v1|g8|#2",
+      "greedySteps": 8,
+      "fingerprint": "A:-,R:-,M:-,E:porch,T:dress,K:prop#hall>stage>prop>gallery>hall>gallery|hall>gallery>hall>stage>hall>porch|stage>prop>stage>prop>stage>hall|porch>hall>gallery>prop>gallery>dress|dress>gallery>prop>gallery>dress>porch|prop>gallery>hall>stage>hall>gallery",
+      "opening": {
+        "K": "prop",
+        "E": "porch",
+        "T": "dress"
+      },
+      "trajectory": {
+        "A": {
+          "1": "hall",
+          "2": "stage",
+          "3": "prop",
+          "4": "gallery",
+          "5": "hall",
+          "6": "gallery"
+        },
+        "R": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "hall",
+          "4": "stage",
+          "5": "hall",
+          "6": "porch"
+        },
+        "M": {
+          "1": "stage",
+          "2": "prop",
+          "3": "stage",
+          "4": "prop",
+          "5": "stage",
+          "6": "hall"
+        },
+        "E": {
+          "1": "porch",
+          "2": "hall",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "T": {
+          "1": "dress",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "dress",
+          "6": "porch"
+        },
+        "K": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "hall",
+          "4": "stage",
+          "5": "hall",
+          "6": "gallery"
+        }
+      },
+      "answers": {
+        "who": "E",
+        "where": "prop",
+        "when": "4"
+      },
+      "soloBands": {
+        "goldMax": 8,
+        "silverMax": 14
+      }
+    },
+    {
+      "id": "night-tea-poison-g9-3f6a30",
+      "seed": "lampxu-night-tea-bank-v1|g9|#0",
+      "greedySteps": 9,
+      "fingerprint": "A:gallery,R:-,M:-,E:prop,T:-,K:prop#gallery>hall>porch>hall>stage>prop|stage>prop>gallery>prop>gallery>prop|hall>gallery>dress>porch>hall>porch|prop>gallery>hall>stage>prop>gallery|gallery>hall>gallery>hall>stage>prop|prop>stage>prop>stage>prop>stage",
+      "opening": {
+        "E": "prop",
+        "A": "gallery",
+        "K": "prop"
+      },
+      "trajectory": {
+        "A": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "porch",
+          "4": "hall",
+          "5": "stage",
+          "6": "prop"
+        },
+        "R": {
+          "1": "stage",
+          "2": "prop",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "M": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "dress",
+          "4": "porch",
+          "5": "hall",
+          "6": "porch"
+        },
+        "E": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "hall",
+          "4": "stage",
+          "5": "prop",
+          "6": "gallery"
+        },
+        "T": {
+          "1": "gallery",
+          "2": "hall",
+          "3": "gallery",
+          "4": "hall",
+          "5": "stage",
+          "6": "prop"
+        },
+        "K": {
+          "1": "prop",
+          "2": "stage",
+          "3": "prop",
+          "4": "stage",
+          "5": "prop",
+          "6": "stage"
+        }
+      },
+      "answers": {
+        "who": "E",
+        "where": "gallery",
+        "when": "2"
+      },
+      "soloBands": {
+        "goldMax": 9,
+        "silverMax": 16
+      }
+    },
+    {
+      "id": "night-tea-poison-g9-6f35ca",
+      "seed": "lampxu-night-tea-bank-v1|g9|#1",
+      "greedySteps": 9,
+      "fingerprint": "A:-,R:-,M:-,E:dress,T:porch,K:porch#stage>prop>stage>prop>stage>prop|hall>stage>prop>stage>prop>stage|porch>hall>gallery>prop>gallery>dress|dress>porch>hall>porch>dress>gallery|porch>hall>porch>dress>gallery>prop|porch>hall>porch>hall>gallery>hall",
+      "opening": {
+        "T": "porch",
+        "E": "dress",
+        "K": "porch"
+      },
+      "trajectory": {
+        "A": {
+          "1": "stage",
+          "2": "prop",
+          "3": "stage",
+          "4": "prop",
+          "5": "stage",
+          "6": "prop"
+        },
+        "R": {
+          "1": "hall",
+          "2": "stage",
+          "3": "prop",
+          "4": "stage",
+          "5": "prop",
+          "6": "stage"
+        },
+        "M": {
+          "1": "porch",
+          "2": "hall",
+          "3": "gallery",
+          "4": "prop",
+          "5": "gallery",
+          "6": "dress"
+        },
+        "E": {
+          "1": "dress",
+          "2": "porch",
+          "3": "hall",
+          "4": "porch",
+          "5": "dress",
+          "6": "gallery"
+        },
+        "T": {
+          "1": "porch",
+          "2": "hall",
+          "3": "porch",
+          "4": "dress",
+          "5": "gallery",
+          "6": "prop"
+        },
+        "K": {
+          "1": "porch",
+          "2": "hall",
+          "3": "porch",
+          "4": "hall",
+          "5": "gallery",
+          "6": "hall"
+        }
+      },
+      "answers": {
+        "who": "A",
+        "where": "prop",
+        "when": "4"
+      },
+      "soloBands": {
+        "goldMax": 9,
+        "silverMax": 16
+      }
+    },
+    {
+      "id": "night-tea-poison-g9-34de4d",
+      "seed": "lampxu-night-tea-bank-v1|g9|#2",
+      "greedySteps": 9,
+      "fingerprint": "A:-,R:-,M:hall,E:-,T:stage,K:prop#prop>gallery>prop>gallery>prop>stage|porch>hall>stage>hall>porch>dress|hall>gallery>hall>porch>dress>porch|porch>dress>gallery>prop>stage>prop|stage>prop>gallery>dress>porch>dress|prop>stage>prop>gallery>prop>gallery",
+      "opening": {
+        "T": "stage",
+        "M": "hall",
+        "K": "prop"
+      },
+      "trajectory": {
+        "A": {
+          "1": "prop",
+          "2": "gallery",
+          "3": "prop",
+          "4": "gallery",
+          "5": "prop",
+          "6": "stage"
+        },
+        "R": {
+          "1": "porch",
+          "2": "hall",
+          "3": "stage",
+          "4": "hall",
+          "5": "porch",
+          "6": "dress"
+        },
+        "M": {
+          "1": "hall",
+          "2": "gallery",
+          "3": "hall",
+          "4": "porch",
+          "5": "dress",
+          "6": "porch"
+        },
+        "E": {
+          "1": "porch",
+          "2": "dress",
+          "3": "gallery",
+          "4": "prop",
+          "5": "stage",
+          "6": "prop"
+        },
+        "T": {
+          "1": "stage",
+          "2": "prop",
+          "3": "gallery",
+          "4": "dress",
+          "5": "porch",
+          "6": "dress"
+        },
+        "K": {
+          "1": "prop",
+          "2": "stage",
+          "3": "prop",
+          "4": "gallery",
+          "5": "prop",
+          "6": "gallery"
+        }
+      },
+      "answers": {
+        "who": "A",
+        "where": "gallery",
+        "when": "2"
+      },
+      "soloBands": {
+        "goldMax": 9,
+        "silverMax": 16
+      }
+    }
+  ]
+}

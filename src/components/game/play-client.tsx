@@ -125,6 +125,19 @@ function EndScreen({ view }: { view: RoomPublicView }) {
     return () => clearTimeout(t);
   }, [isSolo, isFail]);
 
+  useEffect(() => {
+    if (view.phase !== "reveal") return;
+    const tier = view.scenario.greedyMin;
+    if (tier == null) return;
+    try {
+      const key = "lampxu-night-tea-cleared-tier";
+      const prev = Number(localStorage.getItem(key) ?? "0");
+      if (tier > prev) localStorage.setItem(key, String(tier));
+    } catch {
+      /* ignore */
+    }
+  }, [view.phase, view.scenario.greedyMin]);
+
   const ratingLabel =
     view.soloRating === "gold"
       ? "金放大镜"

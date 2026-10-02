@@ -9,9 +9,9 @@ import {
   validateWithSolver,
 } from "./solver";
 import type { ScenarioBundle } from "./types";
-import night from "@/data/scenarios/night-tea-poison.json";
+import { getDefaultScenarioId, getScenarioBundle } from "./scenarios";
 
-const nightBundle = night as ScenarioBundle;
+const nightBundle = getScenarioBundle(getDefaultScenarioId()) as ScenarioBundle;
 
 describe("enumeratePaths", () => {
   it("never stays in the same room and respects adjacency", () => {
@@ -29,7 +29,7 @@ describe("enumeratePaths", () => {
   });
 });
 
-describe("night-tea-poison solver", () => {
+describe("night-tea solver (default bank case)", () => {
   it("opening + rule leaves multiple answers", () => {
     const answers = findConsistentAnswers(nightBundle, [], {
       limitAnswers: 20,

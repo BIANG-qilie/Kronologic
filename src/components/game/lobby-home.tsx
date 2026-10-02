@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { ScenarioPublic } from "@/lib/game/types";
 import { Button } from "@/components/ui/button";
@@ -14,27 +14,65 @@ import {
 } from "@/hooks/use-room";
 import type { RoomPublicView } from "@/lib/game/types";
 
+type FamilyMeta = {
+  family: string;
+  title: string;
+  synopsis: string;
+  tiers: number[];
+  perTier: Record<number, number>;
+  total: number;
+  selection: string;
+};
+
+const PROGRESS_KEY = "lampxu-night-tea-cleared-tier";
+
+function loadClearedTier(): number {
+  try {
+    const v = Number(localStorage.getItem(PROGRESS_KEY) ?? "0");
+    return Number.isFinite(v) ? v : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export function LobbyHome() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [scenarios, setScenarios] = useState<ScenarioPublic[]>([]);
-  const [scenarioId, setScenarioId] = useState("night-tea-poison");
+  const [family, setFamily] = useState<FamilyMeta | null>(null);
+  const [greedyMin, setGreedyMin] = useState<number>(5);
   const [mode, setMode] = useState<"create" | "join">("create");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [resume, setResume] = useState<ReturnType<typeof loadSession>>(null);
+  const [clearedTier, setClearedTier] = useState(0);
 
   useEffect(() => {
     setResume(loadSession());
+    setClearedTier(loadClearedTier());
     fetch("/api/rooms")
       .then((r) => r.json())
       .then((d) => {
         setScenarios(d.scenarios ?? []);
-        if (d.scenarios?.[0]?.id) setScenarioId(d.scenarios[0].id);
+        if (d.family) setFamily(d.family);
+        const tiers: number[] = d.family?.tiers ?? [];
+        if (tiers.length) setGreedyMin(tiers[0]);
       })
       .catch(() => undefined);
   }, []);
+
+  const selected = useMemo(() => {
+    return (
+      scenarios.find((s) => s.greedyMin === greedyMin) ?? scenarios[0] ?? null
+    );
+  }, [scenarios, greedyMin]);
+
+  const nextTier = useMemo(() => {
+    if (!family?.tiers.length) return null;
+    const next = family.tiers.find((t) => t > clearedTier);
+    return next ?? null;
+  }, [family, clearedTier]);
 
   function requireNickname(): boolean {
     if (nickname.trim()) return true;
@@ -58,7 +96,7 @@ export function LobbyHome() {
         view: RoomPublicView;
       }>("/api/rooms", {
         method: "POST",
-        body: JSON.stringify({ nickname, scenarioId }),
+        body: JSON.stringify({ nickname, greedyMin }),
       });
       saveSession({
         code: data.code,
@@ -131,8 +169,6 @@ export function LobbyHome() {
     }
   }
 
-  const selected = scenarios.find((s) => s.id === scenarioId);
-
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-atmosphere" aria-hidden />
@@ -145,7 +181,7 @@ export function LobbyHome() {
             灯序
           </h1>
           <p className="max-w-md text-base leading-relaxed text-[var(--ink-muted)] md:text-lg">
-            六时、六地、六人。绿窗共享，白窗独见。在港湾剧院的灯光里，抢先拼出真相。
+            六时、六地、六人。绿窗共享，白窗独见。在星河音乐厅的灯光里，抢先拼出真相。
           </p>
         </header>
 
@@ -216,21 +252,43 @@ export function LobbyHome() {
             </div>
 
             {mode === "create" ? (
-              <div className="space-y-2">
-                <Label htmlFor="scene">调查</Label>
-                <select
-                  id="scene"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
-                  value={scenarioId}
-                  onChange={(e) => setScenarioId(e.target.value)}
-                >
-                  {scenarios.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.tier ? `${s.tier} · ` : ""}
-                      {s.title} · {s.subtitle}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label>调查</Label>
+                  <p className="font-display text-xl text-[var(--ink)]">
+                    {family?.title ?? "夜茶的毒"}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="diff">难度（贪心最少提问）</Label>
+                  <select
+                    id="diff"
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={greedyMin}
+                    onChange={(e) => setGreedyMin(Number(e.target.value))}
+                  >
+                    {(family?.tiers ?? [5]).map((t) => (
+                      <option key={t} value={t}>
+                        {t} 问
+                        {family?.perTier?.[t]
+                          ? ` · 题库 ${family.perTier[t]} 局`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {nextTier != null && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="px-0 text-[var(--amber)]"
+                    onClick={() => setGreedyMin(nextTier)}
+                  >
+                    下一关：{nextTier} 问
+                    {clearedTier > 0 ? `（已过 ${clearedTier} 问档）` : ""}
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-2">
@@ -262,24 +320,28 @@ export function LobbyHome() {
               </p>
             )}
             <p className="text-xs text-[var(--ink-muted)]">
-              v1 无需账号：房间码 + 昵称 + 本机重连令牌。账号与战绩留待 v2。
+              v1 无需账号：房间码 + 昵称 + 本机重连令牌。题库预生成，开房只选题。
             </p>
           </section>
 
           <aside className="rounded-sm border border-[var(--ink-faint)] bg-[var(--stage)]/50 p-5">
-            {selected ? (
+            {selected || family ? (
               <>
                 <p className="text-xs uppercase tracking-[0.25em] text-[var(--amber)]">
                   本案
                 </p>
                 <h2 className="mt-2 font-display text-3xl text-[var(--ink)]">
-                  {selected.title}
+                  {family?.title ?? selected?.title}
                 </h2>
                 <p className="mt-1 text-sm text-[var(--ink-muted)]">
-                  {selected.subtitle}
+                  {selected?.subtitle ?? "星河音乐厅 · 1925"}
+                </p>
+                <p className="mt-2 font-mono text-xs text-[var(--amber)]">
+                  难度 {greedyMin} 问
+                  {selected?.seed ? ` · 种子 ${selected.seed}` : ""}
                 </p>
                 <p className="mt-4 text-sm leading-relaxed text-[var(--ink-muted)]">
-                  {selected.synopsis}
+                  {family?.synopsis ?? selected?.synopsis}
                 </p>
               </>
             ) : (
