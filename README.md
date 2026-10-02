@@ -23,7 +23,7 @@ npm run build && npm run start   # 生产模式；默认端口 4317，可用 POR
 
 ## Railway 部署
 
-详细步骤见 [docs/railway-deploy.md](docs/railway-deploy.md)（若本仓库无该路径，见下方摘要）。
+详细步骤见 [docs/railway-deploy.md](docs/railway-deploy.md)。
 
 ### 一键部署要点
 
