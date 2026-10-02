@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # Copy static assets into the standalone output. Next does not do this itself;
 # without them, HTML can 200 while CSS/JS 404 — and some proxies still look unhealthy.
-set -euo pipefail
+set -eu
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [[ ! -f .next/standalone/server.js ]]; then
+if [ ! -f .next/standalone/server.js ]; then
   echo "prepare-standalone: missing .next/standalone/server.js (is output: 'standalone' set?)" >&2
   exit 1
 fi
