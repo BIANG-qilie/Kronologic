@@ -13,6 +13,7 @@ import {
 import { QueryPanel } from "@/components/game/query-panel";
 import { SubmitDialog } from "@/components/game/submit-dialog";
 import { DeskTimeline } from "@/components/game/desk-timeline";
+import type { SuspectBoard } from "@/lib/game/notes-format";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
@@ -250,6 +251,7 @@ export function PlayClient({
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("desk");
   const [err, setErr] = useState<string | null>(null);
+  const [board, setBoard] = useState<SuspectBoard | null>(null);
 
   useEffect(() => {
     if (view?.you?.playerId && session) {
@@ -367,6 +369,7 @@ export function PlayClient({
           </span>
           <SubmitDialog
             view={view}
+            board={board}
             onSubmit={async (answers) => {
               const data = await apiJson<{ view: RoomPublicView }>(
                 `/api/rooms/${view.code}/submit`,
@@ -415,6 +418,7 @@ export function PlayClient({
           </div>
           <DeskTimeline
             view={view}
+            onBoardChange={setBoard}
             onSaveNotes={async (text) => {
               const data = await apiJson<{ view: RoomPublicView }>(
                 `/api/rooms/${view.code}/notes`,

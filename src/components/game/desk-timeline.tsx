@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Crosshair } from "lucide-react";
 import type {
   PlaceId,
   PersonId,
@@ -8,33 +9,45 @@ import type {
   TimeId,
 } from "@/lib/game/types";
 import {
+  emptyCellMark,
   parseNotes,
   serializeNotes,
-  type NotesPayloadV2,
+  type CellMark,
+  type NotesPayloadV3,
+  type SuspectBoard as Board,
 } from "@/lib/game/notes-format";
 import {
-  cellHasConflict,
+  mergeCellMarks,
   projectFacts,
+  sourcesLabel,
   visitHasConflict,
   type FactProjection,
+  type LayerVisibility,
+  type MarkSource,
+  type MergedCell,
 } from "@/lib/game/project-facts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { CellMarkPicker, VisitPicker } from "./cell-mark-picker";
+import { GlyphToken, SourceGlyph } from "./source-glyph";
+import { SuspectBoard } from "./suspect-board";
 
 const TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
-const PLACE_ORDER: PlaceId[] = [
-  "porch",
-  "hall",
-  "stage",
-  "dress",
-  "gallery",
-  "prop",
-];
+const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
 
-type LayerFlags = {
-  public: boolean;
-  private: boolean;
-  inference: boolean;
+const LAYER_NAME: Record<MarkSource, string> = {
+  public: "公有",
+  private: "私有",
+  inference: "推理",
 };
+
+type CellKey = { time: TimeId; place: PlaceId };
 
 function placeLabel(view: RoomPublicView, id: string): string {
   return view.scenario.places.find((p) => p.id === id)?.name ?? id;
@@ -48,9 +61,7 @@ function personLabel(view: RoomPublicView, id: string): string {
 function LatestClueStrip({ view }: { view: RoomPublicView }) {
   const latest = view.queryLog[view.queryLog.length - 1];
   if (!latest) return null;
-  const privateClue = view.you?.privateClues.find(
-    (c) => c.queryId === latest.id
-  );
+  const privateClue = view.you?.privateClues.find((c) => c.queryId === latest.id);
   const q =
     latest.kind === "place_time"
       ? `${placeLabel(view, latest.placeId)} × 时间 ${latest.timeId}`
@@ -59,294 +70,358 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
   return (
     <div className="mb-4 border-b border-[var(--ink-deep)]/15 pb-3 text-[var(--ink-deep)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
-        <span className="font-mono text-[var(--green-win)]">
-          {latest.sharedLabel}
-        </span>
+        <span className="font-mono text-[var(--mark-public)]">{latest.sharedLabel}</span>
         <span className="text-[var(--ink-deep)]/80">{q}</span>
-        {privateClue &&
-          privateClue.privateLabel &&
-          privateClue.privateLabel !== "—" && (
-            <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
-              {latest.kind === "place_time"
-                ? `私 · 其中有 ${privateClue.privateLabel}`
-                : `私 · 其中一次 ${privateClue.privateLabel}`}
-            </span>
-          )}
+        {privateClue && privateClue.privateLabel && privateClue.privateLabel !== "—" && (
+          <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
+            {latest.kind === "place_time"
+              ? `私 · 其中有 ${privateClue.privateLabel}`
+              : `私 · 其中一次 ${privateClue.privateLabel}`}
+          </span>
+        )}
       </div>
     </div>
   );
 }
 
-function FloorPlan({
+function useEdges(view: RoomPublicView) {
+  return useMemo(() => {
+    const seen = new Set<string>();
+    for (const [a, neighbors] of Object.entries(view.scenario.adjacency) as [PlaceId, PlaceId[]][]) {
+      for (const b of neighbors) seen.add([a, b].sort().join("-"));
+    }
+    return (a: PlaceId, b: PlaceId) => seen.has([a, b].sort().join("-"));
+  }, [view.scenario.adjacency]);
+}
+
+/** 5×3 track: room / door / room / door / room, rows joined by vertical doors. */
+function FloorGrid({
+  linked,
+  compact,
+  room,
+}: {
+  linked: (a: PlaceId, b: PlaceId) => boolean;
+  compact?: boolean;
+  room: (place: PlaceId) => ReactNode;
+}) {
+  const gap = compact ? "5px" : "16px";
+  const door = (a: PlaceId, b: PlaceId, dir: "h" | "v") =>
+    linked(a, b) ? (
+      <div className="flex items-center justify-center self-stretch">
+        <div
+          className={cn(
+            "rounded-full",
+            dir === "h" ? (compact ? "h-px w-full" : "h-2 w-full rounded-sm") : compact ? "h-full w-px" : "h-full w-2 rounded-sm"
+          )}
+          style={{ backgroundColor: "var(--ink-deep)", opacity: compact ? 0.5 : 0.65 }}
+        />
+      </div>
+    ) : (
+      <div />
+    );
+  return (
+    <div
+      className="absolute inset-0 grid h-full w-full"
+      style={{
+        gridTemplateColumns: `1fr ${gap} 1fr ${gap} 1fr`,
+        gridTemplateRows: `1fr ${gap} 1fr`,
+        padding: compact ? "2px" : "6px",
+      }}
+    >
+      {room("porch")}
+      {door("porch", "hall", "h")}
+      {room("hall")}
+      {door("hall", "stage", "h")}
+      {room("stage")}
+
+      {door("porch", "dress", "v")}
+      <div />
+      {door("hall", "gallery", "v")}
+      <div />
+      {door("stage", "prop", "v")}
+
+      {room("dress")}
+      {door("dress", "gallery", "h")}
+      {room("gallery")}
+      {door("gallery", "prop", "h")}
+      {room("prop")}
+    </div>
+  );
+}
+
+function Tip({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent className="text-xs">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function cellMarkOf(payload: NotesPayloadV3, time: TimeId, place: PlaceId): CellMark {
+  return payload.inference.cells[String(time)]?.[place] ?? emptyCellMark();
+}
+
+function RoomCell({
   view,
   time,
-  compact,
-  layers,
-  facts,
-  payload,
-  editing,
-  onEdit,
-  onSetCell,
+  place,
+  merged,
+  mark,
+  board,
+  open,
+  canEdit,
+  onOpenChange,
+  onChange,
 }: {
   view: RoomPublicView;
   time: TimeId;
-  compact?: boolean;
-  layers: LayerFlags;
-  facts: FactProjection;
-  payload: NotesPayloadV2;
-  editing: { time: TimeId; place: PlaceId } | null;
-  onEdit: (key: { time: TimeId; place: PlaceId } | null) => void;
-  onSetCell: (time: TimeId, place: PlaceId, value: string) => void;
+  place: PlaceId;
+  merged: MergedCell;
+  mark: CellMark;
+  board: Board;
+  open: boolean;
+  canEdit: boolean;
+  onOpenChange: (open: boolean) => void;
+  onChange: (mark: CellMark) => void;
 }) {
-  const edgeSet = useMemo(() => {
-    const seen = new Set<string>();
-    for (const [a, neighbors] of Object.entries(view.scenario.adjacency) as [
-      PlaceId,
-      PlaceId[],
-    ][]) {
-      for (const b of neighbors) {
-        seen.add([a, b].sort().join("-"));
-      }
-    }
-    return seen;
-  }, [view.scenario.adjacency]);
+  const name = placeLabel(view, place);
+  const placeVerdict = board.places[place];
+  const count = merged.count;
 
-  const placeName = (id: PlaceId) =>
-    view.scenario.places.find((p) => p.id === id)?.name ?? id;
-
-  const linked = (a: PlaceId, b: PlaceId) =>
-    edgeSet.has([a, b].sort().join("-"));
-
-  /** 5×3 track: room / door / room / door / room */
-  function HDoor({ a, b }: { a: PlaceId; b: PlaceId }) {
-    if (!linked(a, b)) return <div />;
-    return (
-      <div className="flex items-center justify-center self-stretch">
-        <div
-          title="通道"
-          className={cn("w-full rounded-sm", compact ? "h-1" : "h-2")}
-          style={{ backgroundColor: "var(--ink-deep)", opacity: 0.65 }}
-        />
-      </div>
-    );
-  }
-
-  function VDoor({ a, b }: { a: PlaceId; b: PlaceId }) {
-    if (!linked(a, b)) return <div />;
-    return (
-      <div className="flex items-center justify-center self-stretch">
-        <div
-          title="通道"
-          className={cn("h-full rounded-sm", compact ? "w-1" : "w-2")}
-          style={{ backgroundColor: "var(--ink-deep)", opacity: 0.65 }}
-        />
-      </div>
-    );
-  }
-
-  function RoomCell({ placeId }: { placeId: PlaceId }) {
-    const cellFact = facts.cells[String(time)]?.[placeId];
-    const inference =
-      payload.inference.cells[String(time)]?.[placeId] ?? "";
-    const conflict =
-      !!cellFact &&
-      cellHasConflict(cellFact.public, cellFact.private, inference);
-    const isEditing =
-      !compact && editing?.time === time && editing?.place === placeId;
-
-    const roomClass = cn(
-      "relative z-10 flex h-full min-h-0 flex-col items-center justify-start rounded-sm border border-[var(--ink-deep)]/25 bg-[var(--parchment)] text-left",
-      compact ? "overflow-visible px-0.5 py-0.5" : "overflow-hidden px-2 py-2",
-      !compact &&
-        "cursor-pointer transition-colors hover:border-[var(--ink-deep)]/45",
-      isEditing && "border-[var(--amber)]/70"
-    );
-
-    const hasPublicCount = layers.public && cellFact?.public.count != null;
-    const publicLetters =
-      layers.public && cellFact ? cellFact.public.letters : [];
-    const privateLetters =
-      layers.private && cellFact ? cellFact.private.amongLetters : [];
-
-    const inner = compact ? (
-      <>
-        {hasPublicCount && (
-          <span className="rounded-[1px] bg-[var(--green-win)] px-0.5 font-mono text-[9px] font-bold leading-none text-[var(--curtain)]">
-            {cellFact!.public.count}
-          </span>
-        )}
-        <div className="mt-0.5 flex flex-wrap items-center justify-center gap-px">
-          {publicLetters.map((letter) => (
-            <span
-              key={letter}
-              className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--amber)] font-mono text-[8px] font-semibold leading-none text-[var(--ink-deep)]"
-            >
-              {letter}
-            </span>
-          ))}
-          {privateLetters.map((letter) => (
-            <span
-              key={`p-${letter}`}
-              className="inline-flex h-3.5 min-w-3.5 items-center justify-center rounded-[1px] bg-[var(--stage)] px-0.5 font-mono text-[7px] font-semibold leading-none text-[var(--parchment)]"
-              title={`私 · 其中有 ${letter}`}
-            >
-              {letter}
-            </span>
-          ))}
-        </div>
-        {!hasPublicCount &&
-          publicLetters.length === 0 &&
-          privateLetters.length === 0 && (
-            <span className="mt-1 block h-1 w-1 rounded-full bg-[var(--ink-deep)]/15" />
+  return (
+    <Popover open={open} onOpenChange={(o) => canEdit && onOpenChange(o)}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          aria-label={`时间${time} ${name}`}
+          className={cn(
+            "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
+            canEdit ? "cursor-pointer hover:border-[var(--ink-deep)]/45" : "cursor-default",
+            open ? "border-[var(--amber)]" : "border-[var(--ink-deep)]/25",
+            placeVerdict === "target" && "outline outline-2 outline-offset-2 outline-[var(--amber-dim)]",
+            placeVerdict === "excluded" && "opacity-45"
           )}
-      </>
-    ) : (
-      <>
-        {conflict && layers.inference && (
-          <span
-            className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--amber)]"
-            title="事实与推理冲突"
-          />
-        )}
-        {hasPublicCount && (
-          <span className="absolute left-1 top-1 rounded-sm bg-[var(--green-win)] px-1 font-mono text-[12px] font-semibold leading-none text-[var(--curtain)]">
-            {cellFact!.public.count} 人
-          </span>
-        )}
-        <span className="mb-1 w-full text-center text-[11px] text-[var(--ink-deep)]">
-          {placeName(placeId)}
-        </span>
-        <div className="flex min-h-[1.75rem] flex-wrap items-center justify-center gap-0.5">
-          {publicLetters.map((letter) => (
+        >
+          {merged.conflict && (
             <span
-              key={letter}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--amber)] bg-[var(--parchment)] font-mono text-sm text-[var(--ink-deep)]"
+              className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[var(--mark-conflict)]"
+              title="推理与事实冲突"
+            />
+          )}
+          {count && (
+            <Tip
+              label={
+                count.inferred != null
+                  ? `${count.value} 人 · 公（推 ${count.inferred}）`
+                  : `${count.value} 人 · ${sourcesLabel(count.sources)}`
+              }
             >
-              {letter}
-            </span>
-          ))}
-        </div>
-        {privateLetters.length > 0 && (
-          <p className="mt-1 w-full truncate rounded-sm bg-[var(--stage)] px-1 py-0.5 text-center text-[11px] leading-tight text-[var(--parchment)]">
-            {`私 · 其中有 ${privateLetters.join("、")}`}
-          </p>
-        )}
-        {layers.inference && (
-          <div className="mt-auto w-full pt-1">
-            {isEditing ? (
-              <RoomInferenceInput
-                value={inference}
-                autoFocus
-                onChange={(v) => onSetCell(time, placeId, v)}
-                onBlur={() => onEdit(null)}
-                ariaLabel={`时间${time} ${placeName(placeId)} 推理`}
-              />
-            ) : inference ? (
-              <p className="text-center font-mono text-xs tracking-wide text-[var(--ink-deep)]">
-                {inference}
-              </p>
-            ) : null}
+              <span className="absolute left-1 top-1">
+                <GlyphToken sources={count.sources} size="sm" conflict={count.inferred != null}>
+                  {count.value}
+                </GlyphToken>
+              </span>
+            </Tip>
+          )}
+          <span className="mb-1 flex w-full items-center justify-center gap-1 text-[11px] text-[var(--ink-deep)]">
+            {placeVerdict === "target" && <Crosshair className="h-3 w-3 text-[var(--amber-dim)]" aria-hidden />}
+            <span className={cn(placeVerdict === "excluded" && "line-through")}>{name}</span>
+          </span>
+          <div className="flex min-h-[2rem] flex-wrap items-center justify-center gap-1">
+            {merged.people.map((p) => {
+              const v = board.people[p.person];
+              return (
+                <Tip key={p.person} label={`${p.person} · ${sourcesLabel(p.sources)}`}>
+                  <span>
+                    <GlyphToken
+                      sources={p.sources}
+                      dim={v === "excluded"}
+                      emphasis={v === "target"}
+                    >
+                      {p.person}
+                    </GlyphToken>
+                  </span>
+                </Tip>
+              );
+            })}
           </div>
-        )}
-      </>
-    );
-
-    if (compact) {
-      return <div className={roomClass}>{inner}</div>;
-    }
-    return (
-      <button
-        type="button"
-        onClick={() => {
-          if (!layers.inference) return;
-          onEdit(isEditing ? null : { time, place: placeId });
-        }}
-        className={roomClass}
+          {merged.absent.length > 0 && (
+            <Tip label={`推 · 不在 ${merged.absent.join("、")}`}>
+              <span className="mt-auto font-mono text-[10px] tracking-wider text-[var(--mark-inference)]/80 line-through">
+                {merged.absent.join(" ")}
+              </span>
+            </Tip>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="center"
+        className="w-[min(20rem,calc(100vw-2rem))] border-[var(--ink-deep)]/25 bg-[var(--parchment)] p-3"
       >
-        {inner}
-      </button>
-    );
-  }
+        <CellMarkPicker
+          view={view}
+          title={`时间 ${time} · ${name}`}
+          mark={mark}
+          merged={merged}
+          onChange={onChange}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
+/** Film-strip room: one count plus up to three letters, no labels. */
+function MiniRoom({ merged, verdict }: { merged: MergedCell; verdict?: "target" | "excluded" }) {
+  const hasPublic =
+    merged.count?.sources.includes("public") || merged.people.some((p) => p.sources.includes("public"));
+  const hasAny = merged.count != null || merged.people.length > 0;
+  const shown = merged.people.slice(0, 3);
+  const extra = merged.people.length - shown.length;
   return (
     <div
       className={cn(
-        "relative w-full",
-        compact ? "aspect-[3/2]" : "aspect-[3/2] max-h-[420px]"
+        "relative z-10 flex min-h-0 flex-col items-center justify-center gap-px rounded-[2px] border",
+        hasPublic
+          ? "border-[var(--ink-deep)]/35 bg-[#c5b38c]"
+          : hasAny
+            ? "border-[var(--ink-deep)]/25 bg-[#cebf9b]"
+            : "border-[var(--ink-deep)]/15 bg-[var(--parchment)]",
+        verdict === "excluded" && "opacity-40",
+        verdict === "target" && "outline outline-1 outline-[var(--amber-dim)]"
       )}
     >
-      <div
-        className={cn(
-          "absolute inset-0 grid h-full w-full",
-          compact ? "p-0.5" : "p-1 sm:p-1.5"
-        )}
-        style={{
-          gridTemplateColumns: `1fr ${compact ? "8px" : "16px"} 1fr ${compact ? "8px" : "16px"} 1fr`,
-          gridTemplateRows: `1fr ${compact ? "8px" : "16px"} 1fr`,
-        }}
-      >
-        <RoomCell placeId="porch" />
-        <HDoor a="porch" b="hall" />
-        <RoomCell placeId="hall" />
-        <HDoor a="hall" b="stage" />
-        <RoomCell placeId="stage" />
-
-        <VDoor a="porch" b="dress" />
-        <div />
-        <VDoor a="hall" b="gallery" />
-        <div />
-        <VDoor a="stage" b="prop" />
-
-        <RoomCell placeId="dress" />
-        <HDoor a="dress" b="gallery" />
-        <RoomCell placeId="gallery" />
-        <HDoor a="gallery" b="prop" />
-        <RoomCell placeId="prop" />
-      </div>
+      {merged.conflict && (
+        <span className="absolute right-px top-px h-1 w-1 rounded-full bg-[var(--mark-conflict)]" />
+      )}
+      {merged.count && (
+        <span
+          className={cn(
+            "font-mono text-[10px] font-bold leading-none",
+            merged.count.sources.includes("public")
+              ? "text-[var(--mark-public)]"
+              : "text-[var(--mark-inference)]",
+            merged.count.inferred != null && "text-[var(--mark-conflict)]"
+          )}
+        >
+          {merged.count.value}
+        </span>
+      )}
+      {shown.length > 0 && (
+        <span className="flex items-center gap-px">
+          {shown.map((p) => (
+            <GlyphToken key={p.person} sources={p.sources} size="xs">
+              {p.person}
+            </GlyphToken>
+          ))}
+          {extra > 0 && <span className="font-mono text-[7px] leading-none">+{extra}</span>}
+        </span>
+      )}
     </div>
   );
 }
 
-function RoomInferenceInput({
-  value,
-  onChange,
-  onBlur,
-  autoFocus,
-  ariaLabel,
+function FilmFrame({
+  time,
+  active,
+  verdict,
+  linked,
+  mergedFor,
+  board,
+  onSelect,
 }: {
-  value: string;
-  onChange: (v: string) => void;
-  onBlur: () => void;
-  autoFocus?: boolean;
-  ariaLabel: string;
+  time: TimeId;
+  active: boolean;
+  verdict?: "target" | "excluded";
+  linked: (a: PlaceId, b: PlaceId) => boolean;
+  mergedFor: (time: TimeId, place: PlaceId) => MergedCell;
+  board: Board;
+  onSelect: () => void;
 }) {
-  const ref = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (autoFocus) ref.current?.focus();
-  }, [autoFocus]);
   return (
-    <input
-      ref={ref}
-      value={value}
-      onChange={(e) => onChange(e.target.value.slice(0, 12))}
-      onBlur={onBlur}
-      aria-label={ariaLabel}
-      className="w-full bg-transparent text-center font-mono text-xs text-[var(--ink-deep)] outline-none"
-    />
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-label={`时间 ${time}`}
+      aria-current={active}
+      className={cn(
+        "relative rounded-sm border bg-[var(--parchment)] p-1 text-left transition-all",
+        active
+          ? "border-[var(--amber)] shadow-[0_0_0_1px_var(--amber)]"
+          : "border-[var(--ink-deep)]/20 hover:border-[var(--ink-deep)]/45",
+        verdict === "excluded" && "opacity-40 grayscale",
+        verdict === "target" && "border-double border-[3px] border-[var(--amber-dim)]"
+      )}
+    >
+      <div className="mb-0.5 flex items-center justify-between px-0.5">
+        <span
+          className={cn(
+            "font-display text-sm leading-none",
+            active ? "text-[var(--ink-deep)]" : "text-[var(--ink-deep)]/65",
+            verdict === "excluded" && "line-through"
+          )}
+        >
+          {time}
+        </span>
+        {verdict === "target" && <Crosshair className="h-3 w-3 text-[var(--amber-dim)]" aria-hidden />}
+      </div>
+      <div className="relative aspect-[3/2] w-full">
+        <FloorGrid
+          linked={linked}
+          compact
+          room={(place) => (
+            <MiniRoom key={place} merged={mergedFor(time, place)} verdict={board.places[place]} />
+          )}
+        />
+      </div>
+    </button>
+  );
+}
+
+function LayerToggle({
+  source,
+  on,
+  onToggle,
+}: {
+  source: MarkSource;
+  on: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Tip label={`${LAYER_NAME[source]}${on ? "（点击隐藏）" : "（点击显示）"}`}>
+      <button
+        type="button"
+        aria-pressed={on}
+        aria-label={LAYER_NAME[source]}
+        onClick={onToggle}
+        className={cn(
+          "flex h-7 items-center gap-1 rounded-sm border border-[var(--ink-deep)]/15 px-1.5 text-[11px] text-[var(--ink-deep)] transition-opacity",
+          on ? "opacity-100" : "opacity-35"
+        )}
+      >
+        <span className="relative h-4 w-4">
+          <SourceGlyph sources={[source]} />
+        </span>
+        {LAYER_NAME[source].slice(0, 1)}
+      </button>
+    </Tip>
   );
 }
 
 export function DeskTimeline({
   view,
   onSaveNotes,
+  onBoardChange,
 }: {
   view: RoomPublicView;
   onSaveNotes: (text: string) => Promise<void>;
+  onBoardChange?: (board: Board) => void;
 }) {
   const people = view.scenario.people.map((p) => p.id);
   const places = view.scenario.places.map((p) => p.id) as PlaceId[];
+  const linked = useEdges(view);
 
-  const facts = useMemo(
+  const facts: FactProjection = useMemo(
     () =>
       projectFacts({
         opening: view.scenario.opening,
@@ -359,21 +434,19 @@ export function DeskTimeline({
     [view.scenario.opening, view.queryLog, view.you?.privateClues, view.scenario.id]
   );
 
-  const [payload, setPayload] = useState<NotesPayloadV2>(() =>
+  const [payload, setPayload] = useState<NotesPayloadV3>(() =>
     parseNotes(view.you?.notes, people, places)
   );
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [activeTime, setActiveTime] = useState<TimeId>(1);
-  const [layers, setLayers] = useState<LayerFlags>({
+  const [layers, setLayers] = useState<LayerVisibility>({
     public: true,
     private: true,
     inference: true,
   });
-  const [editing, setEditing] = useState<{
-    time: TimeId;
-    place: PlaceId;
-  } | null>(null);
+  const [editing, setEditing] = useState<CellKey | null>(null);
+  const [editingVisit, setEditingVisit] = useState<string | null>(null);
   const [visitsOpen, setVisitsOpen] = useState(false);
   const [marginOpen, setMarginOpen] = useState(false);
 
@@ -382,10 +455,17 @@ export function DeskTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.you?.notes, view.scenario.id]);
 
-  const placeName = useMemo(() => {
-    const m = new Map(view.scenario.places.map((p) => [p.id, p.name]));
-    return (id: string) => m.get(id as PlaceId) ?? id;
-  }, [view.scenario.places]);
+  useEffect(() => {
+    onBoardChange?.(payload.board);
+  }, [payload.board, onBoardChange]);
+
+  const mergedFor = (time: TimeId, place: PlaceId): MergedCell => {
+    const cell = facts.cells[String(time)]?.[place] ?? {
+      public: { letters: [], sources: [] },
+      private: { amongLetters: [], sources: [] },
+    };
+    return mergeCellMarks(cell, cellMarkOf(payload, time, place), layers);
+  };
 
   async function save() {
     setSaving(true);
@@ -397,265 +477,279 @@ export function DeskTimeline({
     }
   }
 
-  function setCell(time: TimeId, place: PlaceId, value: string) {
+  function setCell(time: TimeId, place: PlaceId, mark: CellMark) {
     setPayload((prev) => ({
       ...prev,
       inference: {
         ...prev.inference,
         cells: {
           ...prev.inference.cells,
-          [String(time)]: {
-            ...(prev.inference.cells[String(time)] ?? {}),
-            [place]: value,
-          },
+          [String(time)]: { ...(prev.inference.cells[String(time)] ?? {}), [place]: mark },
         },
       },
     }));
   }
 
-  function setVisit(person: PersonId, place: PlaceId, value: string) {
+  function setVisit(person: PersonId, place: PlaceId, value: number | null) {
     setPayload((prev) => ({
       ...prev,
       inference: {
         ...prev.inference,
         visits: {
           ...prev.inference.visits,
-          [person]: {
-            ...(prev.inference.visits[person] ?? {}),
-            [place]: value,
-          },
+          [person]: { ...(prev.inference.visits[person] ?? {}), [place]: value },
         },
       },
     }));
   }
 
+  const activeVerdict = payload.board.times[String(activeTime)];
+
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <div className="relative rounded-sm border border-[var(--ink-deep)]/15 bg-[var(--parchment)] px-4 py-5 text-[var(--ink-deep)] shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] sm:px-7 sm:py-7">
-        <div className="absolute right-3 top-3 flex gap-1.5 sm:right-4 sm:top-4">
-          {(
-            [
-              ["public", "公"],
-              ["private", "私"],
-              ["inference", "推"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              title={
-                key === "public" ? "公有" : key === "private" ? "私有" : "推理"
-              }
-              onClick={() =>
-                setLayers((prev) => ({ ...prev, [key]: !prev[key] }))
-              }
-              className={cn(
-                "flex h-7 w-7 items-center justify-center rounded-full border border-[var(--amber)] font-display text-xs transition-opacity",
-                layers[key] ? "opacity-100" : "opacity-35"
+    <TooltipProvider delayDuration={150}>
+      <div className="mx-auto w-full max-w-3xl">
+        <div className="relative rounded-sm border border-[var(--ink-deep)]/15 bg-[var(--parchment)] px-3 py-5 text-[var(--ink-deep)] shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] sm:px-7 sm:py-7">
+          <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-display text-3xl tracking-tight text-[var(--ink-deep)] sm:text-4xl">
+              <span className={cn(activeVerdict === "excluded" && "line-through opacity-50")}>
+                时间 {activeTime}
+              </span>
+              {activeVerdict === "target" && (
+                <Crosshair className="h-5 w-5 text-[var(--amber-dim)]" aria-label="目标时间" />
               )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+            </h2>
+            <div className="flex gap-1">
+              {(["public", "private", "inference"] as const).map((key) => (
+                <LayerToggle
+                  key={key}
+                  source={key}
+                  on={layers[key]}
+                  onToggle={() => {
+                    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
+                    if (key === "inference") setEditing(null);
+                  }}
+                />
+              ))}
+            </div>
+          </div>
 
-        <h2 className="font-display text-3xl tracking-tight text-[var(--ink-deep)] sm:text-4xl">
-          时间 {activeTime}
-        </h2>
+          <LatestClueStrip view={view} />
 
-        <LatestClueStrip view={view} />
+          <SuspectBoard
+            view={view}
+            board={payload.board}
+            onChange={(board) => setPayload((prev) => ({ ...prev, board }))}
+          />
 
-        <div className="mb-5 flex gap-1.5 overflow-x-auto pb-1">
-          {TIMES.map((t) => {
-            const active = t === activeTime;
-            return (
-              <button
+          <div className="-mx-1 mb-5 grid auto-cols-[6.75rem] grid-flow-col gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-6 sm:overflow-visible sm:px-0">
+            {TIMES.map((t) => (
+              <FilmFrame
                 key={t}
-                type="button"
-                onClick={() => {
+                time={t}
+                active={t === activeTime}
+                verdict={payload.board.times[String(t)]}
+                linked={linked}
+                mergedFor={mergedFor}
+                board={payload.board}
+                onSelect={() => {
                   setActiveTime(t);
                   setEditing(null);
                 }}
-                className={cn(
-                  "shrink-0 rounded-sm border transition-all",
-                  active
-                    ? "w-[5.75rem] border-[var(--amber)] opacity-100 sm:w-28"
-                    : "w-[4.75rem] border-[var(--ink-deep)]/20 opacity-80 hover:opacity-100 sm:w-[5.5rem]"
-                )}
-              >
-                <div className="overflow-hidden bg-[var(--parchment)]/80 px-0.5 py-0.5">
-                  <p className="text-center font-mono text-[10px] font-semibold text-[var(--ink-deep)]/70">
-                    {t}
-                  </p>
-                  <FloorPlan
-                    view={view}
-                    time={t}
-                    compact
-                    layers={layers}
-                    facts={facts}
-                    payload={payload}
-                    editing={null}
-                    onEdit={() => undefined}
-                    onSetCell={() => undefined}
-                  />
-                </div>
-              </button>
-            );
-          })}
-        </div>
+              />
+            ))}
+          </div>
 
-        <FloorPlan
-          view={view}
-          time={activeTime}
-          layers={layers}
-          facts={facts}
-          payload={payload}
-          editing={editing}
-          onEdit={setEditing}
-          onSetCell={setCell}
-        />
+          <div className="relative aspect-[3/2] max-h-[440px] w-full">
+            <FloorGrid
+              linked={linked}
+              room={(place) => (
+                <RoomCell
+                  key={place}
+                  view={view}
+                  time={activeTime}
+                  place={place}
+                  merged={mergedFor(activeTime, place)}
+                  mark={cellMarkOf(payload, activeTime, place)}
+                  board={payload.board}
+                  canEdit={layers.inference}
+                  open={editing?.time === activeTime && editing.place === place}
+                  onOpenChange={(o) => setEditing(o ? { time: activeTime, place } : null)}
+                  onChange={(mark) => setCell(activeTime, place, mark)}
+                />
+              )}
+            />
+          </div>
 
-        <div className="mt-6 border-t border-[var(--ink-deep)]/12 pt-3">
-          <button
-            type="button"
-            onClick={() => setVisitsOpen((v) => !v)}
-            className="font-display text-sm tracking-wide text-[var(--ink-deep)]/70"
-          >
-            到访{visitsOpen ? " ▾" : ""}
-          </button>
-          {visitsOpen && (
-            <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[420px] border-collapse text-xs">
-                <thead>
-                  <tr>
-                    <th className="py-1 pr-2 text-left font-normal text-[var(--ink-deep)]/50">
-                      —
-                    </th>
-                    {PLACE_ORDER.map((pid) => (
-                      <th
-                        key={pid}
-                        className="px-0.5 py-1 text-center font-normal text-[var(--ink-deep)]/50"
-                      >
-                        {placeName(pid)}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {view.scenario.people.map((person) => (
-                    <tr key={person.id}>
-                      <td className="py-1 pr-2 font-mono text-[var(--ink-deep)]">
-                        {person.letter}
-                        <span className="ml-1 text-[var(--ink-deep)]/45">
-                          {person.name}
-                        </span>
-                      </td>
-                      {PLACE_ORDER.map((pid) => {
-                        const visitFact = facts.visits[person.id]?.[pid];
-                        const inference =
-                          payload.inference.visits[person.id]?.[pid] ?? "";
-                        const conflict =
-                          !!visitFact &&
-                          visitHasConflict(visitFact.public, inference);
-                        return (
-                          <td
-                            key={pid}
-                            className="relative px-0.5 py-1 text-center align-middle"
-                          >
-                            {conflict && (
-                              <span className="absolute right-0 top-0 h-1 w-1 rounded-full bg-[var(--amber)]" />
-                            )}
-                            {layers.private &&
-                              visitFact &&
-                              visitFact.private.amongTimes.length > 0 && (
-                                <div className="rounded-sm bg-[var(--stage)] px-0.5 text-[9px] text-[var(--parchment)]">
-                                  私 · 其中一次{" "}
-                                  {visitFact.private.amongTimes.join("/")}
-                                </div>
-                              )}
-                            {layers.public &&
-                              visitFact?.public.count != null && (
-                                <div className="font-mono text-[12px] font-semibold text-[var(--green-win)]">
-                                  {visitFact.public.count} 人
-                                </div>
-                              )}
-                            {layers.inference && (
-                              <input
-                                value={inference}
-                                onChange={(e) =>
-                                  setVisit(
-                                    person.id,
-                                    pid,
-                                    e.target.value
-                                      .replace(/[^\d]/g, "")
-                                      .slice(0, 1)
-                                  )
-                                }
-                                className="mx-auto mt-0.5 block w-6 border-0 bg-transparent text-center font-mono text-xs text-[var(--ink-deep)] outline-none"
-                                inputMode="numeric"
-                                aria-label={`${person.name} 访问 ${placeName(pid)}`}
-                              />
-                            )}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--ink-deep)]/55">
+            {(["public", "private", "inference"] as const).map((s) => (
+              <span key={s} className="inline-flex items-center gap-1">
+                <span className="relative inline-block h-3 w-3">
+                  <SourceGlyph sources={[s]} thin />
+                </span>
+                {LAYER_NAME[s]}
+              </span>
+            ))}
+            <span>形状叠在一起表示多层一致，悬停查看来源</span>
+          </p>
 
-        <div className="mt-5 border-t border-[var(--ink-deep)]/12 pt-2">
-          {!marginOpen && !payload.free ? (
+          <div className="mt-6 border-t border-[var(--ink-deep)]/12 pt-3">
             <button
               type="button"
-              onClick={() => setMarginOpen(true)}
-              className="block w-full border-b border-[var(--ink-deep)]/20 py-2 text-left text-xs text-[var(--ink-deep)]/40"
+              onClick={() => setVisitsOpen((v) => !v)}
+              className="font-display text-sm tracking-wide text-[var(--ink-deep)]/70"
             >
-              旁注
+              到访{visitsOpen ? " ▾" : ""}
             </button>
-          ) : (
-            <div>
+            {visitsOpen && (
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full min-w-[420px] border-collapse text-xs">
+                  <thead>
+                    <tr>
+                      <th className="py-1 pr-2 text-left font-normal text-[var(--ink-deep)]/50">—</th>
+                      {PLACE_ORDER.map((pid) => (
+                        <th key={pid} className="px-0.5 py-1 text-center font-normal text-[var(--ink-deep)]/50">
+                          {placeLabel(view, pid)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {view.scenario.people.map((person) => (
+                      <tr key={person.id}>
+                        <td className="py-1 pr-2 font-mono text-[var(--ink-deep)]">
+                          {person.letter}
+                          <span className="ml-1 text-[var(--ink-deep)]/45">{person.name}</span>
+                        </td>
+                        {PLACE_ORDER.map((pid) => {
+                          const visitFact = facts.visits[person.id]?.[pid];
+                          const inferred = payload.inference.visits[person.id]?.[pid] ?? null;
+                          const pub = layers.public ? visitFact?.public.count ?? null : null;
+                          const inf = layers.inference ? inferred : null;
+                          const conflict =
+                            layers.inference && !!visitFact && visitHasConflict(visitFact.public, inferred);
+                          const sources: MarkSource[] = [];
+                          if (pub != null) sources.push("public");
+                          if (inf != null && (pub == null || inf === pub)) sources.push("inference");
+                          const shown = pub ?? inf;
+                          const key = `${person.id}-${pid}`;
+                          const among =
+                            layers.private && visitFact ? visitFact.private.amongTimes : [];
+                          return (
+                            <td key={pid} className="relative px-0.5 py-1 text-center align-middle">
+                              <Popover
+                                open={editingVisit === key}
+                                onOpenChange={(o) =>
+                                  layers.inference && setEditingVisit(o ? key : null)
+                                }
+                              >
+                                <PopoverTrigger asChild>
+                                  <button
+                                    type="button"
+                                    aria-label={`${person.name} 到访 ${placeLabel(view, pid)}`}
+                                    className="mx-auto flex min-h-8 w-full flex-col items-center justify-center gap-0.5 rounded-sm hover:bg-[var(--ink-deep)]/5"
+                                  >
+                                    {shown != null ? (
+                                      <Tip
+                                        label={
+                                          conflict
+                                            ? `${pub} 次 · 公（推 ${inferred}）`
+                                            : `${shown} 次 · ${sourcesLabel(sources)}`
+                                        }
+                                      >
+                                        <span>
+                                          <GlyphToken sources={sources} size="sm" conflict={conflict}>
+                                            {shown}
+                                          </GlyphToken>
+                                        </span>
+                                      </Tip>
+                                    ) : (
+                                      <span className="h-1 w-1 rounded-full bg-[var(--ink-deep)]/15" />
+                                    )}
+                                    {among.length > 0 && (
+                                      <Tip label={`私 · 其中一次在时间 ${among.join("、")}`}>
+                                        <span className="inline-flex items-center gap-0.5 text-[9px] text-[var(--mark-private)]">
+                                          <span className="relative inline-block h-2.5 w-2.5">
+                                            <SourceGlyph sources={["private"]} thin />
+                                          </span>
+                                          {among.join("/")}
+                                        </span>
+                                      </Tip>
+                                    )}
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto border-[var(--ink-deep)]/25 bg-[var(--parchment)] p-2">
+                                  <p className="mb-1.5 text-[11px] text-[var(--ink-deep)]/70">
+                                    {person.name} 到访{placeLabel(view, pid)}几次
+                                  </p>
+                                  <VisitPicker
+                                    value={inferred}
+                                    factCount={visitFact?.public.count ?? null}
+                                    onChange={(v) => {
+                                      setVisit(person.id, pid, v);
+                                      setEditingVisit(null);
+                                    }}
+                                  />
+                                </PopoverContent>
+                              </Popover>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 border-t border-[var(--ink-deep)]/12 pt-2">
+            {!marginOpen && !payload.free ? (
               <button
                 type="button"
-                onClick={() => setMarginOpen((v) => !v)}
-                className="mb-1 text-xs text-[var(--ink-deep)]/50"
+                onClick={() => setMarginOpen(true)}
+                className="block w-full border-b border-[var(--ink-deep)]/20 py-2 text-left text-xs text-[var(--ink-deep)]/40"
               >
                 旁注
               </button>
-              {(marginOpen || !!payload.free) && (
-                <textarea
-                  value={payload.free}
-                  onChange={(e) =>
-                    setPayload((prev) => ({ ...prev, free: e.target.value }))
-                  }
-                  onBlur={() => {
-                    if (!payload.free.trim()) setMarginOpen(false);
-                  }}
-                  rows={2}
-                  className="w-full resize-none border-0 bg-transparent font-mono text-xs text-[var(--ink-deep)] outline-none"
-                />
-              )}
-            </div>
-          )}
-        </div>
+            ) : (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setMarginOpen((v) => !v)}
+                  className="mb-1 text-xs text-[var(--ink-deep)]/50"
+                >
+                  旁注
+                </button>
+                {(marginOpen || !!payload.free) && (
+                  <textarea
+                    value={payload.free}
+                    onChange={(e) => setPayload((prev) => ({ ...prev, free: e.target.value }))}
+                    onBlur={() => {
+                      if (!payload.free.trim()) setMarginOpen(false);
+                    }}
+                    rows={2}
+                    className="w-full resize-none border-0 bg-transparent font-mono text-xs text-[var(--ink-deep)] outline-none"
+                  />
+                )}
+              </div>
+            )}
+          </div>
 
-        <div className="mt-4 flex items-center justify-between gap-2">
-          <span className="text-[10px] text-[var(--ink-deep)]/40">
-            {savedAt ? `已记 ${new Date(savedAt).toLocaleTimeString()}` : ""}
-          </span>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={save}
-            className="font-display text-sm text-[var(--ink-deep)]/70 underline-offset-4 hover:underline disabled:opacity-50"
-          >
-            {saving ? "记下…" : "记下"}
-          </button>
+          <div className="mt-4 flex items-center justify-between gap-2">
+            <span className="text-[10px] text-[var(--ink-deep)]/40">
+              {savedAt ? `已记 ${new Date(savedAt).toLocaleTimeString()}` : ""}
+            </span>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={save}
+              className="font-display text-sm text-[var(--ink-deep)]/70 underline-offset-4 hover:underline disabled:opacity-50"
+            >
+              {saving ? "记下…" : "记下"}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

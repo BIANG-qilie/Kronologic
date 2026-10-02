@@ -17,6 +17,11 @@
     --amber: #d4a15a;
     --amber-dim: #a67b3d;
     --green-win: #6fbf8a;
+    /* Desk marks on parchment: circle = public, square = private, diamond = inference */
+    --mark-public: #2d7a4c;
+    --mark-private: #1c2923;
+    --mark-inference: #8f5418;
+    --mark-conflict: #b3361f;
 
     --background: 160 18% 8%;
     --foreground: 140 12% 92%;

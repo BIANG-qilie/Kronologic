@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { RoomPublicView } from "@/lib/game/types";
+import { soleTarget, type SuspectBoard } from "@/lib/game/notes-format";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,11 +14,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+const BOARD_ROW = { person: "people", place: "places", time: "times" } as const;
+
 export function SubmitDialog({
   view,
+  board,
   onSubmit,
 }: {
   view: RoomPublicView;
+  board?: SuspectBoard | null;
   onSubmit: (answers: Record<string, string>) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
@@ -26,6 +31,22 @@ export function SubmitDialog({
   const [err, setErr] = useState<string | null>(null);
 
   if (!view.you?.canSubmit) return null;
+
+  function openWithPrefill(next: boolean) {
+    if (next && board) {
+      setAnswers((prev) => {
+        const filled = { ...prev };
+        for (const q of view.scenario.winQuestions) {
+          const sameKind = view.scenario.winQuestions.filter((x) => x.kind === q.kind);
+          if (filled[q.id] || sameKind.length !== 1) continue;
+          const target = soleTarget(board[BOARD_ROW[q.kind]]);
+          if (target) filled[q.id] = target;
+        }
+        return filled;
+      });
+    }
+    setOpen(next);
+  }
 
   async function go() {
     setBusy(true);
@@ -41,7 +62,7 @@ export function SubmitDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={openWithPrefill}>
       <DialogTrigger asChild>
         <Button variant="outline">交卷</Button>
       </DialogTrigger>
@@ -49,7 +70,7 @@ export function SubmitDialog({
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">提交答案</DialogTitle>
           <DialogDescription className="text-[var(--ink-muted)]">
-            提交后进入 12 秒同时交卷窗。答错即淘汰。
+            提交后进入 12 秒同时交卷窗。答错即淘汰。嫌疑板上唯一的目标会先填好。
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
