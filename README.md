@@ -31,7 +31,7 @@ npm run build && npm run start   # 生产模式；默认端口 4317，可用 POR
 2. Root Directory：仓库根（留空即可）。
 3. Build：`npm run build`（`railway.toml` / Nixpacks 已配置）。
 4. Start：`npm run start`（监听 `0.0.0.0:$PORT`）。
-5. **环境变量：无需额外配置**（Railway 会注入 `PORT`）。
+5. **环境变量**：一般无需手动配置。仓库已钉死 Node 20（`railway.toml` 的 `NIXPACKS_NODE_VERSION`、`engines`、`.nvmrc`）。Railway 会注入 `PORT`。若仍落到 Node 18，在 Variables 加 `NIXPACKS_NODE_VERSION=20` 后 Redeploy。
 6. **Replicas / 实例数设为 1**：房间状态在进程内存（`src/lib/server/rooms.ts`），多实例或重启会丢房间、玩家可能连到不同副本。
 
 生成 Public Domain 后即可从浏览器打开游玩。

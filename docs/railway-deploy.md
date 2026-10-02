@@ -13,9 +13,11 @@
    - **Root Directory**：留空（仓库根）
    - **Build Command**：`npm run build`（`railway.toml` 已写；一般不用改）
    - **Start Command**：`npm run start`（绑定 `0.0.0.0` 与 `$PORT`）
-3. **Variables**：无需自建环境变量。Railway 注入 `PORT` 即可。
+3. **Variables**：无需在控制台手动加 `NIXPACKS_NODE_VERSION`。仓库已通过 `railway.toml` / `package.json` engines / `.nvmrc` 钉死 Node 20（Next.js 要求 ≥20.9）。Railway 注入 `PORT` 即可。
 4. **Settings → Scaling / Replicas**：设为 **1**。
 5. **Networking → Generate Domain**：生成公开 HTTPS 域名。
+
+若构建日志仍出现 Node 18，在服务 Variables 里临时加 `NIXPACKS_NODE_VERSION=20` 后 Redeploy。
 
 ## 为何必须单实例
 

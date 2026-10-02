@@ -2,6 +2,9 @@
   "name": "lampxu",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev --turbopack --hostname 127.0.0.1 --port 4317",
     "build": "next build",
