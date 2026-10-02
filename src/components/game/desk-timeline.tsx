@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Crosshair } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ChevronRight, Crosshair } from "lucide-react";
 import type {
   PlaceId,
   PersonId,
@@ -468,8 +468,45 @@ export function DeskTimeline({
   const [visitsOpen, setVisitsOpen] = useState(false);
   const [marginOpen, setMarginOpen] = useState(false);
 
+  const lastSaved = useRef<string>(serializeNotes(payload));
+  const pending = useRef<string | null>(null);
+  const saveRef = useRef(onSaveNotes);
+  saveRef.current = onSaveNotes;
+
+  const flush = useCallback(async () => {
+    const text = pending.current;
+    if (text == null) return;
+    pending.current = null;
+    lastSaved.current = text;
+    setSaving(true);
+    try {
+      await saveRef.current(text);
+      setSavedAt(Date.now());
+    } catch {
+      if (pending.current == null) pending.current = text;
+    } finally {
+      setSaving(false);
+    }
+  }, []);
+
   useEffect(() => {
-    setPayload(parseNotes(view.you?.notes, people, places));
+    const text = serializeNotes(payload);
+    if (text === lastSaved.current) return;
+    pending.current = text;
+    const id = setTimeout(flush, 600);
+    return () => clearTimeout(id);
+  }, [payload, flush]);
+
+  // Tabs unmount the desk; persist whatever is still waiting on the debounce.
+  useEffect(() => () => void flush(), [flush]);
+
+  useEffect(() => {
+    const notes = view.you?.notes;
+    if (notes != null && notes === lastSaved.current) return;
+    if (pending.current != null) return;
+    const next = parseNotes(notes, people, places);
+    lastSaved.current = serializeNotes(next);
+    setPayload(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view.you?.notes, view.scenario.id]);
 
@@ -484,16 +521,6 @@ export function DeskTimeline({
     };
     return mergeCellMarks(cell, cellMarkOf(payload, time, place), layers);
   };
-
-  async function save() {
-    setSaving(true);
-    try {
-      await onSaveNotes(serializeNotes(payload));
-      setSavedAt(Date.now());
-    } finally {
-      setSaving(false);
-    }
-  }
 
   function setCell(time: TimeId, place: PlaceId, mark: CellMark) {
     setPayload((prev) => ({
@@ -615,9 +642,17 @@ export function DeskTimeline({
             <button
               type="button"
               onClick={() => setVisitsOpen((v) => !v)}
-              className="font-display text-sm tracking-wide text-[var(--ink-deep)]/70"
+              aria-expanded={visitsOpen}
+              className="group inline-flex items-center gap-1 font-display text-sm tracking-wide text-[var(--ink-deep)]/70 hover:text-[var(--ink-deep)]"
             >
-              到访{visitsOpen ? " ▾" : ""}
+              <ChevronRight
+                aria-hidden
+                className={cn(
+                  "h-3.5 w-3.5 transition-transform duration-200 motion-reduce:transition-none",
+                  visitsOpen && "rotate-90"
+                )}
+              />
+              到访
             </button>
             {visitsOpen && (
               <div className="mt-3 overflow-x-auto">
@@ -760,19 +795,13 @@ export function DeskTimeline({
             )}
           </div>
 
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <span className="text-[10px] text-[var(--ink-deep)]/40">
-              {savedAt ? `已记 ${new Date(savedAt).toLocaleTimeString()}` : ""}
-            </span>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={save}
-              className="font-display text-sm text-[var(--ink-deep)]/70 underline-offset-4 hover:underline disabled:opacity-50"
-            >
-              {saving ? "记下…" : "记下"}
-            </button>
-          </div>
+          <p aria-live="polite" className="mt-4 text-right text-[10px] text-[var(--ink-deep)]/40">
+            {saving
+              ? "记下中…"
+              : savedAt
+                ? `已自动记下 ${new Date(savedAt).toLocaleTimeString()}`
+                : "标记会自动记下"}
+          </p>
         </div>
       </div>
     </TooltipProvider>
