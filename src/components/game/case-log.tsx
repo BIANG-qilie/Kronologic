@@ -21,7 +21,6 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
       ) : (
         <ol className="space-y-px">
           {entries.map((q, i) => {
-            const n = view.queryLog.length - i;
             const count = /^x?(\d+)$/i.exec(q.sharedLabel)?.[1];
             const mine = view.you?.privateClues.find((c) => c.queryId === q.id);
             const priv = mine?.privateLabel && mine.privateLabel !== "—" ? mine.privateLabel : null;
@@ -35,7 +34,7 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
                 )}
               >
                 <span className="font-display text-sm italic text-[var(--ink-faint)] tabular group-hover:text-[var(--amber-dim)]">
-                  {n}
+                  {view.queryLog.length - i}
                 </span>
                 <div className="min-w-0">
                   <p className="truncate text-sm text-[var(--ink)]">
@@ -45,6 +44,7 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
                   </p>
                   <p className="mt-0.5 text-[11px] text-[var(--ink-muted)]/80">
                     {q.askerNickname}
+                    {q.askAgain && <span className="ml-2 text-[var(--ink-muted)]">不计次 · 续问</span>}
                     {priv && (
                       <span className="ml-2 text-[#f3e6c8]">
                         白窗 · {q.kind === "place_time" ? `其中有 ${priv}` : `其中一次在时间 ${priv}`}

@@ -285,7 +285,7 @@ export function askQuery(
 
   let shared;
   let priv;
-  const salt = `${room.code}:${room.queryCountTotal}`;
+  const salt = `${room.code}:${room.queryLog.length}`;
 
   if (input.kind === "place_time") {
     if (!input.timeId || input.timeId < 1 || input.timeId > 6) {
@@ -324,8 +324,11 @@ export function askQuery(
     at: Date.now(),
   };
   room.queryLog.push(entry);
-  room.queryCountTotal += 1;
-  player.queryCount += 1;
+  // A query that yields no private clue is free, like the original's "ask again".
+  if (!shared.askAgain) {
+    room.queryCountTotal += 1;
+    player.queryCount += 1;
+  }
 
   player.privateClues.push({
     queryId,

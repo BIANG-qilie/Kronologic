@@ -24,12 +24,12 @@ export function resolvePlaceTime(
 ): { shared: SharedQueryPayload; private: PrivateQueryPayload } {
   const present = peopleAt(sealed, timeId, placeId);
   const count = present.length;
-  const askAgain = count === 0;
   const sharedLabel = `x${count}`;
   let privateLabel = "—";
   if (count > 0) {
     privateLabel = pickDeterministic(present, `${salt}:${placeId}:${timeId}`);
   }
+  const askAgain = privateLabel === "—";
   return {
     shared: {
       kind: "place_time",
@@ -50,7 +50,6 @@ export function resolvePlacePerson(
 ): { shared: SharedQueryPayload; private: PrivateQueryPayload } {
   const times = visitsOf(sealed, personId, placeId);
   const count = times.length;
-  const askAgain = count === 0;
   const sharedLabel = `x${count}`;
   let privateLabel = "—";
   if (count > 0) {
@@ -58,6 +57,7 @@ export function resolvePlacePerson(
       pickDeterministic(times, `${salt}:${placeId}:${personId}`)
     );
   }
+  const askAgain = privateLabel === "—";
   return {
     shared: {
       kind: "place_person",

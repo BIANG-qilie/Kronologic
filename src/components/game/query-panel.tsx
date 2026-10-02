@@ -68,7 +68,7 @@ export function QueryPanel({
         </p>
         <p className="max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
           {askAgain
-            ? "上一问答案是 0，提问者可以续问，等他问完。"
+            ? "上一问没有白窗线索，不计次数，提问者再问一次。"
             : "趁这会儿去桌面上推一推，问到你时这里会亮起来。"}
         </p>
       </div>
@@ -102,7 +102,7 @@ export function QueryPanel({
       <div className="space-y-8">
         {askAgain && (
           <p className="animate-fade-up rounded-[3px] bg-[var(--green-win)]/10 px-4 py-2.5 text-sm text-[var(--green-win)]">
-            上一问的答案是 0，可以再问一次。
+            上一问没有白窗线索，不计次数，再问一次。
           </p>
         )}
         <Step n={1} title="问什么">
