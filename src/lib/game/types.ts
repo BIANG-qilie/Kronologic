@@ -63,8 +63,10 @@ export interface ScenarioPublic {
   winQuestions: WinQuestion[];
   soloBands: SoloBands;
   difficulty: number;
-  /** Lobby badge, e.g. 「5 问」 */
+  /** Lobby badge, e.g. 「第 4 关」 */
   tier?: string;
+  /** 1-based level; higher never easier (ordered by greedyMin) */
+  level?: number;
   /** Generator seed (reproducible bank entry) */
   seed?: string;
   /** Greedy min-query difficulty rung */

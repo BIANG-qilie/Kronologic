@@ -166,7 +166,6 @@ function bundleFromSample(
   const bands = bandsFromGreedy(greedySteps);
   return assembleNightTeaBundle({
     id,
-    subtitle: `星河音乐厅 · 1925 · ${greedySteps} 问`,
     difficulty: greedySteps,
     opening: sample.opening,
     trajectory,
@@ -289,11 +288,12 @@ export type CaseBankFile = {
 };
 
 export function bundleFromBankEntry(
-  entry: CaseBankFile["cases"][number]
+  entry: CaseBankFile["cases"][number],
+  level?: number
 ): ScenarioBundle {
   return assembleNightTeaBundle({
     id: entry.id,
-    subtitle: `星河音乐厅 · 1925 · ${entry.greedySteps} 问`,
+    level,
     difficulty: entry.greedySteps,
     opening: entry.opening,
     trajectory: entry.trajectory,
