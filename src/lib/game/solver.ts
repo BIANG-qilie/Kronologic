@@ -695,7 +695,7 @@ export function validateWithSolver(bundle: ScenarioBundle): SolverReport {
     );
   }
   if (singleQueryMaxLock <= 1) {
-    // alone_at_place 把地点写进规则（与入门案情一致），单题问到案发格即可锁死；
+    // alone_at_place 规则把地点写进案情时，单题问到案发格即可锁死；
     // 关系型 alone_with_victim 必须通过「无单题秒杀」。
     if (bundle.sealed.rule?.type === "alone_with_victim") {
       errors.push("存在单题即可锁定全部答案");

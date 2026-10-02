@@ -19,7 +19,7 @@ export function LobbyHome() {
   const [nickname, setNickname] = useState("");
   const [joinCode, setJoinCode] = useState("");
   const [scenarios, setScenarios] = useState<ScenarioPublic[]>([]);
-  const [scenarioId, setScenarioId] = useState("harbor-missing-score");
+  const [scenarioId, setScenarioId] = useState("night-tea-poison");
   const [mode, setMode] = useState<"create" | "join">("create");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -227,7 +227,7 @@ export function LobbyHome() {
                   {scenarios.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.tier ? `${s.tier} · ` : ""}
-                      {s.title} · {s.subtitle.replace(/\s·\s入门$/, "")}
+                      {s.title} · {s.subtitle}
                     </option>
                   ))}
                 </select>

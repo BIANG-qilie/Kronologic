@@ -10,10 +10,8 @@ import {
 } from "./solver";
 import type { ScenarioBundle } from "./types";
 import night from "@/data/scenarios/night-tea-poison.json";
-import harbor from "@/data/scenarios/harbor-missing-score.json";
 
 const nightBundle = night as ScenarioBundle;
-const harborBundle = harbor as ScenarioBundle;
 
 describe("enumeratePaths", () => {
   it("never stays in the same room and respects adjacency", () => {
@@ -74,14 +72,5 @@ describe("night-tea-poison solver", () => {
         `single lock via ${obs.placeId}@${obs.timeId}`
       );
     }
-  });
-});
-
-describe("harbor-missing-score solver", () => {
-  it("passes trajectory-backed solver report", () => {
-    const report = validateWithSolver(harborBundle);
-    assert.equal(report.ok, true, report.errors.join("; "));
-    assert.ok(report.openingAnswerCount > 1);
-    assert.equal(report.fullInfoAnswerCount, 1);
   });
 });
