@@ -129,7 +129,7 @@ export function RoomLobby({
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-[var(--ink-faint)]">空座</p>
+                  <p className="text-sm text-[var(--ink-muted)]/60">空座</p>
                 )}
               </li>
             ))}

@@ -140,7 +140,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
 
       <div className="relative mx-auto max-w-6xl px-5 py-14 sm:px-8 md:py-20">
         <p
-          className={cn("rise text-[11px] tracking-[0.42em]", isWin ? "text-[var(--amber)]" : "text-[#e07a5f]")}
+          className={cn("rise text-xs tracking-[0.42em]", isWin ? "text-[var(--amber)]" : "text-[#e07a5f]")}
           style={{ ["--i" as string]: 4 }}
         >
           {kicker}
@@ -182,12 +182,14 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             className="rise mt-8 max-w-3xl text-balance font-display text-2xl leading-[1.6] text-[var(--ink-muted)] sm:text-3xl"
             style={{ ["--i" as string]: 6 }}
           >
-            时间 <span className="text-[var(--ink)]">{time}</span>，
-            <span className="text-[var(--amber)]">{culprit.name}</span>
-            在<span className="text-[var(--ink)]">{place.name}</span>
+            <span className="whitespace-nowrap">
+              时间 <span className="text-[var(--ink)]">{time}</span>，
+            </span>
+            <span className="whitespace-nowrap text-[var(--amber)]">{culprit.name}</span>
+            在<span className="whitespace-nowrap text-[var(--ink)]">{place.name}</span>
             {victim ? (
               <>
-                与<span className="text-[var(--ink)]">{victim.name}</span>独处。
+                与<span className="whitespace-nowrap text-[var(--ink)]">{victim.name}</span>独处。
               </>
             ) : (
               "下了手。"
@@ -198,7 +200,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
         {showAnswers && view.revealTrajectory && (
           <section className="mt-12" aria-label="整晚回放">
             <p className="rise mb-4 text-[11px] tracking-[0.32em] text-[var(--ink-muted)]" style={{ ["--i" as string]: 6 }}>
-              整晚回放 · 每格是一个房间
+              整晚回放
             </p>
             <Replay
               view={view}
@@ -207,10 +209,16 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
               culprit={culpritId}
               victim={view.revealVictimId}
             />
-            <p className="rise mt-3 text-[11px] text-[var(--ink-muted)]/70" style={{ ["--i" as string]: 12 }}>
-              {PLACE_ORDER.map((id) => view.scenario.places.find((p) => p.id === id)?.name).join(" · ")}
-              （从左上到右下）
-            </p>
+            <div className="rise mt-4 flex items-center gap-3" style={{ ["--i" as string]: 12 }}>
+              <span className="text-[11px] text-[var(--ink-muted)]/70">房间位置</span>
+              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-[var(--ink-faint)]/60 text-[10px] text-[var(--ink-muted)]">
+                {PLACE_ORDER.map((id) => (
+                  <span key={id} className="bg-[var(--curtain)] px-2 py-0.5 text-center">
+                    {view.scenario.places.find((p) => p.id === id)?.name}
+                  </span>
+                ))}
+              </div>
+            </div>
           </section>
         )}
 

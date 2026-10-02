@@ -87,7 +87,7 @@ export function SuspectBoard({
   ];
 
   return (
-    <div className="mb-4 space-y-1.5 rounded-sm border border-[var(--ink-deep)]/12 bg-[var(--ink-deep)]/[0.03] p-2.5">
+    <div className="mb-4 mt-3 space-y-1.5 rounded-sm border border-[var(--ink-deep)]/12 bg-[var(--ink-deep)]/[0.03] p-2.5">
       <div className="flex items-baseline justify-between">
         <p className="font-display text-sm text-[var(--ink-deep)]">嫌疑板</p>
         <p className="text-[10px] text-[var(--ink-deep)]/50">点一下标目标，再点排除，第三下清除</p>

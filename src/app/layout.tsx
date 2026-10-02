@@ -8,6 +8,7 @@ const fraunces = Fraunces({
   axes: ["opsz"],
   variable: "--font-fraunces",
   display: "swap",
+  adjustFontFallback: false,
 });
 
 const serifSC = Noto_Serif_SC({
