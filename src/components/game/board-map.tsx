@@ -133,9 +133,6 @@ export function BoardMap({
           })}
         </div>
       </div>
-      <p className="mt-2 text-center text-[10px] text-[var(--ink-muted)]">
-        悬停或选中地点时，相邻通道会高亮
-      </p>
     </div>
   );
 }

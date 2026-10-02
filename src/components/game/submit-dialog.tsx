@@ -49,7 +49,7 @@ export function SubmitDialog({
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">提交答案</DialogTitle>
           <DialogDescription className="text-[var(--ink-muted)]">
-            提交后进入 12 秒同时交卷窗。答错即淘汰，且不能再提问。答案在揭示前不会广播。
+            提交后进入 12 秒同时交卷窗。答错即淘汰。
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">

@@ -159,7 +159,7 @@ function EndScreen({ view }: { view: RoomPublicView }) {
       <h1 className="font-display text-4xl text-[var(--ink)]">{title}</h1>
       {isSolo && isFail && !showAnswers && (
         <p className="animate-fade-up text-[var(--ink-muted)]">
-          你的答案不正确。本场已结束，答案即将显示…
+          答错。答案即将显示…
         </p>
       )}
       {view.phase === "reveal" && (
@@ -173,7 +173,7 @@ function EndScreen({ view }: { view: RoomPublicView }) {
       )}
       {ratingLabel && (
         <p className="text-[var(--amber)]">
-          单人评级：{ratingLabel}（{view.players[0]?.queryCount ?? 0} 问）
+          单人：{ratingLabel} · {view.players[0]?.queryCount ?? 0} 问
         </p>
       )}
       {showAnswers && view.revealAnswers && (
@@ -383,7 +383,7 @@ export function PlayClient({
 
       {view.you?.eliminated && (
         <div className="rounded-sm border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          你已淘汰——不能再提问或交卷。答案不会广播，请等待他人结束。
+          你已淘汰。等待他人结束本场。
         </div>
       )}
 

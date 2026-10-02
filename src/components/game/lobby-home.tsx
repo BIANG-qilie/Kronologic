@@ -175,7 +175,7 @@ export function LobbyHome() {
       <div className="relative mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-5 py-16">
         <header className="mb-12 space-y-4 text-center md:text-left">
           <p className="text-xs uppercase tracking-[0.42em] text-[var(--amber)]">
-            非商业 · 原创调查
+            时间推理
           </p>
           <h1 className="font-display text-6xl leading-none tracking-tight text-[var(--ink)] md:text-7xl">
             灯序
@@ -260,7 +260,7 @@ export function LobbyHome() {
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="diff">难度（贪心最少提问）</Label>
+                  <Label htmlFor="diff">难度</Label>
                   <select
                     id="diff"
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
@@ -270,14 +270,11 @@ export function LobbyHome() {
                     {(family?.tiers ?? [5]).map((t) => (
                       <option key={t} value={t}>
                         {t} 问
-                        {family?.perTier?.[t]
-                          ? ` · 题库 ${family.perTier[t]} 局`
-                          : ""}
                       </option>
                     ))}
                   </select>
                 </div>
-                {nextTier != null && (
+                {nextTier != null && nextTier !== greedyMin && (
                   <Button
                     type="button"
                     variant="ghost"
@@ -286,7 +283,6 @@ export function LobbyHome() {
                     onClick={() => setGreedyMin(nextTier)}
                   >
                     下一关：{nextTier} 问
-                    {clearedTier > 0 ? `（已过 ${clearedTier} 问档）` : ""}
                   </Button>
                 )}
               </div>
@@ -319,9 +315,6 @@ export function LobbyHome() {
                 开新房将放弃房间 {resume.code}
               </p>
             )}
-            <p className="text-xs text-[var(--ink-muted)]">
-              v1 无需账号：房间码 + 昵称 + 本机重连令牌。题库预生成，开房只选题。
-            </p>
           </section>
 
           <aside className="rounded-sm border border-[var(--ink-faint)] bg-[var(--stage)]/50 p-5">
@@ -337,8 +330,7 @@ export function LobbyHome() {
                   {selected?.subtitle ?? "星河音乐厅 · 1925"}
                 </p>
                 <p className="mt-2 font-mono text-xs text-[var(--amber)]">
-                  难度 {greedyMin} 问
-                  {selected?.seed ? ` · 种子 ${selected.seed}` : ""}
+                  {greedyMin} 问
                 </p>
                 <p className="mt-4 text-sm leading-relaxed text-[var(--ink-muted)]">
                   {family?.synopsis ?? selected?.synopsis}

@@ -63,7 +63,7 @@ export function QueryPanel({
     return (
       <div className="rounded-sm border border-[var(--ink-faint)] bg-[var(--stage)]/50 p-4 text-sm text-[var(--ink-muted)]">
         {askAgain
-          ? "上题触发「再问一次」——等待提问者续问。"
+          ? "再问一次——等待提问者续问。"
           : "等待当前调查员提问。"}
       </div>
     );
@@ -73,7 +73,7 @@ export function QueryPanel({
     <div className="space-y-4">
       {askAgain && (
         <p className="animate-fade-up text-sm text-[var(--amber)]">
-          再问一次：本题对全桌信息相同，请立刻再选一题。
+          再问一次。
         </p>
       )}
       <div className="flex gap-2">

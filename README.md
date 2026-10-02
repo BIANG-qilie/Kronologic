@@ -1,37 +1,25 @@
-# 灯序（Online Chronologic-like）
+# 灯序
 
-非商业、原创内容的线上多人时间推理。机制对齐 Paris 1920 骨架；人物、地点与调查均为原创，不含官方 Kronologic IP。
+线上多人时间推理。六时、六地、六人；绿窗共享，白窗独见。
 
 ## 本地运行
 
 ```bash
 npm install
 npm test
-npm run validate:scenario   # 校验题库全部关卡
-npm run generate:bank       # 离线重生成夜茶题库（可选）
-npm run dev                 # 默认 http://127.0.0.1:4317
+npm run validate:scenario
+npm run generate:bank       # 重生成夜茶题库（可选）
+npm run dev                 # http://127.0.0.1:4317
 ```
-
-开发服务器绑定端口 **4317**（见 `package.json` scripts）。
 
 ## 怎么玩
 
-1. 打开大厅，输入昵称，**创建房间**或输入六位**房间码加入**。调查为《夜茶的毒》，可选难度（按贪心最少提问数 5–9 问分级）。
-2. 房主点「开始调查」→ 服务端封存轨迹与答案（客户端拿不到）。
-3. 轮流选 **地点×时间** 或 **地点×人物**：绿窗全桌可见，白窗仅提问者。
-4. 随时可**交卷**（12 秒同时交卷窗）。全对进揭示；全错淘汰且不能再问。全员淘汰可看答案。
-5. 刷新页面：本机保存的 reconnect token 可回房；笔记存在服务端仅本人可读。
+1. 大厅输入昵称，创建房间或加入六位房间码。调查《夜茶的毒》，按提问数选难度。
+2. 房主开始调查。
+3. 轮流问地点×时间或地点×人物。
+4. 交卷进入 12 秒同时窗；全对揭示，答错淘汰。
+5. 本机令牌可重连；笔记仅本人可读。
 
-## 出题
+## 题库
 
-- **预生成题库**（`src/data/case-bank/night-tea-bank.json`）：同地图同案情，换轨迹与开场；难度 = 贪心最少提问数。
-- 选型原因：单次求解校验常需数百毫秒且需重试，即时生成无法在 1 秒内稳定命中目标难度。
-- 调研笔记见 Agent Store `docs/case-generation-research.md`。
-
-## v1 范围
-
-- 房间码 + 昵称 + 会话令牌；**无账号**（账号/战绩 defer 到 v2）。
-- 座位级 SSE 实时同步。
-- 一场原创调查家族：《夜茶的毒》多难度题库。
-
-裁定与信息分层见项目文档（Agent Store）`docs/online-rules.md`。
+`src/data/case-bank/night-tea-bank.json`：同案情换轨迹与开场，难度按贪心最少提问数分档。调研见 Agent Store `docs/case-generation-research.md`。
