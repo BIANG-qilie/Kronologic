@@ -121,7 +121,7 @@ export function PlayClient({
           这间房不认得你
         </p>
         <p className="mt-3 text-sm text-[var(--ink-muted)]">
-          房间可能已经散了，或者是在另一台设备上开的。
+          房间可能已散场，或是在另一台设备上入座的。
         </p>
         <Button className="mt-8" onClick={() => (window.location.href = "/")}>
           回大厅
@@ -167,7 +167,7 @@ export function PlayClient({
           ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
       });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "提问失败");
+      setErr(e instanceof Error ? e.message : "提问失败，请重试");
     } finally {
       setBusy(false);
     }
@@ -186,11 +186,12 @@ export function PlayClient({
         className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-atmosphere"
         aria-hidden
       />
-      <header className="sticky top-0 z-30 border-b border-[var(--ink-faint)]/60 bg-[var(--curtain)]/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 md:px-6">
+      <header className="sticky top-0 z-30 border-b border-[var(--ink-faint)]/60 bg-[var(--curtain)]/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2 md:px-6 md:py-3">
           <Link
             href="/"
-            className="font-display text-base tracking-[0.2em] text-[var(--ink)] hover:text-[var(--amber)]"
+            className="-ml-2 flex min-h-11 items-center px-2 font-display text-base tracking-[0.2em] text-[var(--ink)] hover:text-[var(--amber)]"
+            aria-label="灯序 · 回大厅"
           >
             灯序
           </Link>
@@ -209,8 +210,8 @@ export function PlayClient({
                 )}
                 title={connected ? "已同步" : "重连中"}
               />
-              {view.code} · 已问{" "}
-              <span className="tabular">{view.queryCountTotal}</span>
+              {view.scenario.tier ? `${view.scenario.tier} · ` : ""}
+              {view.code} · 已问 <span className="tabular">{view.queryCountTotal}</span>
             </p>
           </div>
           <span
@@ -306,7 +307,7 @@ export function PlayClient({
 
         {view.you?.eliminated && (
           <div className="rounded-[3px] bg-[#e07a5f]/10 px-4 py-3 text-sm text-[#e07a5f] shadow-[inset_0_0_0_1px_rgba(224,122,95,0.35)]">
-            你已出局。可以继续看桌面，等其他人结束。
+            你已出局。可以继续看桌面，等这一局结束。
           </div>
         )}
 
@@ -325,7 +326,7 @@ export function PlayClient({
               <TabsTrigger
                 key={value}
                 value={value!}
-                className="relative -mb-px rounded-none border-b-2 border-transparent bg-transparent px-0 pb-3 pt-1 font-display text-lg text-[var(--ink-muted)] shadow-none transition-colors hover:text-[var(--ink)] data-[state=active]:border-[var(--amber)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-none"
+                className="relative -mb-px min-h-11 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 pt-1 font-display text-lg text-[var(--ink-muted)] shadow-none transition-colors hover:text-[var(--ink)] data-[state=active]:border-[var(--amber)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-none"
               >
                 {label}
                 {badge && (

@@ -24,7 +24,7 @@ export async function POST(req: Request, ctx: Ctx) {
     });
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "提问失败" },
+      { error: e instanceof Error ? e.message : "提问失败，请重试" },
       { status: 400 }
     );
   }

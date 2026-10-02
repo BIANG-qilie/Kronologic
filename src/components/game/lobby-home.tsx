@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { ScenarioPublic } from "@/lib/game/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowRight, Check } from "lucide-react";
 import { LampMatrix } from "@/components/game/lamp-matrix";
+import { levelLabel, suggestLevel, type LevelInfo } from "@/lib/game/levels";
+import { loadClearedLevels } from "@/lib/game/progress";
 import { cn } from "@/lib/utils";
 import {
   apiJson,
@@ -23,63 +24,49 @@ type FamilyMeta = {
   synopsis: string;
   tiers: number[];
   perTier: Record<number, number>;
+  levels: LevelInfo[];
   total: number;
   selection: string;
 };
 
-const PROGRESS_KEY = "lampxu-night-tea-cleared-tier";
-
-function loadClearedTier(): number {
-  try {
-    const v = Number(localStorage.getItem(PROGRESS_KEY) ?? "0");
-    return Number.isFinite(v) ? v : 0;
-  } catch {
-    return 0;
-  }
-}
+const NICK_MISSING = "先填一个称呼";
 
 export function LobbyHome() {
   const router = useRouter();
   const [nickname, setNickname] = useState("");
   const [joinCode, setJoinCode] = useState("");
-  const [scenarios, setScenarios] = useState<ScenarioPublic[]>([]);
   const [family, setFamily] = useState<FamilyMeta | null>(null);
-  const [greedyMin, setGreedyMin] = useState<number>(5);
+  const [level, setLevel] = useState<number>(1);
   const [mode, setMode] = useState<"create" | "join">("create");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [loadErr, setLoadErr] = useState(false);
   const [resume, setResume] = useState<ReturnType<typeof loadSession>>(null);
-  const [clearedTier, setClearedTier] = useState(0);
+  const [cleared, setCleared] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
     setResume(loadSession());
-    setClearedTier(loadClearedTier());
     fetch("/api/rooms")
       .then((r) => r.json())
       .then((d) => {
-        setScenarios(d.scenarios ?? []);
-        if (d.family) setFamily(d.family);
-        const tiers: number[] = d.family?.tiers ?? [];
-        if (tiers.length) setGreedyMin(tiers[0]);
+        if (!d.family) return;
+        setFamily(d.family);
+        const done = loadClearedLevels(d.family.levels ?? []);
+        setCleared(done);
+        const asked = Number(new URLSearchParams(window.location.search).get("level"));
+        const known = (d.family.levels ?? []).some((l: LevelInfo) => l.level === asked);
+        setLevel(known ? asked : suggestLevel(d.family.levels ?? [], done));
       })
-      .catch(() => undefined);
+      .catch(() => setLoadErr(true));
   }, []);
 
-  const selected = useMemo(() => {
-    return (
-      scenarios.find((s) => s.greedyMin === greedyMin) ?? scenarios[0] ?? null
-    );
-  }, [scenarios, greedyMin]);
-
-  const nextTier = useMemo(() => {
-    if (!family?.tiers.length) return null;
-    const next = family.tiers.find((t) => t > clearedTier);
-    return next ?? null;
-  }, [family, clearedTier]);
+  const levels = useMemo(() => family?.levels ?? [], [family]);
+  const tiers = family?.tiers ?? [];
+  const selected = levels.find((l) => l.level === level) ?? null;
 
   function requireNickname(): boolean {
     if (nickname.trim()) return true;
-    setErr("请填写昵称");
+    setErr(NICK_MISSING);
     return false;
   }
 
@@ -99,7 +86,7 @@ export function LobbyHome() {
         view: RoomPublicView;
       }>("/api/rooms", {
         method: "POST",
-        body: JSON.stringify({ nickname, greedyMin }),
+        body: JSON.stringify({ nickname, level }),
       });
       saveSession({
         code: data.code,
@@ -108,7 +95,7 @@ export function LobbyHome() {
       });
       router.push(`/play/${data.code}`);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "创建失败");
+      setErr(e instanceof Error ? e.message : "新建游戏失败，请重试");
     } finally {
       setBusy(false);
     }
@@ -116,8 +103,8 @@ export function LobbyHome() {
 
   async function join() {
     if (!requireNickname()) return;
-    if (joinCode.trim().length < 4) {
-      setErr("请输入有效房间码");
+    if (joinCode.trim().length !== 6) {
+      setErr("房间码是 6 位字母或数字");
       return;
     }
     setBusy(true);
@@ -143,7 +130,7 @@ export function LobbyHome() {
       });
       router.push(`/play/${data.code}`);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "加入失败");
+      setErr(e instanceof Error ? e.message : "加入失败，请重试");
     } finally {
       setBusy(false);
     }
@@ -159,21 +146,41 @@ export function LobbyHome() {
         body: JSON.stringify({ action: "reconnect", token: resume.token }),
       });
       router.push(`/play/${resume.code}`);
-    } catch (e) {
+    } catch {
       clearSession();
       setResume(null);
-      setErr(
-        e instanceof Error
-          ? `上一局已失效：${e.message}`
-          : "上一局已失效，请重新开房"
-      );
+      setErr("上一局已经结束，新建一局吧");
     } finally {
       setBusy(false);
     }
   }
 
-  const tiers = family?.tiers ?? [5];
   const action = mode === "create" ? create : join;
+
+  const segment = (value: "create" | "join", label: string) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={mode === value}
+      onClick={() => {
+        setMode(value);
+        setErr(null);
+      }}
+      className={cn(
+        "relative h-11 flex-1 font-display text-lg transition-colors duration-200",
+        mode === value ? "text-[var(--ink)]" : "text-[var(--ink-muted)]/70 hover:text-[var(--ink)]"
+      )}
+    >
+      {label}
+      <span
+        aria-hidden
+        className={cn(
+          "absolute inset-x-6 -bottom-px h-px origin-center bg-[var(--amber)] transition-transform duration-300",
+          mode === value ? "scale-x-100" : "scale-x-0"
+        )}
+      />
+    </button>
+  );
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -189,23 +196,24 @@ export function LobbyHome() {
             灯序
           </span>
           <span className="rise hidden sm:inline" style={{ ["--i" as string]: 1 }}>
-            星河音乐厅 · 一九二五 · 散场之后
+            星河音乐厅 · 1925 · 散场之后
           </span>
         </nav>
 
         {resume && (
-          <div className="rise mb-6 flex flex-wrap items-center justify-between gap-3 border-y border-[var(--amber)]/25 py-3" style={{ ["--i" as string]: 1 }}>
+          <div className="rise mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-y border-[var(--amber)]/25 py-2" style={{ ["--i" as string]: 1 }}>
             <p className="text-sm text-[var(--ink-muted)]">
-              还有一间房没散场：
-              <span className="ml-1 font-mono tracking-[0.2em] text-[var(--ink)]">{resume.code}</span>
+              上一局还没散场
+              <span className="ml-2 font-mono tracking-[0.2em] text-[var(--ink)]">{resume.code}</span>
             </p>
-            <div className="flex gap-1">
-              <Button size="sm" onClick={reconnect} disabled={busy}>
+            <div className="-mr-2 flex">
+              <Button size="sm" className="h-11 sm:h-9" onClick={reconnect} disabled={busy}>
                 回到房间
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
+                className="h-11 sm:h-9"
                 disabled={busy}
                 onClick={() => {
                   clearSession();
@@ -218,7 +226,7 @@ export function LobbyHome() {
           </div>
         )}
 
-        <section className="grid gap-12 pb-16 pt-6 md:grid-cols-12 md:gap-8 md:pb-24 md:pt-10">
+        <section className="grid gap-12 pb-16 pt-4 md:grid-cols-12 md:gap-8 md:pb-24 md:pt-10">
           <div className="md:col-span-7">
             <p className="rise text-[11px] tracking-[0.42em] text-[var(--amber)]" style={{ ["--i" as string]: 1 }}>
               一桩发生在六个时刻里的案子
@@ -230,111 +238,133 @@ export function LobbyHome() {
               灯<span className="text-[var(--amber)]">序</span>
             </h1>
             <p
-              className="rise mt-8 max-w-[26rem] text-balance text-lg leading-[1.85] text-[var(--ink-muted)] md:text-xl"
+              className="rise mt-8 max-w-[26rem] text-lg leading-[1.85] text-[var(--ink-muted)] md:text-xl"
               style={{ ["--i" as string]: 3 }}
             >
-              <span className="block">六时、六地、六人。</span>
+              <span className="block text-[var(--ink)]">六时，六地，六人。</span>
               <span className="block">
-                <span className="text-[var(--green-win)]">绿窗</span>所有人共见，
-                <span className="text-[#f3e6c8]">白窗</span>只照给你。
+                <span className="text-[var(--green-win)]">绿窗</span>亮给全场，
+                <span className="text-[#f3e6c8]">白窗</span>只亮给你。
               </span>
-              <span className="block">谁先拼出那一刻，谁就赢。</span>
+              <span className="block">抢先拼出案发那一刻。</span>
             </p>
 
             <div
-              className="rise ticket-edge relative mt-10 max-w-md bg-[var(--stage)]/80 p-6 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:p-7"
+              className="rise ticket-edge relative mt-10 max-w-md bg-[var(--stage)]/80 px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
               style={{ ["--i" as string]: 4 }}
             >
               <div className="pointer-events-none absolute inset-y-4 left-0 right-0 border-y border-dashed border-[var(--ink-faint)]/70" aria-hidden />
               <div className="relative">
-                <div className="mb-6 flex items-baseline justify-between">
-                  <p className="font-display text-xl text-[var(--ink)]">
-                    {mode === "create" ? "开一间房" : "入座"}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMode(mode === "create" ? "join" : "create");
-                      setErr(null);
-                    }}
-                    className="group inline-flex items-center gap-1 text-xs text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]"
-                  >
-                    {mode === "create" ? "有房间码？" : "自己开房"}
-                    <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
-                  </button>
+                <div className="mb-5 flex border-b border-[var(--ink-faint)]/70" role="tablist" aria-label="新建或加入">
+                  {segment("create", "新建游戏")}
+                  {segment("join", "加入游戏")}
                 </div>
 
-                <div className="space-y-5">
-                  <div className="space-y-2">
+                <div className="space-y-6">
+                  <div className="space-y-1">
                     <Label htmlFor="nick" className="text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
-                      你的名字
+                      你的称呼
                     </Label>
                     <Input
                       id="nick"
                       value={nickname}
                       maxLength={16}
-                      placeholder="今晚的调查员"
+                      placeholder="比如：夜班侦探"
                       autoComplete="nickname"
+                      enterKeyHint="go"
+                      aria-invalid={err === NICK_MISSING}
                       onKeyDown={(e) => e.key === "Enter" && action()}
                       onChange={(e) => {
                         setNickname(e.target.value);
-                        if (err === "请填写昵称") setErr(null);
+                        if (err === NICK_MISSING) setErr(null);
                       }}
-                      className="h-12 rounded-none border-0 border-b border-[var(--ink-faint)] bg-transparent px-0 text-lg shadow-none transition-colors placeholder:text-[var(--ink-faint)] focus-visible:border-[var(--amber)] focus-visible:outline-none focus-visible:ring-0"
+                      className="h-12 rounded-none border-0 border-b border-[var(--ink-faint)] bg-transparent px-0 text-lg shadow-none transition-colors placeholder:text-[var(--ink-faint)] focus-visible:border-[var(--amber)] focus-visible:outline-none focus-visible:ring-0 aria-[invalid=true]:border-[#e07a5f]"
                     />
                   </div>
 
                   {mode === "create" ? (
-                    <fieldset className="space-y-2.5">
-                      <legend className="mb-2.5 flex w-full items-baseline justify-between text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
-                        <span>难度</span>
-                        <span className="tracking-normal text-[var(--ink-muted)]/70">至少要问几次才能破案</span>
+                    <fieldset>
+                      <legend className="mb-3 flex w-full items-baseline justify-between text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
+                        <span>关卡选择</span>
+                        {selected && (
+                          <span className="font-mono tracking-normal text-[var(--ink)] tabular" aria-live="polite">
+                            {levelLabel(selected.level)}
+                            <span className="text-[var(--ink-muted)]"> · 最少 {selected.greedyMin} 问</span>
+                          </span>
+                        )}
                       </legend>
-                      <div className="flex gap-1.5" role="radiogroup">
-                        {tiers.map((t) => {
-                          const on = t === greedyMin;
-                          const cleared = t <= clearedTier;
-                          return (
-                            <button
-                              key={t}
-                              type="button"
-                              role="radio"
-                              aria-checked={on}
-                              aria-label={`${t} 问${cleared ? "，已通关" : ""}`}
-                              onClick={() => setGreedyMin(t)}
-                              className={cn(
-                                "relative h-12 flex-1 rounded-[3px] font-display text-lg tabular transition-all duration-200",
-                                on
-                                  ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_8px_24px_-10px_rgba(212,161,90,0.8)]"
-                                  : "text-[var(--ink-muted)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:text-[var(--ink)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
-                              )}
-                            >
-                              {t}
-                              {cleared && (
-                                <Check
+                      <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="关卡">
+                        {levels.length === 0
+                          ? Array.from({ length: 15 }, (_, i) => (
+                              <span
+                                key={i}
+                                className={cn(
+                                  "h-12 rounded-[3px] shadow-[inset_0_0_0_1px_var(--ink-faint)]",
+                                  !loadErr && "animate-pulse-soft"
+                                )}
+                              />
+                            ))
+                          : levels.map((l) => {
+                              const on = l.level === level;
+                              const done = cleared.has(l.level);
+                              const rung = Math.max(0, tiers.indexOf(l.greedyMin)) + 1;
+                              return (
+                                <button
+                                  key={l.level}
+                                  type="button"
+                                  role="radio"
+                                  aria-checked={on}
+                                  aria-label={`${levelLabel(l.level)}，最少 ${l.greedyMin} 问${done ? "，已通关" : ""}`}
+                                  onClick={() => setLevel(l.level)}
                                   className={cn(
-                                    "absolute right-1 top-1 h-3 w-3",
-                                    on ? "text-[var(--curtain)]/70" : "text-[var(--green-win)]"
+                                    "relative flex h-12 flex-col items-center justify-center rounded-[3px] font-display text-lg leading-none tabular transition-[background-color,box-shadow,color,transform] duration-200 active:scale-[0.96]",
+                                    on
+                                      ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_8px_24px_-10px_rgba(212,161,90,0.8)]"
+                                      : done
+                                        ? "text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(111,191,138,0.45)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+                                        : "text-[var(--ink-muted)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:text-[var(--ink)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
                                   )}
-                                  aria-hidden
-                                />
-                              )}
-                            </button>
-                          );
-                        })}
+                                >
+                                  {l.level}
+                                  <span className="mt-1 flex gap-[2px]" aria-hidden>
+                                    {Array.from({ length: rung }, (_, i) => (
+                                      <span
+                                        key={i}
+                                        className={cn(
+                                          "h-[3px] w-[3px] rounded-full",
+                                          on ? "bg-[var(--curtain)]/60" : "bg-[var(--amber)]/55"
+                                        )}
+                                      />
+                                    ))}
+                                  </span>
+                                  {done && (
+                                    <Check
+                                      className={cn(
+                                        "absolute right-1 top-1 h-3 w-3",
+                                        on ? "text-[var(--curtain)]/70" : "text-[var(--green-win)]"
+                                      )}
+                                      aria-hidden
+                                    />
+                                  )}
+                                </button>
+                              );
+                            })}
                       </div>
-                      {nextTier != null && nextTier !== greedyMin && (
-                        <button
-                          type="button"
-                          className="text-xs text-[var(--amber)] underline-offset-4 hover:underline"
-                          onClick={() => setGreedyMin(nextTier)}
-                        >
-                          接着闯：{nextTier} 问
-                        </button>
-                      )}
+                      <p className="mt-3 flex items-baseline justify-between gap-3 text-[11px] leading-relaxed text-[var(--ink-muted)]/80">
+                        {loadErr ? (
+                          <span className="text-[#e07a5f]">关卡没加载出来，刷新页面再试</span>
+                        ) : (
+                          <span>关卡难度递进，以最少提问次数为判断依据</span>
+                        )}
+                        {cleared.size > 0 && (
+                          <span className="shrink-0 font-mono text-[var(--green-win)]/90 tabular">
+                            已通关 {cleared.size}/{levels.length || 15}
+                          </span>
+                        )}
+                      </p>
                     </fieldset>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <Label htmlFor="code" className="text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
                         房间码
                       </Label>
@@ -342,30 +372,39 @@ export function LobbyHome() {
                         id="code"
                         value={joinCode}
                         maxLength={6}
-                        placeholder="六位"
+                        placeholder="6 位，向房主要"
                         autoComplete="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        enterKeyHint="go"
                         onKeyDown={(e) => e.key === "Enter" && action()}
-                        className="h-12 rounded-none border-0 border-b border-[var(--ink-faint)] bg-transparent px-0 font-mono text-2xl uppercase tracking-[0.5em] shadow-none placeholder:text-base placeholder:tracking-[0.2em] placeholder:text-[var(--ink-faint)] focus-visible:border-[var(--amber)] focus-visible:outline-none focus-visible:ring-0"
-                        onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                        className="h-12 rounded-none border-0 border-b border-[var(--ink-faint)] bg-transparent px-0 font-mono text-2xl uppercase tracking-[0.5em] shadow-none placeholder:font-sans placeholder:text-base placeholder:normal-case placeholder:tracking-normal placeholder:text-[var(--ink-faint)] focus-visible:border-[var(--amber)] focus-visible:outline-none focus-visible:ring-0"
+                        onChange={(e) => setJoinCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
                       />
                     </div>
                   )}
 
                   {err && (
-                    <p role="alert" className="animate-fade-up text-sm text-[#e07a5f]">
+                    <p role="alert" className="animate-fade-up -mt-2 text-sm text-[#e07a5f]">
                       {err}
                     </p>
                   )}
 
-                  <Button className="group w-full" size="lg" disabled={busy} onClick={action}>
-                    {busy ? "请稍候…" : mode === "create" ? `开房 · ${greedyMin} 问` : "进入房间"}
-                    {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
-                  </Button>
-                  {resume && mode === "create" && (
-                    <p className="-mt-2 text-center text-xs text-[var(--ink-muted)]">
-                      开新房会放弃房间 {resume.code}
-                    </p>
-                  )}
+                  <div>
+                    <Button className="group w-full" size="lg" disabled={busy || (mode === "create" && !selected)} onClick={action}>
+                      {busy
+                        ? "稍等…"
+                        : mode === "create"
+                          ? `新建游戏 · ${levelLabel(level)}`
+                          : "入座"}
+                      {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
+                    </Button>
+                    {resume && mode === "create" && (
+                      <p className="mt-2 text-center text-xs text-[var(--ink-muted)]">
+                        新建游戏会放弃房间 {resume.code}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -377,7 +416,7 @@ export function LobbyHome() {
               <div className="mt-6 flex items-center justify-center gap-5 text-[11px] text-[var(--ink-muted)] md:justify-start md:pl-12">
                 <span className="inline-flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[var(--green-win)] shadow-[0_0_8px_rgba(111,191,138,0.8)]" />
-                  绿窗 · 公开
+                  绿窗 · 全场可见
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[#f3e6c8] shadow-[0_0_8px_rgba(243,230,200,0.7)]" />
@@ -389,10 +428,10 @@ export function LobbyHome() {
             <div className="rise mt-12 border-l border-[var(--amber)]/40 pl-5 md:ml-12" style={{ ["--i" as string]: 5 }}>
               <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">今晚的案子</p>
               <h2 className="mt-2 font-display text-3xl text-[var(--ink)]">
-                {family?.title ?? selected?.title ?? "夜茶的毒"}
+                {family?.title ?? "夜茶的毒"}
               </h2>
               <p className="mt-3 max-w-sm text-sm leading-[1.9] text-[var(--ink-muted)]">
-                {family?.synopsis ?? selected?.synopsis ?? "　"}
+                {family?.synopsis ?? "　"}
               </p>
             </div>
           </aside>
@@ -404,30 +443,39 @@ export function LobbyHome() {
           </h2>
           <ol className="grid gap-10 md:grid-cols-3 md:gap-8">
             {[
-              ["问一个地点和时间", "绿窗告诉所有人那里有几个人；白窗只悄悄告诉你其中一位是谁。"],
-              ["在羊皮纸上推", "把人物、人数一格格点上去。公开、私有、推理三层叠在同一张图上。"],
-              ["抢先交卷", "答出谁、在哪、何时。答错即出局；有人交卷后，其余人还有 12 秒同时交卷。"],
+              [
+                "提问一间房",
+                "配一个时间，绿窗公布房里几人，白窗私下告诉你其中一位；配一个人物，绿窗公布此人来过几次，白窗告诉你其中一次的时间。白窗没有内容时不计次，再问一次。",
+              ],
+              [
+                "落笔推理",
+                "在羊皮纸上标出每个时刻谁在哪、有几人。绿窗、白窗、推理三层叠在同一张图上；已有绿窗或白窗线索的格子，推理标记不可再改。",
+              ],
+              [
+                "抢先交卷",
+                "答出谁、何时、何地。答错即出局；有人交卷后，其余人还有 12 秒同时交卷。",
+              ],
             ].map(([title, body], i) => (
               <li key={title} className="group">
                 <span className="font-display text-5xl italic text-[var(--ink-faint)] transition-colors duration-500 group-hover:text-[var(--amber)]">
                   0{i + 1}
                 </span>
                 <p className="mt-3 font-display text-xl text-[var(--ink)]">{title}</p>
-                <p className="mt-2 max-w-xs text-sm leading-[1.9] text-[var(--ink-muted)]">{body}</p>
+                <p className="mt-2 max-w-sm text-sm leading-[1.9] text-[var(--ink-muted)]">{body}</p>
               </li>
             ))}
           </ol>
         </section>
 
-        <footer className="flex flex-col gap-4 border-t border-[var(--ink-faint)]/60 py-8 text-[11px] text-[var(--ink-muted)]/80 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+        <footer className="flex flex-col gap-4 border-t border-[var(--ink-faint)]/60 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 text-[11px] text-[var(--ink-muted)]/80 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
           <div className="space-y-1.5">
             <p className="font-display text-sm tracking-[0.18em] text-[var(--ink)]">
               BY BIANG
             </p>
             <p className="max-w-md leading-[1.7] text-[var(--ink-muted)]/75">
-              规则与节奏启发自桌游{" "}
+              规则启发自桌游{" "}
               <span className="text-[var(--ink-muted)]">Kronologic</span>
-              ，此为非商业致敬之作。
+              ，非商业致敬作品。
             </p>
             <p>
               <a
@@ -441,7 +489,7 @@ export function LobbyHome() {
             </p>
           </div>
           <div className="flex flex-col gap-1 sm:items-end">
-            <span>1–4 人 · 房间码开局 · 无需注册</span>
+            <span>1–4 人 · 凭房间码入座 · 无需注册</span>
             <span className="font-display italic text-[var(--ink-muted)]/70">灯序 · 时间推理</span>
           </div>
         </footer>

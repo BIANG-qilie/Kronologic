@@ -239,15 +239,15 @@ export type MarkSource = "public" | "private" | "inference";
 export const SOURCE_ORDER: MarkSource[] = ["public", "private", "inference"];
 
 export const SOURCE_LABEL: Record<MarkSource, string> = {
-  public: "公",
-  private: "私",
-  inference: "推",
+  public: "绿窗",
+  private: "白窗",
+  inference: "推理",
 };
 
 export function sourcesLabel(sources: MarkSource[]): string {
   return SOURCE_ORDER.filter((s) => sources.includes(s))
     .map((s) => SOURCE_LABEL[s])
-    .join("·");
+    .join(" + ");
 }
 
 export type MergedPerson = { person: string; sources: MarkSource[] };

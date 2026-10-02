@@ -2,10 +2,16 @@
 
 import type { RoomPublicView } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
+import type { PlaceId } from "@/lib/game/types";
+import { PlaceGlyph } from "./place-glyph";
 
 export function CaseLog({ view }: { view: RoomPublicView }) {
   const place = (id: string) => view.scenario.places.find((p) => p.id === id)?.name ?? id;
   const person = (id: string) => view.scenario.people.find((p) => p.id === id);
+  const tag = (id: string) => {
+    const p = person(id);
+    return p ? `${p.name}（${p.letter}）` : id;
+  };
   const entries = [...view.queryLog].reverse();
 
   return (
@@ -16,7 +22,7 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
       </p>
       {entries.length === 0 ? (
         <p className="border-l border-[var(--ink-faint)] pl-4 text-sm leading-relaxed text-[var(--ink-muted)]">
-          还没人提问。第一问通常挑人多的房间。
+          还没人提问。先问人多的房间，线索更多。
         </p>
       ) : (
         <ol className="space-y-px">
@@ -37,17 +43,18 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
                   {view.queryLog.length - i}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm text-[var(--ink)]">
+                  <p className="flex items-center truncate text-sm text-[var(--ink)]">
+                    <PlaceGlyph id={q.placeId as PlaceId} className="mr-1.5 h-3.5 w-3.5 text-[var(--ink-muted)]" />
                     {place(q.placeId)}
                     <span className="mx-1.5 text-[var(--ink-faint)]">×</span>
-                    {q.kind === "place_time" ? `时间 ${q.timeId}` : who ? `${who.letter} ${who.name}` : "—"}
+                    {q.kind === "place_time" ? `时间 ${q.timeId}` : who ? tag(who.id) : "—"}
                   </p>
                   <p className="mt-0.5 text-[11px] text-[var(--ink-muted)]/80">
                     {q.askerNickname}
-                    {q.askAgain && <span className="ml-2 text-[var(--ink-muted)]">不计次 · 续问</span>}
+                    {q.askAgain && <span className="ml-2 text-[var(--ink-muted)]">白窗为空 · 不计次</span>}
                     {priv && (
                       <span className="ml-2 text-[#f3e6c8]">
-                        白窗 · {q.kind === "place_time" ? `其中有 ${priv}` : `其中一次在时间 ${priv}`}
+                        白窗 · {q.kind === "place_time" ? `其中有 ${tag(priv)}` : `其中一次在时间 ${priv}`}
                       </span>
                     )}
                   </p>

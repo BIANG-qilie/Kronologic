@@ -11,7 +11,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const token = url.searchParams.get("token");
   const room = getRoom(code);
   if (!room) {
-    return new Response("房间不存在", { status: 404 });
+    return new Response("没找到这个房间，核对一下房间码", { status: 404 });
   }
 
   const encoder = new TextEncoder();

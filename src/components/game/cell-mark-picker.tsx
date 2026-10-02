@@ -4,9 +4,10 @@ import type { KeyboardEvent } from "react";
 import type { CellMark } from "@/lib/game/notes-format";
 import type { MergedCell } from "@/lib/game/project-facts";
 import { sourcesLabel } from "@/lib/game/project-facts";
-import type { PersonId, RoomPublicView } from "@/lib/game/types";
+import type { PersonId, PlaceId, RoomPublicView } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 import { GlyphToken } from "./source-glyph";
+import { PlaceGlyph } from "./place-glyph";
 
 const COUNTS = [0, 1, 2, 3, 4, 5, 6];
 
@@ -35,12 +36,14 @@ function cyclePerson(mark: CellMark, person: PersonId): CellMark {
 
 export function CellMarkPicker({
   view,
+  place,
   title,
   mark,
   merged,
   onChange,
 }: {
   view: RoomPublicView;
+  place?: PlaceId;
   title: string;
   mark: CellMark;
   merged: MergedCell;
@@ -51,11 +54,14 @@ export function CellMarkPicker({
 
   return (
     <div className="space-y-3 text-[var(--ink-deep)]" onKeyDown={rovingKeys}>
-      <p className="font-display text-base">{title}</p>
+      <p className="flex items-center gap-2 font-display text-lg sm:text-base">
+        {place && <PlaceGlyph id={place} className="h-5 w-5 sm:h-4 sm:w-4" />}
+        {title}
+      </p>
 
       <div>
         <p className="mb-1.5 text-[11px] text-[var(--ink-deep)]/60">
-          谁在这里 · 点一下“在”，再点“不在”
+          谁在这里 · 点一次标「在」，再点标「不在」
         </p>
         <div className="grid grid-cols-3 gap-1.5">
           {view.scenario.people.map((p) => {
@@ -70,7 +76,7 @@ export function CellMarkPicker({
                 aria-label={`${p.name}：${state === "in" ? "在" : state === "out" ? "不在" : "未标"}`}
                 onClick={() => onChange(cyclePerson(mark, p.id))}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-sm border px-1.5 py-1 text-left text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+                  "flex min-h-11 items-center gap-1.5 rounded-sm border px-1.5 py-1 text-left text-xs transition-colors sm:min-h-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
                   state === "in" &&
                     "border-[var(--mark-inference)] bg-[var(--mark-inference)]/15",
                   state === "out" && "border-[var(--ink-deep)]/30 bg-[var(--ink-deep)]/5",
@@ -112,7 +118,7 @@ export function CellMarkPicker({
                 aria-label={`推理 ${n} 人`}
                 onClick={() => onChange({ ...mark, count: on ? null : n })}
                 className={cn(
-                  "h-8 flex-1 rounded-sm border font-mono text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+                  "h-11 flex-1 rounded-sm border font-mono text-sm transition-colors sm:h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
                   on
                     ? "border-[var(--mark-inference)] bg-[var(--mark-inference)] text-[var(--parchment)]"
                     : "border-[var(--ink-deep)]/15 hover:border-[var(--ink-deep)]/35",
@@ -144,12 +150,12 @@ export function CellMarkPicker({
 
       <div className="flex items-center justify-between border-t border-[var(--ink-deep)]/10 pt-2">
         <span className={cn("text-[11px]", merged.conflict ? "text-[var(--mark-conflict)]" : "text-transparent")}>
-          推理与事实冲突
+          推理与线索冲突
         </span>
         <button
           type="button"
           onClick={() => onChange({ in: [], out: [], count: null })}
-          className="text-xs text-[var(--ink-deep)]/60 underline-offset-4 hover:underline"
+          className="-my-2 min-h-11 px-1 text-xs text-[var(--ink-deep)]/60 underline-offset-4 hover:underline sm:min-h-0"
         >
           清空此格
         </button>
@@ -168,7 +174,7 @@ export function VisitPicker({
   onChange: (v: number | null) => void;
 }) {
   return (
-    <div className="flex gap-1" onKeyDown={rovingKeys}>
+    <div className="flex w-full gap-1" onKeyDown={rovingKeys}>
       {COUNTS.map((n) => {
         const on = value === n;
         return (
@@ -180,7 +186,7 @@ export function VisitPicker({
             aria-label={`推理 ${n} 次`}
             onClick={() => onChange(on ? null : n)}
             className={cn(
-              "h-8 w-8 rounded-sm border font-mono text-sm text-[var(--ink-deep)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+              "h-11 flex-1 rounded-sm border font-mono text-sm text-[var(--ink-deep)] sm:h-8 sm:w-8 sm:flex-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
               on
                 ? "border-[var(--mark-inference)] bg-[var(--mark-inference)] text-[var(--parchment)]"
                 : "border-[var(--ink-deep)]/15 hover:border-[var(--ink-deep)]/35",

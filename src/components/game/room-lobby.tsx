@@ -33,7 +33,7 @@ export function RoomLobby({
       });
       onRefresh(data.view);
     } catch (e) {
-      setErr(e instanceof Error ? e.message : "开局失败");
+      setErr(e instanceof Error ? e.message : "开局失败，请重试");
     } finally {
       setBusy(false);
     }
@@ -54,7 +54,7 @@ export function RoomLobby({
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-atmosphere" aria-hidden />
-      <div className="relative mx-auto grid min-h-screen max-w-5xl content-center gap-12 px-5 py-14 sm:px-8 md:grid-cols-2 md:gap-16">
+      <div className="relative mx-auto grid min-h-[100dvh] max-w-5xl content-center gap-12 px-5 pb-32 pt-12 sm:px-8 md:grid-cols-2 md:gap-16 md:py-14">
         <section>
           <p className="rise text-[11px] tracking-[0.42em] text-[var(--amber)]" style={{ ["--i" as string]: 0 }}>
             房间码
@@ -71,7 +71,7 @@ export function RoomLobby({
             </span>
             <span
               className={cn(
-                "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all duration-300",
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-all duration-300",
                 copied
                   ? "bg-[var(--green-win)] text-[var(--curtain)]"
                   : "text-[var(--ink-muted)] shadow-[inset_0_0_0_1px_var(--ink-faint)] group-hover:text-[var(--amber)] group-hover:shadow-[inset_0_0_0_1px_var(--amber)]"
@@ -81,11 +81,18 @@ export function RoomLobby({
             </span>
           </button>
           <p className="rise mt-3 h-5 text-sm text-[var(--ink-muted)]" style={{ ["--i" as string]: 2 }} aria-live="polite">
-            {copied ? "已复制，发给同伴就能入座" : "把房间码发给同伴，最多四人"}
+            {copied ? "已复制，发给同伴就能入座" : "点一下复制，发给同伴，最多 4 人"}
           </p>
 
           <div className="rise mt-12 border-l border-[var(--amber)]/40 pl-5" style={{ ["--i" as string]: 3 }}>
-            <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">{view.scenario.subtitle}</p>
+            <p className="flex items-baseline gap-3 text-[11px] tracking-[0.32em] text-[var(--amber)]">
+              {view.scenario.tier && (
+                <span className="font-display text-base tracking-[0.12em]">{view.scenario.tier}</span>
+              )}
+              {view.scenario.greedyMin != null && (
+                <span className="tracking-[0.2em] text-[var(--ink-muted)]">最少 {view.scenario.greedyMin} 问</span>
+              )}
+            </p>
             <h1 className="mt-2 font-display text-4xl text-[var(--ink)] sm:text-5xl">{view.scenario.title}</h1>
             <p className="mt-4 max-w-sm text-sm leading-[1.9] text-[var(--ink-muted)]">{view.scenario.synopsis}</p>
           </div>
@@ -135,17 +142,24 @@ export function RoomLobby({
             ))}
           </ul>
 
-          <div className="rise mt-8" style={{ ["--i" as string]: 7 }}>
-            {err && <p className="mb-3 text-sm text-[#e07a5f]">{err}</p>}
+          <div
+            className="rise fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[var(--curtain)] via-[var(--curtain)]/95 to-transparent px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-8 md:static md:mt-8 md:bg-none md:p-0"
+            style={{ ["--i" as string]: 7 }}
+          >
+            {err && (
+              <p role="alert" className="mb-3 text-sm text-[#e07a5f]">
+                {err}
+              </p>
+            )}
             {you?.isHost ? (
               <Button className="group w-full" size="lg" disabled={busy} onClick={start}>
-                {busy ? "封存案件…" : view.players.length === 1 ? "一个人开查" : `开始调查 · ${view.players.length} 人`}
+                {busy ? "封存案件中…" : view.players.length === 1 ? "开始调查 · 单人" : `开始调查 · ${view.players.length} 人`}
                 {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
               </Button>
             ) : (
               <p className="flex items-center justify-center gap-2 py-3 text-sm text-[var(--ink-muted)]">
                 <span className="animate-pulse-soft h-1.5 w-1.5 rounded-full bg-[var(--amber)]" />
-                等房主开局
+                等房主开局…
               </p>
             )}
           </div>

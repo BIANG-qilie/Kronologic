@@ -6,6 +6,7 @@ import type {
   SoloBands,
   WinQuestion,
 } from "./types";
+import { levelLabel } from "./levels";
 
 export const NIGHT_TEA_FAMILY = "night-tea-poison";
 export const VICTIM_ID: PersonId = "M";
@@ -39,19 +40,19 @@ export const NIGHT_TEA_ADJACENCY: Record<PlaceId, PlaceId[]> = {
 
 export const NIGHT_TEA_WIN: WinQuestion[] = [
   { id: "who", prompt: "谁下的毒？", kind: "person" },
-  { id: "where", prompt: "在哪里下手？", kind: "place" },
-  { id: "when", prompt: "在哪个时间下手？", kind: "time" },
+  { id: "when", prompt: "何时下的手？", kind: "time" },
+  { id: "where", prompt: "在哪个房间？", kind: "place" },
 ];
 
 export const NIGHT_TEA_SYNOPSIS =
-  "指挥缪舟当晚只与一个人单独同处过一个房间，那个人就是下毒者。找出是谁、在哪个时间、在哪里下的手。";
+  "散场后，指挥缪舟（M）喝下了一杯毒茶。整晚只有一个人与缪舟单独同处过一室——那人就是下毒者。查出：谁、何时、何地。";
 
 export const PLACE_IDS = NIGHT_TEA_PLACES.map((p) => p.id);
 export const PERSON_IDS = NIGHT_TEA_PEOPLE.map((p) => p.id);
 
 export function assembleNightTeaBundle(input: {
   id: string;
-  subtitle?: string;
+  level?: number;
   difficulty: number;
   opening: Partial<Record<PersonId, PlaceId>>;
   trajectory: Record<PersonId, Record<string, PlaceId>>;
@@ -64,7 +65,8 @@ export function assembleNightTeaBundle(input: {
     public: {
       id: input.id,
       title: "夜茶的毒",
-      subtitle: input.subtitle ?? "星河音乐厅 · 1925",
+      subtitle:
+        input.level != null ? `星河音乐厅 · 1925 · ${levelLabel(input.level)}` : "星河音乐厅 · 1925",
       synopsis: NIGHT_TEA_SYNOPSIS,
       difficulty: input.difficulty,
       places: NIGHT_TEA_PLACES,
@@ -73,7 +75,8 @@ export function assembleNightTeaBundle(input: {
       opening: input.opening,
       winQuestions: NIGHT_TEA_WIN,
       soloBands: input.soloBands,
-      tier: input.greedyMin != null ? `${input.greedyMin} 问` : undefined,
+      tier: input.level != null ? levelLabel(input.level) : undefined,
+      level: input.level,
       seed: input.seed,
       greedyMin: input.greedyMin,
     },

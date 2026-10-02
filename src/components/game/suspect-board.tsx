@@ -2,9 +2,11 @@
 
 import { Crosshair } from "lucide-react";
 import type { SuspectBoard as Board, Verdict } from "@/lib/game/notes-format";
-import type { RoomPublicView } from "@/lib/game/types";
+import type { PlaceId, RoomPublicView } from "@/lib/game/types";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { rovingKeys } from "./cell-mark-picker";
+import { PlaceGlyph } from "./place-glyph";
 
 type Row = keyof Board;
 
@@ -29,7 +31,7 @@ function Chip({
   onClick,
 }: {
   verdict: Verdict | undefined;
-  label: string;
+  label: ReactNode;
   title: string;
   onClick: () => void;
 }) {
@@ -40,7 +42,7 @@ function Chip({
       onClick={onClick}
       aria-label={`${title}：${verdict === "target" ? "目标" : verdict === "excluded" ? "排除" : "未标"}`}
       className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1 rounded-sm border px-2 text-xs transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+        "inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1 rounded-sm border px-2 text-xs transition-colors sm:h-7 sm:min-w-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
         verdict === "target" &&
           "border-[var(--amber-dim)] bg-[var(--amber)]/30 font-semibold text-[var(--ink-deep)]",
         verdict === "excluded" &&
@@ -64,7 +66,7 @@ export function SuspectBoard({
   board: Board;
   onChange: (board: Board) => void;
 }) {
-  const rows: { row: Row; name: string; items: { key: string; label: string; title: string }[] }[] = [
+  const rows: { row: Row; name: string; items: { key: string; label: ReactNode; title: string }[] }[] = [
     {
       row: "times",
       name: "时间",
@@ -72,16 +74,30 @@ export function SuspectBoard({
     },
     {
       row: "places",
-      name: "地点",
-      items: view.scenario.places.map((p) => ({ key: p.id, label: p.name, title: p.name })),
+      name: "房间",
+      items: view.scenario.places.map((p) => ({
+        key: p.id,
+        label: (
+          <>
+            <PlaceGlyph id={p.id as PlaceId} className="h-3.5 w-3.5" />
+            {p.name}
+          </>
+        ),
+        title: p.name,
+      })),
     },
     {
       row: "people",
-      name: "角色",
+      name: "人物",
       items: view.scenario.people.map((p) => ({
         key: p.id,
-        label: `${p.letter} ${p.name}`,
-        title: p.name,
+        label: (
+          <>
+            <span className="font-mono font-semibold">{p.letter}</span>
+            {p.name}
+          </>
+        ),
+        title: `${p.name}（${p.letter}）`,
       })),
     },
   ];
@@ -90,12 +106,12 @@ export function SuspectBoard({
     <div className="mb-4 mt-3 space-y-1.5 rounded-sm border border-[var(--ink-deep)]/12 bg-[var(--ink-deep)]/[0.03] p-2.5">
       <div className="flex items-baseline justify-between">
         <p className="font-display text-sm text-[var(--ink-deep)]">嫌疑板</p>
-        <p className="text-[10px] text-[var(--ink-deep)]/50">点一下标目标，再点排除，第三下清除</p>
+        <p className="text-[10px] text-[var(--ink-deep)]/55">点一次标目标，再点排除，三点清除</p>
       </div>
       {rows.map(({ row, name, items }) => (
-        <div key={row} className="flex items-center gap-2">
-          <span className="w-7 shrink-0 text-[11px] text-[var(--ink-deep)]/55">{name}</span>
-          <div className="flex gap-1 overflow-x-auto pb-0.5" onKeyDown={rovingKeys}>
+        <div key={row} className="flex items-start gap-2">
+          <span className="w-7 shrink-0 pt-3 text-[11px] text-[var(--ink-deep)]/55 sm:pt-1.5">{name}</span>
+          <div className="flex flex-wrap gap-1" onKeyDown={rovingKeys}>
             {items.map((it) => (
               <Chip
                 key={it.key}

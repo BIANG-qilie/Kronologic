@@ -9,7 +9,7 @@
     "dev": "next dev --turbopack --hostname 127.0.0.1 --port 4317",
     "build": "next build && sh scripts/prepare-standalone.sh",
     "start": "sh scripts/start.sh",
-    "lint": "next lint",
+    "lint": "eslint src",
     "validate:scenario": "tsx scripts/validate-scenario.mjs",
     "generate:bank": "tsx scripts/generate-case-bank.ts",
     "test": "tsx --test src/lib/game/*.test.ts"

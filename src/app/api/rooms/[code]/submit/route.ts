@@ -16,7 +16,7 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ view: projectRoom(room, token) });
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "交卷失败" },
+      { error: e instanceof Error ? e.message : "交卷失败，请重试" },
       { status: 400 }
     );
   }

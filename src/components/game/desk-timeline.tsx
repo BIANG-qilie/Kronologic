@@ -28,7 +28,6 @@ import {
   type MarkSource,
   type MergedCell,
 } from "@/lib/game/project-facts";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -39,13 +38,15 @@ import { cn } from "@/lib/utils";
 import { CellMarkPicker, VisitPicker } from "./cell-mark-picker";
 import { GlyphToken, SOURCE_COLOR, SourceGlyph } from "./source-glyph";
 import { SuspectBoard } from "./suspect-board";
+import { AdaptivePopover } from "./adaptive-popover";
+import { PlaceGlyph, PlaceMark } from "./place-glyph";
 
 const TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
 const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
 
 const LAYER_NAME: Record<MarkSource, string> = {
-  public: "公有",
-  private: "私有",
+  public: "绿窗",
+  private: "白窗",
   inference: "推理",
 };
 
@@ -57,7 +58,7 @@ function placeLabel(view: RoomPublicView, id: string): string {
 
 function personLabel(view: RoomPublicView, id: string): string {
   const p = view.scenario.people.find((x) => x.id === id);
-  return p ? `${p.letter}·${p.name}` : id;
+  return p ? `${p.name}（${p.letter}）` : id;
 }
 
 function LatestClueStrip({ view }: { view: RoomPublicView }) {
@@ -73,6 +74,7 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
     <div className="mb-4 border-b border-[var(--ink-deep)]/15 pb-3 text-[var(--ink-deep)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
         <span className="font-mono font-semibold text-[var(--mark-public)]">
+          绿窗 ·{" "}
           {(() => {
             const n = /^x?(\d+)$/i.exec(latest.sharedLabel)?.[1];
             return n != null ? `${n} ${latest.kind === "place_time" ? "人" : "次"}` : latest.sharedLabel;
@@ -82,8 +84,8 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
         {privateClue && privateClue.privateLabel && privateClue.privateLabel !== "—" && (
           <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
             {latest.kind === "place_time"
-              ? `私 · 其中有 ${privateClue.privateLabel}`
-              : `私 · 其中一次 ${privateClue.privateLabel}`}
+              ? `白窗 · 其中有 ${personLabel(view, privateClue.privateLabel)}`
+              : `白窗 · 其中一次在时间 ${privateClue.privateLabel}`}
           </span>
         )}
       </div>
@@ -199,13 +201,18 @@ function RoomCell({
   const count = merged.count;
 
   return (
-    <Popover open={open} onOpenChange={(o) => canEdit && onOpenChange(o)}>
-      <PopoverTrigger asChild>
+    <AdaptivePopover
+      open={open}
+      onOpenChange={(o) => canEdit && onOpenChange(o)}
+      title={`时间 ${time} · ${name}`}
+      className="bg-[var(--parchment)] p-3"
+      popoverClassName="w-[min(20rem,calc(100vw-2rem))] border-[var(--ink-deep)]/25"
+      trigger={
         <button
           type="button"
           aria-label={`时间${time} ${name}`}
           aria-disabled={!canEdit}
-          title={locked ? "已有公开或私有信息，这一格不再标推理" : undefined}
+          title={locked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
           className={cn(
             "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
             canEdit ? "cursor-pointer hover:border-[var(--ink-deep)]/45" : "cursor-default",
@@ -217,14 +224,14 @@ function RoomCell({
           {merged.conflict && (
             <span
               className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[var(--mark-conflict)]"
-              title="推理与事实冲突"
+              title="推理与线索冲突"
             />
           )}
           {count && (
             <Tip
               label={
                 count.inferred != null
-                  ? `${count.value} 人 · 公（推 ${count.inferred}）`
+                  ? `绿窗 ${count.value} 人 · 你推的是 ${count.inferred}`
                   : `${count.value} 人 · ${sourcesLabel(count.sources)}`
               }
             >
@@ -236,7 +243,11 @@ function RoomCell({
             </Tip>
           )}
           <span className="mb-1 flex w-full items-center justify-center gap-1 text-[11px] text-[var(--ink-deep)]">
-            {placeVerdict === "target" && <Crosshair className="h-3 w-3 text-[var(--amber-dim)]" aria-hidden />}
+            {placeVerdict === "target" ? (
+              <Crosshair className="h-3.5 w-3.5 text-[var(--amber-dim)]" aria-hidden />
+            ) : (
+              <PlaceGlyph id={place} className="h-3.5 w-3.5 opacity-70" />
+            )}
             <span className={cn(placeVerdict === "excluded" && "line-through")}>{name}</span>
           </span>
           <div className="flex min-h-[2rem] flex-wrap items-center justify-center gap-1">
@@ -258,32 +269,37 @@ function RoomCell({
             })}
           </div>
           {merged.absent.length > 0 && (
-            <Tip label={`推 · 不在 ${merged.absent.join("、")}`}>
+            <Tip label={`推理 · 不在这里：${merged.absent.join("、")}`}>
               <span className="mt-auto font-mono text-[10px] tracking-wider text-[var(--mark-inference)]/80 line-through">
                 {merged.absent.join(" ")}
               </span>
             </Tip>
           )}
         </button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="center"
-        className="w-[min(20rem,calc(100vw-2rem))] border-[var(--ink-deep)]/25 bg-[var(--parchment)] p-3"
-      >
-        <CellMarkPicker
-          view={view}
-          title={`时间 ${time} · ${name}`}
-          mark={mark}
-          merged={merged}
-          onChange={onChange}
-        />
-      </PopoverContent>
-    </Popover>
+      }
+    >
+      <CellMarkPicker
+        view={view}
+        place={place}
+        title={`时间 ${time} · ${name}`}
+        mark={mark}
+        merged={merged}
+        onChange={onChange}
+      />
+    </AdaptivePopover>
   );
 }
 
 /** Film-strip room: one count plus up to three letters, no labels. */
-function MiniRoom({ merged, verdict }: { merged: MergedCell; verdict?: "target" | "excluded" }) {
+function MiniRoom({
+  place,
+  merged,
+  verdict,
+}: {
+  place: PlaceId;
+  merged: MergedCell;
+  verdict?: "target" | "excluded";
+}) {
   const hasPublic =
     merged.count?.sources.includes("public") || merged.people.some((p) => p.sources.includes("public"));
   const hasAny = merged.count != null || merged.people.length > 0;
@@ -305,6 +321,7 @@ function MiniRoom({ merged, verdict }: { merged: MergedCell; verdict?: "target" 
       {merged.conflict && (
         <span className="absolute right-px top-px h-1 w-1 rounded-full bg-[var(--mark-conflict)]" />
       )}
+      {!hasAny && <PlaceGlyph id={place} className="h-3 w-3 text-[var(--ink-deep)]/30" />}
       {merged.count && (
         <span
           className={cn(
@@ -388,7 +405,7 @@ function FilmFrame({
           linked={linked}
           compact
           room={(place) => (
-            <MiniRoom key={place} merged={mergedFor(time, place)} verdict={board.places[place]} />
+            <MiniRoom key={place} place={place} merged={mergedFor(time, place)} verdict={board.places[place]} />
           )}
         />
       </div>
@@ -406,14 +423,14 @@ function LayerToggle({
   onToggle: () => void;
 }) {
   return (
-    <Tip label={`${LAYER_NAME[source]}${on ? "（点击隐藏）" : "（点击显示）"}`}>
+    <Tip label={`${LAYER_NAME[source]}${on ? " · 点击隐藏" : " · 点击显示"}`}>
       <button
         type="button"
         aria-pressed={on}
         aria-label={LAYER_NAME[source]}
         onClick={onToggle}
         className={cn(
-          "flex h-7 items-center gap-1 rounded-sm border border-[var(--ink-deep)]/15 px-1.5 text-[11px] text-[var(--ink-deep)] transition-opacity",
+          "flex h-10 items-center gap-1 rounded-sm border border-[var(--ink-deep)]/15 px-2 text-xs text-[var(--ink-deep)] transition-opacity sm:h-7 sm:px-1.5 sm:text-[11px]",
           on ? "opacity-100" : "opacity-35"
         )}
       >
@@ -635,7 +652,7 @@ export function DeskTimeline({
                 {LAYER_NAME[s]}
               </span>
             ))}
-            <span>形状叠在一起表示多层一致，悬停查看来源</span>
+            <span>形状叠在一起，表示几层线索一致</span>
           </p>
 
           <div className="mt-6 border-t border-[var(--ink-deep)]/12 pt-3">
@@ -643,7 +660,7 @@ export function DeskTimeline({
               type="button"
               onClick={() => setVisitsOpen((v) => !v)}
               aria-expanded={visitsOpen}
-              className="group inline-flex items-center gap-1 font-display text-sm tracking-wide text-[var(--ink-deep)]/70 hover:text-[var(--ink-deep)]"
+              className="group -my-2 inline-flex min-h-11 items-center gap-1 font-display text-sm tracking-wide text-[var(--ink-deep)]/70 hover:text-[var(--ink-deep)]"
             >
               <ChevronRight
                 aria-hidden
@@ -652,17 +669,31 @@ export function DeskTimeline({
                   visitsOpen && "rotate-90"
                 )}
               />
-              到访
+              到访表
+              <span className="ml-2 font-sans text-[11px] tracking-normal text-[var(--ink-deep)]/45">
+                每人去过每个房间几次
+              </span>
             </button>
             {visitsOpen && (
               <div className="mt-3 overflow-x-auto">
-                <table className="w-full min-w-[420px] border-collapse text-xs">
+                <table className="w-full table-fixed border-collapse text-xs sm:min-w-[420px]">
                   <thead>
                     <tr>
-                      <th className="py-1 pr-2 text-left font-normal text-[var(--ink-deep)]/50">—</th>
+                      <th className="w-9 py-1 pr-1 text-left font-normal text-[var(--ink-deep)]/50 sm:w-20">
+                        <span className="sr-only">人物</span>
+                      </th>
                       {PLACE_ORDER.map((pid) => (
-                        <th key={pid} className="px-0.5 py-1 text-center font-normal text-[var(--ink-deep)]/50">
-                          {placeLabel(view, pid)}
+                        <th key={pid} className="px-0.5 py-1 text-center font-normal text-[var(--ink-deep)]/60">
+                          <PlaceMark
+                            id={pid}
+                            name={placeLabel(view, pid)}
+                            className="h-6 sm:hidden"
+                            glyphClassName="h-4 w-4"
+                          />
+                          <span className="hidden items-center justify-center gap-1 sm:inline-flex">
+                            <PlaceGlyph id={pid} className="h-3.5 w-3.5" />
+                            {placeLabel(view, pid)}
+                          </span>
                         </th>
                       ))}
                     </tr>
@@ -670,9 +701,9 @@ export function DeskTimeline({
                   <tbody>
                     {view.scenario.people.map((person) => (
                       <tr key={person.id}>
-                        <td className="py-1 pr-2 font-mono text-[var(--ink-deep)]">
-                          {person.letter}
-                          <span className="ml-1 text-[var(--ink-deep)]/45">{person.name}</span>
+                        <td className="py-1 pr-1 font-mono text-[var(--ink-deep)]" title={person.name}>
+                          <span className="font-semibold">{person.letter}</span>
+                          <span className="ml-1 hidden font-sans text-[var(--ink-deep)]/55 sm:inline">{person.name}</span>
                         </td>
                         {PLACE_ORDER.map((pid) => {
                           const visitFact = facts.visits[person.id]?.[pid];
@@ -691,20 +722,21 @@ export function DeskTimeline({
                             layers.private && visitFact ? visitFact.private.amongTimes : [];
                           return (
                             <td key={pid} className="relative px-0.5 py-1 text-center align-middle">
-                              <Popover
+                              <AdaptivePopover
                                 open={editingVisit === key}
                                 onOpenChange={(o) =>
                                   layers.inference && !visitLocked && setEditingVisit(o ? key : null)
                                 }
-                              >
-                                <PopoverTrigger asChild>
-                                  <button
+                                title={`${person.name}（${person.letter}）到访${placeLabel(view, pid)}几次`}
+                                className="bg-[var(--parchment)] p-2"
+                                popoverClassName="w-auto border-[var(--ink-deep)]/25"
+                                trigger={<button
                                     type="button"
-                                    aria-label={`${person.name} 到访 ${placeLabel(view, pid)}`}
+                                    aria-label={`${person.name}（${person.letter}）到访${placeLabel(view, pid)}`}
                                     aria-disabled={visitLocked}
-                                    title={visitLocked ? "已有公开或私有信息，这一格不再标推理" : undefined}
+                                    title={visitLocked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
                                     className={cn(
-                                      "mx-auto flex min-h-8 w-full flex-col items-center justify-center gap-0.5 rounded-sm",
+                                      "mx-auto flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-sm sm:min-h-8",
                                       visitLocked ? "cursor-default" : "hover:bg-[var(--ink-deep)]/5"
                                     )}
                                   >
@@ -712,7 +744,7 @@ export function DeskTimeline({
                                       <Tip
                                         label={
                                           conflict
-                                            ? `${pub} 次 · 公（推 ${inferred}）`
+                                            ? `绿窗 ${pub} 次 · 你推的是 ${inferred}`
                                             : `${shown} 次 · ${sourcesLabel(sources)}`
                                         }
                                       >
@@ -726,7 +758,7 @@ export function DeskTimeline({
                                       <span className="h-1 w-1 rounded-full bg-[var(--ink-deep)]/15" />
                                     )}
                                     {among.length > 0 && (
-                                      <Tip label={`私 · 其中一次在时间 ${among.join("、")}`}>
+                                      <Tip label={`白窗 · 其中一次在时间 ${among.join("、")}`}>
                                         <span className="inline-flex items-center gap-0.5 text-[9px] text-[var(--mark-private)]">
                                           <span className="relative inline-block h-2.5 w-2.5">
                                             <SourceGlyph sources={["private"]} thin />
@@ -735,11 +767,10 @@ export function DeskTimeline({
                                         </span>
                                       </Tip>
                                     )}
-                                  </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-auto border-[var(--ink-deep)]/25 bg-[var(--parchment)] p-2">
+                                  </button>}
+                              >
                                   <p className="mb-1.5 text-[11px] text-[var(--ink-deep)]/70">
-                                    {person.name} 到访{placeLabel(view, pid)}几次
+                                    {person.name}（{person.letter}）到访{placeLabel(view, pid)}几次
                                   </p>
                                   <VisitPicker
                                     value={inferred}
@@ -749,8 +780,7 @@ export function DeskTimeline({
                                       setEditingVisit(null);
                                     }}
                                   />
-                                </PopoverContent>
-                              </Popover>
+                                </AdaptivePopover>
                             </td>
                           );
                         })}

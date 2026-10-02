@@ -6,10 +6,13 @@ import type { PersonId, PlaceId, RoomPublicView } from "@/lib/game/types";
 import { clearSession } from "@/hooks/use-room";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { levelLabel } from "@/lib/game/levels";
+import { markLevelCleared } from "@/lib/game/progress";
+import { PlaceGlyph } from "./place-glyph";
 
 const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
 const TIMES = [1, 2, 3, 4, 5, 6];
-const PROGRESS_KEY = "lampxu-night-tea-cleared-tier";
+const LAST_LEVEL = 15;
 
 const MEDAL = {
   gold: { label: "金放大镜", color: "#e3b866", glow: "rgba(227,184,102,0.55)" },
@@ -67,6 +70,12 @@ function Replay({
                           : "bg-[var(--curtain)]/60 shadow-[inset_0_0_0_1px_var(--ink-faint)]"
                     )}
                   >
+                    {here.length === 0 && (
+                      <PlaceGlyph
+                        id={place}
+                        className={cn("h-3 w-3", isCrime ? "text-[var(--ink-deep)]/30" : "text-[var(--ink-faint)]")}
+                      />
+                    )}
                     {here.map((p) => (
                       <span
                         key={p.id}
@@ -103,17 +112,11 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
     return () => clearTimeout(t);
   }, [isSolo, isWin]);
 
+  const level = view.scenario.level ?? null;
   useEffect(() => {
-    if (!isWin) return;
-    const tier = view.scenario.greedyMin;
-    if (tier == null) return;
-    try {
-      const prev = Number(localStorage.getItem(PROGRESS_KEY) ?? "0");
-      if (tier > prev) localStorage.setItem(PROGRESS_KEY, String(tier));
-    } catch {
-      /* private mode */
-    }
-  }, [isWin, view.scenario.greedyMin]);
+    if (youWon && level != null) markLevelCleared(level);
+  }, [youWon, level]);
+  const nextLevel = level != null && level < LAST_LEVEL ? level + 1 : null;
 
   const answers = view.revealAnswers ?? {};
   const q = (kind: "person" | "place" | "time") =>
@@ -128,6 +131,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
   const winners = view.players.filter((p) => view.winners.includes(p.id));
 
   const kicker = isWin ? (youWon ? "你破了案" : "有人先破了案") : isSolo ? "答错了" : "全员出局";
+  const tag = (p: { name: string; letter: string }) => `${p.name}（${p.letter}）`;
   const title = isWin ? "真相" : "幕落";
 
   return (
@@ -138,11 +142,12 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
         <div className="curtain-right h-full w-1/2 bg-[linear-gradient(270deg,#0b100e,#17221d_85%,#0b100e)]" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-5 py-14 sm:px-8 md:py-20">
+      <div className="relative mx-auto max-w-6xl px-5 pb-[max(3.5rem,env(safe-area-inset-bottom))] pt-14 sm:px-8 md:py-20">
         <p
           className={cn("rise text-xs tracking-[0.42em]", isWin ? "text-[var(--amber)]" : "text-[#e07a5f]")}
           style={{ ["--i" as string]: 4 }}
         >
+          {level != null && <span className="mr-3 text-[var(--ink-muted)]">{levelLabel(level)}</span>}
           {kicker}
         </p>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-8">
@@ -185,11 +190,15 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             <span className="whitespace-nowrap">
               时间 <span className="text-[var(--ink)]">{time}</span>，
             </span>
-            <span className="whitespace-nowrap text-[var(--amber)]">{culprit.name}</span>
-            在<span className="whitespace-nowrap text-[var(--ink)]">{place.name}</span>
+            <span className="whitespace-nowrap text-[var(--amber)]">{tag(culprit)}</span>
+            在
+            <span className="inline-flex items-baseline gap-1 whitespace-nowrap text-[var(--ink)]">
+              <PlaceGlyph id={place.id} className="h-[0.8em] w-[0.8em] self-center" />
+              {place.name}
+            </span>
             {victim ? (
               <>
-                与<span className="whitespace-nowrap text-[var(--ink)]">{victim.name}</span>独处。
+                与<span className="whitespace-nowrap text-[var(--ink)]">{tag(victim)}</span>独处。
               </>
             ) : (
               "下了手。"
@@ -211,9 +220,10 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             />
             <div className="rise mt-4 flex items-center gap-3" style={{ ["--i" as string]: 12 }}>
               <span className="text-[11px] text-[var(--ink-muted)]/70">房间位置</span>
-              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-[var(--ink-faint)]/60 text-[10px] text-[var(--ink-muted)]">
+              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-[var(--ink-faint)]/60 text-[11px] text-[var(--ink-muted)]">
                 {PLACE_ORDER.map((id) => (
-                  <span key={id} className="bg-[var(--curtain)] px-2 py-0.5 text-center">
+                  <span key={id} className="flex items-center gap-1 bg-[var(--curtain)] px-2 py-1">
+                    <PlaceGlyph id={id} className="h-3.5 w-3.5" />
                     {view.scenario.places.find((p) => p.id === id)?.name}
                   </span>
                 ))}
@@ -236,10 +246,11 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             className="group"
             onClick={() => {
               clearSession();
-              window.location.href = "/";
+              const target = isWin ? nextLevel : level;
+              window.location.href = target ? `/?level=${target}` : "/";
             }}
           >
-            {isWin ? "下一晚" : "再查一次"}
+            {isWin ? (nextLevel ? `下一关 · ${levelLabel(nextLevel)}` : "回大厅") : "再试一次"}
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
           </Button>
         </div>

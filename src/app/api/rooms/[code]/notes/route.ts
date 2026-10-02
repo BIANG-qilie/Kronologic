@@ -15,7 +15,7 @@ export async function POST(req: Request, ctx: Ctx) {
     return NextResponse.json({ notes, view: projectRoom(room, token) });
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "保存失败" },
+      { error: e instanceof Error ? e.message : "笔记没存上，请重试" },
       { status: 400 }
     );
   }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { PlaceId, ScenarioPublic } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
+import { PlaceGlyph } from "./place-glyph";
 
 const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
 
@@ -57,7 +58,7 @@ export function BoardMap({
         onFocus={() => setHovered(id)}
         onBlur={() => setHovered(null)}
         className={cn(
-          "group relative flex flex-col justify-between rounded-[3px] p-3 text-left transition-all duration-300 sm:p-4",
+          "group relative flex flex-col justify-between rounded-[3px] p-2.5 text-left transition-all duration-300 active:scale-[0.98] sm:p-4",
           isSel
             ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_18px_40px_-16px_rgba(212,161,90,0.9)]"
             : isNeighbor
@@ -67,13 +68,22 @@ export function BoardMap({
           !onSelect && "cursor-default"
         )}
       >
-        <span
-          className={cn(
-            "font-display text-xs italic",
-            isSel ? "text-[var(--curtain)]/60" : "text-[var(--ink-faint)] group-hover:text-[var(--amber-dim)]"
-          )}
-        >
-          0{i + 1}
+        <span className="flex w-full items-start justify-between">
+          <span
+            className={cn(
+              "font-display text-xs italic",
+              isSel ? "text-[var(--curtain)]/60" : "text-[var(--ink-faint)] group-hover:text-[var(--amber-dim)]"
+            )}
+          >
+            0{i + 1}
+          </span>
+          <PlaceGlyph
+            id={id}
+            className={cn(
+              "h-5 w-5 transition-colors duration-300 sm:h-6 sm:w-6",
+              isSel ? "text-[var(--curtain)]/80" : "text-[var(--amber)]/70 group-hover:text-[var(--amber)]"
+            )}
+          />
         </span>
         <span className="font-display text-lg leading-none sm:text-2xl">{place.name}</span>
       </button>

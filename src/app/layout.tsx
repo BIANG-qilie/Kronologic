@@ -34,11 +34,12 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "灯序 · 时间推理",
-  description: "六时、六地、六人。绿窗共享，白窗独见。房间码开局。",
+  description: "六时，六地，六人。绿窗亮给全场，白窗只亮给你。抢先拼出案发那一刻。",
 };
 
 export const viewport: Viewport = {
   themeColor: "#121a17",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

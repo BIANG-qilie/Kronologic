@@ -90,7 +90,7 @@ export async function apiJson<T>(
   });
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(data.error || "请求失败");
+    throw new Error(data.error || "网络不稳，请重试");
   }
   return data as T;
 }

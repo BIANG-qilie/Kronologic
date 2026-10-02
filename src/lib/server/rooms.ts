@@ -91,7 +91,7 @@ function genToken(): string {
 
 function getBundleOrThrow(id: string) {
   const b = getScenarioBundle(id);
-  if (!b) throw new Error("场景不存在");
+  if (!b) throw new Error("这一关不存在");
   return b;
 }
 
@@ -183,9 +183,9 @@ export function subscribeRoom(
 
 export function joinRoom(code: string, nickname: string) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
-  if (room.phase !== "lobby") throw new Error("对局已开始，无法加入");
-  if (room.players.length >= 4) throw new Error("房间已满（最多 4 人）");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
+  if (room.phase !== "lobby") throw new Error("这一局已经开始，没法再入座");
+  if (room.players.length >= 4) throw new Error("房间已满，最多 4 人");
 
   const player: InternalPlayer = {
     id: genId("p"),
@@ -207,9 +207,9 @@ export function joinRoom(code: string, nickname: string) {
 
 export function reconnect(code: string, token: string) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
   const player = findPlayerByToken(room, token);
-  if (!player) throw new Error("会话无效，请重新加入");
+  if (!player) throw new Error("身份已失效，请回大厅重新入座");
   player.connected = true;
   notify(room);
   return { room, player };
@@ -217,11 +217,11 @@ export function reconnect(code: string, token: string) {
 
 export function startGame(code: string, token: string) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
   const player = findPlayerByToken(room, token);
-  if (!player?.isHost) throw new Error("仅房主可开局");
-  if (room.phase !== "lobby") throw new Error("已开局");
-  if (room.players.length < 1) throw new Error("至少需要 1 名玩家");
+  if (!player?.isHost) throw new Error("只有房主能开局");
+  if (room.phase !== "lobby") throw new Error("已经开局了");
+  if (room.players.length < 1) throw new Error("至少要 1 人才能开局");
 
   const bundle = getBundleOrThrow(room.scenarioId);
   room.sealed = structuredClone(bundle.sealed);
@@ -244,11 +244,11 @@ export function startGame(code: string, token: string) {
 
 export function kickPlayer(code: string, token: string, targetId: string) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
   const host = findPlayerByToken(room, token);
-  if (!host?.isHost) throw new Error("仅房主可踢人");
-  if (room.phase !== "lobby") throw new Error("对局中不可踢人");
-  if (host.id === targetId) throw new Error("不能踢自己");
+  if (!host?.isHost) throw new Error("只有房主能请人离座");
+  if (room.phase !== "lobby") throw new Error("开局后不能请人离座");
+  if (host.id === targetId) throw new Error("不能请自己离座");
   room.players = room.players
     .filter((p) => p.id !== targetId)
     .map((p, i) => ({ ...p, seat: i }));
@@ -271,18 +271,18 @@ export function askQuery(
   }
 ) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
-  if (room.phase !== "playing") throw new Error("当前不可提问");
-  if (!room.sealed) throw new Error("案件未封存");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
+  if (room.phase !== "playing") throw new Error("现在不能提问");
+  if (!room.sealed) throw new Error("案件还没就绪");
 
   const player = findPlayerByToken(room, token);
-  if (!player) throw new Error("会话无效");
-  if (player.eliminated) throw new Error("你已淘汰，不能提问");
+  if (!player) throw new Error("身份已失效，请回大厅重新入座");
+  if (player.eliminated) throw new Error("你已出局，不能提问");
   const turn = currentPlayer(room);
   if (!turn || turn.id !== player.id) throw new Error("还没轮到你");
 
   const placeOk = room.scenario.places.some((p) => p.id === input.placeId);
-  if (!placeOk) throw new Error("地点无效");
+  if (!placeOk) throw new Error("请选一个房间");
 
   let shared;
   let priv;
@@ -291,7 +291,7 @@ export function askQuery(
 
   if (input.kind === "place_time") {
     if (!input.timeId || input.timeId < 1 || input.timeId > 6) {
-      throw new Error("时间无效");
+      throw new Error("请选一个时间");
     }
     ({ shared, private: priv } = resolvePlaceTime(
       room.sealed,
@@ -300,9 +300,9 @@ export function askQuery(
       salt
     ));
   } else {
-    if (!input.personId) throw new Error("人物无效");
+    if (!input.personId) throw new Error("请选一个人物");
     if (!room.scenario.people.some((p) => p.id === input.personId)) {
-      throw new Error("人物无效");
+      throw new Error("请选一个人物");
     }
     ({ shared, private: priv } = resolvePlacePerson(
       room.sealed,
@@ -384,14 +384,14 @@ function finalizeSubmitWindow(room: InternalRoom) {
 
 export function submitAnswers(code: string, token: string, answers: SubmitAnswer) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
   if (room.phase !== "playing" && room.phase !== "submit_window") {
-    throw new Error("当前不可交卷");
+    throw new Error("现在不能交卷");
   }
   const player = findPlayerByToken(room, token);
-  if (!player) throw new Error("会话无效");
-  if (player.eliminated) throw new Error("你已淘汰");
-  if (player.pendingSubmit) throw new Error("已提交，等待窗口结束");
+  if (!player) throw new Error("身份已失效，请回大厅重新入座");
+  if (player.eliminated) throw new Error("你已出局");
+  if (player.pendingSubmit) throw new Error("你已交卷，等其他人交完");
 
   for (const q of room.scenario.winQuestions) {
     if (!answers[q.id]?.trim()) throw new Error(`请回答：${q.prompt}`);
@@ -423,9 +423,9 @@ export function submitAnswers(code: string, token: string, answers: SubmitAnswer
 
 export function saveNotes(code: string, token: string, text: string) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
   const player = findPlayerByToken(room, token);
-  if (!player) throw new Error("会话无效");
+  if (!player) throw new Error("身份已失效，请回大厅重新入座");
   player.notes = { text: text.slice(0, 20_000), updatedAt: Date.now() };
   // Notes are private — no need to blast all, but SSE refresh is fine
   notify(room);
@@ -512,10 +512,10 @@ export function projectRoom(
 
 export function setScenario(code: string, token: string, scenarioId: string) {
   const room = getRoom(code);
-  if (!room) throw new Error("房间不存在");
+  if (!room) throw new Error("没找到这个房间，核对一下房间码");
   const player = findPlayerByToken(room, token);
-  if (!player?.isHost) throw new Error("仅房主可选调查");
-  if (room.phase !== "lobby") throw new Error("已开局");
+  if (!player?.isHost) throw new Error("只有房主能换关卡");
+  if (room.phase !== "lobby") throw new Error("已经开局了");
   const bundle = getBundleOrThrow(scenarioId);
   room.scenarioId = bundle.public.id;
   room.scenario = bundle.public;

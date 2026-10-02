@@ -17,7 +17,7 @@ export async function GET(req: Request, ctx: Ctx) {
   const { code } = await ctx.params;
   const room = getRoom(code);
   if (!room) {
-    return NextResponse.json({ error: "房间不存在" }, { status: 404 });
+    return NextResponse.json({ error: "没找到这个房间，核对一下房间码" }, { status: 404 });
   }
   const token = new URL(req.url).searchParams.get("token");
   return NextResponse.json({ view: projectRoom(room, token) });
@@ -72,10 +72,10 @@ export async function POST(req: Request, ctx: Ctx) {
       return NextResponse.json({ view: projectRoom(room, body.token) });
     }
 
-    return NextResponse.json({ error: "未知操作" }, { status: 400 });
+    return NextResponse.json({ error: "操作无效" }, { status: 400 });
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "操作失败" },
+      { error: e instanceof Error ? e.message : "操作失败，请重试" },
       { status: 400 }
     );
   }
