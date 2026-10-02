@@ -1,4 +1,4 @@
-# Prefer Dockerfile (standalone + forced HOSTNAME=::) over Nixpacks.
+# Prefer Dockerfile (standalone + forced HOSTNAME=0.0.0.0) over Nixpacks.
 # Rooms are in-memory — keep a single replica in the Railway UI.
 [build]
 builder = "DOCKERFILE"
@@ -13,5 +13,5 @@ restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
 [variables]
-# Force bind even if the image/runtime sets HOSTNAME to the container id.
-HOSTNAME = "::"
+# Force IPv4 bind even if the image/runtime sets HOSTNAME to the container id.
+HOSTNAME = "0.0.0.0"

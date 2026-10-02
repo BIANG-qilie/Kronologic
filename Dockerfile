@@ -16,9 +16,10 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 ENV NODE_ENV=production
-# Standalone reads HOSTNAME as bind address. Force :: for Railway IPv6 edge.
+# Standalone reads HOSTNAME as bind address. Force IPv4 0.0.0.0.
+# Alpine [::] often sets IPV6_V6ONLY=1 → Railway IPv4 edge gets connection refused.
 # Do not leave Docker's default container-id HOSTNAME in place.
-ENV HOSTNAME=::
+ENV HOSTNAME=0.0.0.0
 # Railway injects PORT at runtime; 3000 is only a local-docker default.
 ENV PORT=3000
 

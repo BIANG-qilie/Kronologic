@@ -6,58 +6,64 @@
 - 栈：Next.js **standalone** + **Dockerfile**（`railway.toml` 指定 `DOCKERFILE`，不再依赖 Nixpacks）
 - 房间：进程内内存（无数据库）→ **Replicas = 1**
 
-## 本轮硬修复（Ready 后仍 502）
+## 本轮硬修复（`[::]` Ready 后仍 502 → 改回 IPv4）
 
-IPv6 绑定已确认生效（日志出现 `Network: http://[::]:$PORT`）时，边缘仍可能 502。常见剩余原因：
+进程日志已出现 `Network: http://[::]:8080` 且 `✓ Ready`，但公网与 `/api/health` 仍 **502 Application failed to respond**。判断：Alpine/Docker 上 bind `::` 常带 `IPV6_V6ONLY=1`，只收 IPv6；Railway 边缘常走容器 IPv4 → connection refused。
 
 | 原因 | 处理 |
 |------|------|
-| Standalone 读 `HOSTNAME` 当成绑定地址；Docker 默认 `HOSTNAME=容器 ID` → Ready 但 connection refused | 镜像与 `railway.toml` 强制 `HOSTNAME=::`；`scripts/start.sh` 忽略容器 ID |
+| Standalone 读 `HOSTNAME` 当成绑定地址；Docker 默认 `HOSTNAME=容器 ID` → Ready 但 connection refused | 镜像与 `railway.toml` 强制 `HOSTNAME=0.0.0.0`；`scripts/start.sh` 忽略容器 ID |
+| Alpine `[::]` 仅 IPv6（`IPV6_V6ONLY=1`），边缘走 IPv4 | **强制 IPv4 `0.0.0.0`**，不要 `::` |
 | 未走官方 standalone / 静态资源未拷进 standalone | `output: "standalone"` + `prepare-standalone.sh`；Dockerfile 拷贝 `.next/static` |
 | Nixpacks 启动路径不稳定 | `builder = "DOCKERFILE"` |
 | 健康检查打到慢页面 / 超时 | `healthcheckPath = "/api/health"` |
-| 公开域名 **Target Port** 与进程 `PORT` 不一致（例如写死 3000，实际 8080） | Networking → 域名 → Target Port **留空（自动）** 或与日志端口一致 |
+| 公开域名 **Target Port** 与进程 `PORT` 不一致（例如写死 3000，实际 8080） | Networking → 域名 → Target Port **必须留空（自动）** 或显式等于日志 `$PORT` |
 | Replicas > 1 | 改回 **1** |
 
 ### 日志顺序说明
 
-若 Deploy 日志里 `✓ Ready` 出现在 `Starting Container` **之前**，多为 UI 混入了上一轮运行日志，或视图按时间倒序。以**同一次 Deploy** 中、容器启动之后的 `start.sh: HOSTNAME=:: PORT=…` 与 `Network: http://[::]:$PORT` 为准。
+若 Deploy 日志里 `✓ Ready` 出现在 `Starting Container` **之前**，多为 UI 混入了上一轮运行日志，或视图按时间倒序。以**同一次 Deploy** 中、容器启动之后的 `Network: http://0.0.0.0:$PORT` 为准。
 
 ## 控制台操作
 
-1. 将含本修复的分支同步到 GitHub `main`（见文末），Railway 已连该仓库则会自动部署；否则 **Redeploy**。
+1. 将含本修复的分支同步到 GitHub `main`（见文末），Railway 已连该仓库则会自动部署；否则 **Redeploy**（必要时 **Clear build cache**）。
 2. 服务设置：
    - **Root Directory**：留空
    - Builder：仓库 `railway.toml` 已设 Dockerfile；若控制台仍显示 Nixpacks，在 Settings → Build 选 Dockerfile / 清缓存后 Redeploy
    - **Start**：`node server.js`（standalone；由 `railway.toml` / Dockerfile `CMD`）
 3. **Variables**：
-   - `HOSTNAME=::`（`railway.toml` 已写；控制台可再确认）
+   - `HOSTNAME=0.0.0.0`（`railway.toml` 已写；控制台可再确认；**不要**再设 `HOSTNAME=::`）
    - **不要**手动写死 `PORT`（让 Railway 注入）
    - 无需 `NIXPACKS_NODE_VERSION`（Dockerfile 已用 `node:20-alpine`）
 4. **Settings → Scaling / Replicas = 1**
-5. **Networking → Generate Domain**；编辑域名时 **Target Port 留空**（或与日志中的 `$PORT` 一致，常见为 8080）
+5. **Networking → Generate Domain**；编辑域名时 **Target Port 必须留空**（或显式等于日志中的 `$PORT`，常见为 8080）
 
 ## 如何确认部署正确
 
 Deploy / HTTP 日志应类似：
 
 ```text
-start.sh: HOSTNAME=:: PORT=8080
-# 或 Dockerfile 直接 node server.js 时：
 ▲ Next.js …
-- Network: http://[::]:8080
+- Local:         http://localhost:8080
+- Network:       http://0.0.0.0:8080
 ✓ Ready
 ```
 
-- 必须看到 **`[::]`**（或至少不是容器 ID 主机名、不是仅 `127.0.0.1`）
+- 必须看到 **`0.0.0.0`**（不是容器 ID 主机名、不是仅 `127.0.0.1`、也不是仅 `[::]`）
 - `curl` 公开域名 `/` 与 `/api/health` 应 **HTTP 200**，不再是 Application failed to respond / 502
-- 若日志仍是 `0.0.0.0` 且无 `[::]`：说明跑的还是旧镜像/旧提交，先同步 GitHub `main` 再 Redeploy，不要继续改游戏代码
+
+## 若仍 502
+
+1. 确认日志已是 `0.0.0.0:$PORT`（若仍是 `[::]`，说明未部署到本提交 / 控制台 Variables 仍写着 `HOSTNAME=::`）
+2. **Settings → Networking**：截图或确认公开域名的 **Target Port**（须留空或等于 `$PORT`）
+3. 边缘 HTTP 日志里贴该请求的 `upstreamErrors` / `connection refused` 细节
+4. Redeploy 并 **Clear build cache**；Replicas=1
 
 ## Redeploy 步骤
 
 1. 本机把修复分支推到 GitHub `main`（见下）
 2. Railway → 服务 → **Redeploy**（必要时 **Clear build cache**）
-3. 确认 Replicas=1、Target Port 自动、`HOSTNAME=::`
+3. 确认 Replicas=1、Target Port 留空、`HOSTNAME=0.0.0.0`
 4. 打开公开域名验证 `/` 与 `/api/health`
 
 ## 为何必须单实例
@@ -73,24 +79,24 @@ start.sh: HOSTNAME=:: PORT=8080
 ```bash
 npm install
 npm run build
-PORT=43218 npm run start
-# 应打印 start.sh: HOSTNAME=:: PORT=43218
-# 日志 Network: http://[::]:43218
+PORT=43218 HOSTNAME=0.0.0.0 npm run start
+# 应打印 start.sh: HOSTNAME=0.0.0.0 PORT=43218
+# 日志 Network: http://0.0.0.0:43218
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:43218/
 curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:43218/api/health
-# 可选：docker build -t kronologic . && docker run --rm -p 43218:8080 -e PORT=8080 kronologic
+# 可选：docker build -t kronologic . && docker run --rm -p 43218:8080 -e PORT=8080 -e HOSTNAME=0.0.0.0 kronologic
 ```
 
 ## 本机同步到 GitHub（无 token 时）
 
-Origin 分支：`cursor/railway-standalone-hardfix-02f4`
+Origin 分支：`cursor/railway-ipv4-hostname-6b1b`
 
 ```bash
 git fetch origin
-git checkout cursor/railway-standalone-hardfix-02f4
+git checkout cursor/railway-ipv4-hostname-6b1b
 git push git@github.com:BIANG-qilie/Kronologic.git HEAD:main
 # 若已配置 github remote：
 # git push github HEAD:main
 ```
 
-然后在 Railway **Redeploy**。
+然后在 Railway **Redeploy**（必要时清 build cache）。

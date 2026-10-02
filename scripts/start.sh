@@ -1,14 +1,14 @@
 #!/bin/sh
 set -eu
-# Railway edge reaches the container over IPv6. Bind :: (dual-stack).
+# Bind 0.0.0.0 (IPv4). Alpine [::] is often IPV6_V6ONLY=1 → Railway IPv4 edge 502.
 # Standalone server.js uses process.env.HOSTNAME as the listen address;
 # Docker/Nixpacks often set HOSTNAME to the container id → Ready but 502.
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 export PORT="${PORT:-3000}"
-# BIND_HOST overrides; otherwise always :: (ignore container-id HOSTNAME).
-export HOSTNAME="${BIND_HOST:-::}"
+# BIND_HOST overrides; otherwise always 0.0.0.0 (ignore container-id HOSTNAME).
+export HOSTNAME="${BIND_HOST:-0.0.0.0}"
 
 echo "start.sh: HOSTNAME=${HOSTNAME} PORT=${PORT}"
 
