@@ -759,7 +759,7 @@ export function DeskTimeline({
                                         </span>
                                       </Tip>
                                     ) : (
-                                      <span className="h-1 w-1 rounded-full bg-ink-deep/15" />
+                                      <span className="h-1 w-1 rounded-full bg-ink-deep/30" />
                                     )}
                                     {among.length > 0 && (
                                       <Tip label={`白窗 · 其中一次在时间 ${among.join("、")}`}>
