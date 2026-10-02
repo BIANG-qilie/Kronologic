@@ -59,9 +59,11 @@ export async function GET(req: Request, ctx: Ctx) {
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
+      "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      // Railway / nginx-style proxies otherwise buffer the stream.
+      "X-Accel-Buffering": "no",
     },
   });
 }
