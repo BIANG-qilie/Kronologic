@@ -1,15 +1,17 @@
-# Minimal Railway config for Next.js (Nixpacks).
-# Rooms are in-memory — keep a single replica.
-# Next.js requires Node >=20.9; pin via NIXPACKS_NODE_VERSION (+ engines/.nvmrc).
+# Prefer Dockerfile (standalone + forced HOSTNAME=::) over Nixpacks.
+# Rooms are in-memory — keep a single replica in the Railway UI.
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm run build"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npm run start"
-healthcheckPath = "/"
+# Matches Dockerfile CMD; cwd is the standalone root (/app).
+startCommand = "node server.js"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
 [variables]
-NIXPACKS_NODE_VERSION = "20"
+# Force bind even if the image/runtime sets HOSTNAME to the container id.
+HOSTNAME = "::"

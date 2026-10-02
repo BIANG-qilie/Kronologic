@@ -1,0 +1,16 @@
+node_modules
+.next
+.git
+.gitignore
+*.md
+!README.md
+.cursor
+.vercel
+coverage
+.env*
+npm-debug.log*
+Dockerfile*
+.dockerignore
+AGENTS.md
+CLAUDE.md
+.impeccable.md

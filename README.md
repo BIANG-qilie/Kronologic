@@ -10,7 +10,7 @@ npm test
 npm run validate:scenario
 npm run generate:bank       # 重生成夜茶题库（可选）
 npm run dev                 # http://127.0.0.1:4317
-npm run build && PORT=43218 npm run start   # 生产模式；监听 [::]（双栈），PORT 未设时默认 3000
+npm run build && PORT=43218 npm run start   # standalone；HOSTNAME=::；PORT 默认 3000
 ```
 
 ## 怎么玩
@@ -25,18 +25,19 @@ npm run build && PORT=43218 npm run start   # 生产模式；监听 [::]（双�
 
 详细步骤见 [docs/railway-deploy.md](docs/railway-deploy.md)。
 
-Redeploy 前确认 GitHub `main` 已含 IPv6 双栈修复（`scripts/start.sh` 绑 `[::]:$PORT`）；Replicas=1。
+生产镜像走 **Dockerfile + standalone**，强制 `HOSTNAME=::`（避免容器 ID 当绑定地址导致 Ready 却 502）。Replicas=1。公开域名 Target Port 留空或与日志 `$PORT` 一致。
 
 ### 一键部署要点
 
 1. 在 [Railway](https://railway.app) 用 GitHub 连接本仓库（`BIANG-qilie/Kronologic`），New Project → Deploy from GitHub。
 2. Root Directory：仓库根（留空即可）。
-3. Build：`npm run build`（`railway.toml` / Nixpacks 已配置）。
-4. Start：`npm run start` → `scripts/start.sh`（监听 `[::]:$PORT`，禁止 `127.0.0.1`；勿仅绑 `0.0.0.0`）。
-5. **环境变量**：一般无需手动配置。仓库已钉死 Node 20（`railway.toml` 的 `NIXPACKS_NODE_VERSION`、`engines`、`.nvmrc`）。Railway 会注入 `PORT`。若仍落到 Node 18，在 Variables 加 `NIXPACKS_NODE_VERSION=20` 后 Redeploy。若仍 502，可加 `HOSTNAME=::`。
-6. **Replicas / 实例数设为 1**：房间状态在进程内存（`src/lib/server/rooms.ts`），多实例或重启会丢房间、玩家可能连到不同副本。
+3. Build：Dockerfile（`railway.toml` → `DOCKERFILE`）；镜像内 `npm run build`（含 standalone 资源拷贝）。
+4. Start：`node server.js`（standalone；`HOSTNAME=::` + Railway 注入的 `PORT`）。
+5. **环境变量**：`HOSTNAME=::`（仓库 `railway.toml` 已写）。**不要**手动写死 `PORT`。
+6. **Replicas = 1**：房间在进程内存（`src/lib/server/rooms.ts`）。
+7. Networking：Generate Domain；Target Port **留空（自动）**。
 
-生成 Public Domain 后即可从浏览器打开游玩。
+生成 Public Domain 后打开 `/` 与 `/api/health` 应返回 200。
 
 ## 题库
 

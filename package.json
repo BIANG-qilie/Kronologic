@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack --hostname 127.0.0.1 --port 4317",
-    "build": "next build",
+    "build": "next build && bash scripts/prepare-standalone.sh",
     "start": "bash scripts/start.sh",
     "lint": "next lint",
     "validate:scenario": "tsx scripts/validate-scenario.mjs",
