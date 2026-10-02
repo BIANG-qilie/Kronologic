@@ -12,10 +12,12 @@
 2. 服务设置：
    - **Root Directory**：留空（仓库根）
    - **Build Command**：`npm run build`（`railway.toml` 已写；一般不用改）
-   - **Start Command**：`npm run start`（绑定 `0.0.0.0` 与 `$PORT`）
+   - **Start Command**：`npm run start`（经 `scripts/start.sh` 绑定 `0.0.0.0` 与 `$PORT`；勿绑 `127.0.0.1`）
 3. **Variables**：无需在控制台手动加 `NIXPACKS_NODE_VERSION`。仓库已通过 `railway.toml` / `package.json` engines / `.nvmrc` 钉死 Node 20（Next.js 要求 ≥20.9）。Railway 注入 `PORT` 即可。
 4. **Settings → Scaling / Replicas**：设为 **1**。
 5. **Networking → Generate Domain**：生成公开 HTTPS 域名。
+
+Redeploy 前确认 GitHub `main` 已含此启动修复（`scripts/start.sh`：`0.0.0.0` + `$PORT`）；Replicas 保持为 1。
 
 若构建日志仍出现 Node 18，在服务 Variables 里临时加 `NIXPACKS_NODE_VERSION=20` 后 Redeploy。
 
@@ -38,6 +40,6 @@
 ```bash
 npm install
 npm run build
-PORT=4321 npm run start
-# 浏览器打开 http://127.0.0.1:4321
+PORT=43218 npm run start
+# 应监听 0.0.0.0:43218；浏览器打开 http://127.0.0.1:43218
 ```
