@@ -199,7 +199,7 @@ function RoomCell({
             "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
             canEdit ? "cursor-pointer hover:border-[var(--ink-deep)]/45" : "cursor-default",
             open ? "border-[var(--amber)]" : "border-[var(--ink-deep)]/25",
-            placeVerdict === "target" && "outline outline-2 outline-offset-2 outline-[var(--amber-dim)]",
+            placeVerdict === "target" && "border-2 border-[var(--amber-dim)] bg-[#dcc596]",
             placeVerdict === "excluded" && "opacity-45"
           )}
         >
@@ -288,7 +288,7 @@ function MiniRoom({ merged, verdict }: { merged: MergedCell; verdict?: "target" 
             ? "border-[var(--ink-deep)]/25 bg-[#cebf9b]"
             : "border-[var(--ink-deep)]/15 bg-[var(--parchment)]",
         verdict === "excluded" && "opacity-40",
-        verdict === "target" && "outline outline-1 outline-[var(--amber-dim)]"
+        verdict === "target" && "border-[var(--amber-dim)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
       )}
     >
       {merged.conflict && (
@@ -357,7 +357,7 @@ function FilmFrame({
           ? "border-[var(--amber)] shadow-[0_0_0_1px_var(--amber)]"
           : "border-[var(--ink-deep)]/20 hover:border-[var(--ink-deep)]/45",
         verdict === "excluded" && "opacity-40 grayscale",
-        verdict === "target" && "border-double border-[3px] border-[var(--amber-dim)]"
+        verdict === "target" && "border-double border-[3px] border-[var(--amber-dim)] bg-[#dcc596]"
       )}
     >
       <div className="mb-0.5 flex items-center justify-between px-0.5">
