@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start --hostname 127.0.0.1 --port 4317",
     "lint": "next lint",
-    "validate:scenario": "node scripts/validate-scenario.mjs",
+    "validate:scenario": "tsx scripts/validate-scenario.mjs",
     "test": "tsx --test src/lib/game/*.test.ts"
   },
   "dependencies": {

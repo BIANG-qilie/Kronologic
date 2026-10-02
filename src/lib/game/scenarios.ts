@@ -1,8 +1,13 @@
 import type { ScenarioBundle } from "@/lib/game/types";
 import { assertValidBundle } from "@/lib/game/validate";
 import harbor from "@/data/scenarios/harbor-missing-score.json";
+import nightTea from "@/data/scenarios/night-tea-poison.json";
 
-const bundles: ScenarioBundle[] = [harbor as ScenarioBundle];
+/** Default first; harbor kept as 入门. */
+const bundles: ScenarioBundle[] = [
+  nightTea as ScenarioBundle,
+  harbor as ScenarioBundle,
+];
 
 for (const b of bundles) {
   assertValidBundle(b);

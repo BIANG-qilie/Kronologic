@@ -226,7 +226,8 @@ export function LobbyHome() {
                 >
                   {scenarios.map((s) => (
                     <option key={s.id} value={s.id}>
-                      {s.title} · {s.subtitle}
+                      {s.tier ? `${s.tier} · ` : ""}
+                      {s.title} · {s.subtitle.replace(/\s·\s入门$/, "")}
                     </option>
                   ))}
                 </select>

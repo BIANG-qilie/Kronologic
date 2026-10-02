@@ -42,6 +42,11 @@ export interface SoloBands {
   silverMax: number;
 }
 
+/** Machine rule for offline solver / scenario validation (not shown as UI copy). */
+export type ScenarioRule =
+  | { type: "alone_at_place"; placeId: PlaceId }
+  | { type: "alone_with_victim"; victimId: PersonId };
+
 export interface ScenarioPublic {
   id: string;
   title: string;
@@ -50,17 +55,24 @@ export interface ScenarioPublic {
   places: PlaceDef[];
   people: PersonDef[];
   adjacency: Record<PlaceId, PlaceId[]>;
-  /** Time-1 (or published opening) positions visible to all */
-  opening: Record<PersonId, PlaceId>;
+  /**
+   * Time-1 positions visible to all. Partial opening allowed:
+   * omitted people are unknown at curtain-up.
+   */
+  opening: Partial<Record<PersonId, PlaceId>>;
   winQuestions: WinQuestion[];
   soloBands: SoloBands;
   difficulty: number;
+  /** Lobby badge, e.g. 「入门」 */
+  tier?: string;
 }
 
 export interface ScenarioCase {
   /** position[person][time] = place ; times keyed as "1"…"6" */
   trajectory: Record<PersonId, Record<string, PlaceId>>;
   answers: Record<string, string>;
+  /** Offline solver rule matching the synopsis logic */
+  rule: ScenarioRule;
 }
 
 export interface ScenarioBundle {

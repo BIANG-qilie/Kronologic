@@ -2,9 +2,10 @@
   "public": {
     "id": "harbor-missing-score",
     "title": "失踪的乐谱",
-    "subtitle": "港湾剧院 · 1924",
+    "subtitle": "港湾剧院 · 1924 · 入门",
     "synopsis": "首演前夜，作曲家把总谱锁进夹层的铁匣。黎明时匣锁完好，谱却换成了空白页。窃贼必须在某个时刻独自守在夹层，才能调换乐谱。找出是谁、在哪个时间、于夹层得手。",
     "difficulty": 1,
+    "tier": "入门",
     "places": [
       { "id": "porch", "name": "门廊" },
       { "id": "hall", "name": "正厅" },
@@ -34,8 +35,8 @@
       "R": "stage",
       "M": "dress",
       "E": "prop",
-      "T": "gallery",
-      "K": "porch"
+      "T": "porch",
+      "K": "dress"
     },
     "winQuestions": [
       {
@@ -55,11 +56,15 @@
       }
     ],
     "soloBands": {
-      "goldMax": 8,
-      "silverMax": 14
+      "goldMax": 1,
+      "silverMax": 2
     }
   },
   "sealed": {
+    "rule": {
+      "type": "alone_at_place",
+      "placeId": "gallery"
+    },
     "trajectory": {
       "A": {
         "1": "hall",
@@ -71,19 +76,19 @@
       },
       "R": {
         "1": "stage",
-        "2": "hall",
-        "3": "porch",
+        "2": "prop",
+        "3": "gallery",
         "4": "dress",
-        "5": "gallery",
-        "6": "prop"
+        "5": "porch",
+        "6": "hall"
       },
       "M": {
         "1": "dress",
-        "2": "gallery",
-        "3": "prop",
+        "2": "porch",
+        "3": "hall",
         "4": "stage",
-        "5": "hall",
-        "6": "porch"
+        "5": "prop",
+        "6": "gallery"
       },
       "E": {
         "1": "prop",
@@ -94,20 +99,20 @@
         "6": "gallery"
       },
       "T": {
-        "1": "gallery",
-        "2": "dress",
-        "3": "porch",
-        "4": "hall",
+        "1": "porch",
+        "2": "hall",
+        "3": "gallery",
+        "4": "prop",
         "5": "stage",
-        "6": "prop"
+        "6": "hall"
       },
       "K": {
-        "1": "porch",
-        "2": "dress",
-        "3": "gallery",
-        "4": "hall",
-        "5": "stage",
-        "6": "prop"
+        "1": "dress",
+        "2": "porch",
+        "3": "hall",
+        "4": "stage",
+        "5": "hall",
+        "6": "porch"
       }
     },
     "answers": {

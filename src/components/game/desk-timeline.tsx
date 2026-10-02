@@ -75,15 +75,56 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
         {privateClue &&
           privateClue.privateLabel &&
           privateClue.privateLabel !== "—" && (
-            <span className="italic text-[var(--ink-deep)]/55">
+            <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
               {latest.kind === "place_time"
-                ? `其中有 ${privateClue.privateLabel}`
-                : `其中一次 · ${privateClue.privateLabel}`}
+                ? `私 · 其中有 ${privateClue.privateLabel}`
+                : `私 · 其中一次 ${privateClue.privateLabel}`}
             </span>
           )}
       </div>
     </div>
   );
+}
+
+/** Gap-only corridor between adjacent room boxes (viewBox 0–100). */
+function corridorSegment(
+  a: PlaceId,
+  b: PlaceId
+): { x1: number; y1: number; x2: number; y2: number } {
+  const box = (id: PlaceId) => {
+    const { col, row } = LAYOUT[id];
+    const cw = 100 / 3;
+    const ch = 50;
+    const inset = 4.5;
+    return {
+      left: (col - 1) * cw + inset,
+      right: col * cw - inset,
+      top: (row - 1) * ch + inset,
+      bottom: row * ch - inset,
+      cx: (col - 0.5) * cw,
+      cy: (row - 0.5) * ch,
+    };
+  };
+  const A = box(a);
+  const B = box(b);
+  if (LAYOUT[a].row === LAYOUT[b].row) {
+    const left = A.cx < B.cx ? A : B;
+    const right = A.cx < B.cx ? B : A;
+    return {
+      x1: left.right,
+      y1: left.cy,
+      x2: right.left,
+      y2: right.cy,
+    };
+  }
+  const top = A.cy < B.cy ? A : B;
+  const bottom = A.cy < B.cy ? B : A;
+  return {
+    x1: top.cx,
+    y1: top.bottom,
+    x2: bottom.cx,
+    y2: bottom.top,
+  };
 }
 
 function FloorPlan({
@@ -124,11 +165,6 @@ function FloorPlan({
     return list;
   }, [view.scenario.adjacency]);
 
-  function center(id: PlaceId) {
-    const { col, row } = LAYOUT[id];
-    return { x: (col - 0.5) * (100 / 3), y: (row - 0.5) * 50 };
-  }
-
   const placeName = (id: PlaceId) =>
     view.scenario.places.find((p) => p.id === id)?.name ?? id;
 
@@ -140,28 +176,28 @@ function FloorPlan({
       )}
     >
       <svg
-        className="pointer-events-none absolute inset-0 h-full w-full"
+        className="pointer-events-none absolute inset-0 z-0 h-full w-full"
         viewBox="0 0 100 100"
         aria-hidden
       >
         {edges.map(([a, b]) => {
-          const pa = center(a);
-          const pb = center(b);
+          const s = corridorSegment(a, b);
           return (
             <line
               key={`${a}-${b}`}
-              x1={pa.x}
-              y1={pa.y}
-              x2={pb.x}
-              y2={pb.y}
+              x1={s.x1}
+              y1={s.y1}
+              x2={s.x2}
+              y2={s.y2}
               stroke="var(--ink-deep)"
-              strokeOpacity={0.28}
-              strokeWidth={compact ? 0.7 : 0.9}
+              strokeOpacity={0.45}
+              strokeWidth={compact ? 1.1 : 1.4}
+              strokeLinecap="round"
             />
           );
         })}
       </svg>
-      <div className="absolute inset-0 grid grid-cols-3 grid-rows-2 gap-2 p-1 sm:gap-3 sm:p-2">
+      <div className="absolute inset-0 z-10 grid grid-cols-3 grid-rows-2 gap-2 p-1 sm:gap-3 sm:p-2">
         {PLACE_ORDER.map((placeId) => {
           const cellFact = facts.cells[String(time)]?.[placeId];
           const inference =
@@ -174,22 +210,15 @@ function FloorPlan({
             editing?.time === time &&
             editing?.place === placeId;
 
-          return (
-            <button
-              key={placeId}
-              type="button"
-              disabled={compact}
-              onClick={() => {
-                if (compact || !layers.inference) return;
-                onEdit(isEditing ? null : { time, place: placeId });
-              }}
-              className={cn(
-                "relative flex flex-col items-center justify-start overflow-hidden rounded-sm border border-[var(--ink-deep)]/20 bg-transparent text-left transition-colors",
-                compact ? "px-1 py-1" : "px-2 py-2",
-                !compact && "hover:border-[var(--ink-deep)]/35",
-                isEditing && "border-[var(--amber)]/60"
-              )}
-            >
+          const roomClass = cn(
+            "relative z-10 flex flex-col items-center justify-start overflow-hidden rounded-sm border border-[var(--ink-deep)]/25 bg-[var(--parchment)] text-left",
+            compact ? "px-1 py-1" : "px-2 py-2",
+            !compact && "cursor-pointer transition-colors hover:border-[var(--ink-deep)]/45",
+            isEditing && "border-[var(--amber)]/70"
+          );
+
+          const inner = (
+            <>
               {conflict && layers.inference && (
                 <span
                   className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[var(--amber)]"
@@ -199,16 +228,16 @@ function FloorPlan({
               {layers.public && cellFact?.public.count != null && (
                 <span
                   className={cn(
-                    "absolute left-1 top-1 font-mono text-[var(--green-win)]",
-                    compact ? "text-[8px]" : "text-[10px]"
+                    "absolute left-1 top-1 rounded-sm bg-[var(--green-win)] px-1 font-mono font-semibold leading-none text-[var(--curtain)]",
+                    compact ? "text-[8px]" : "text-[12px]"
                   )}
                 >
-                  x{cellFact.public.count}
+                  {cellFact.public.count} 人
                 </span>
               )}
               <span
                 className={cn(
-                  "mb-1 w-full text-center text-[var(--ink-deep)]/70",
+                  "mb-1 w-full text-center text-[var(--ink-deep)]",
                   compact ? "text-[8px] leading-tight" : "text-[11px]"
                 )}
               >
@@ -226,7 +255,7 @@ function FloorPlan({
                     <span
                       key={letter}
                       className={cn(
-                        "inline-flex items-center justify-center rounded-full border border-[var(--amber)] font-mono text-[var(--ink-deep)]",
+                        "inline-flex items-center justify-center rounded-full border-2 border-[var(--amber)] bg-[var(--parchment)] font-mono text-[var(--ink-deep)]",
                         compact ? "h-4 w-4 text-[9px]" : "h-7 w-7 text-sm"
                       )}
                     >
@@ -240,13 +269,13 @@ function FloorPlan({
                 cellFact.private.amongLetters.length > 0 && (
                   <p
                     className={cn(
-                      "mt-1 w-full text-center italic leading-tight text-[var(--ink-deep)]/55",
-                      compact ? "text-[7px]" : "text-[10px]"
+                      "mt-1 w-full truncate rounded-sm bg-[var(--stage)] px-1 py-0.5 text-center leading-tight text-[var(--parchment)]",
+                      compact ? "text-[7px]" : "text-[11px]"
                     )}
                   >
                     {compact
-                      ? cellFact.private.amongLetters.join("")
-                      : `其中有 ${cellFact.private.amongLetters.join("、")}`}
+                      ? `私·${cellFact.private.amongLetters.join("")}`
+                      : `私 · 其中有 ${cellFact.private.amongLetters.join("、")}`}
                   </p>
                 )}
 
@@ -261,17 +290,39 @@ function FloorPlan({
                       ariaLabel={`时间${time} ${placeName(placeId)} 推理`}
                     />
                   ) : inference ? (
-                    <p className="text-center font-mono text-xs tracking-wide text-[var(--ink-deep)]/75">
+                    <p className="text-center font-mono text-xs tracking-wide text-[var(--ink-deep)]">
                       {inference}
                     </p>
                   ) : null}
                 </div>
               )}
               {layers.inference && compact && inference ? (
-                <p className="mt-0.5 font-mono text-[8px] text-[var(--ink-deep)]/65">
+                <p className="mt-0.5 font-mono text-[8px] text-[var(--ink-deep)]">
                   {inference}
                 </p>
               ) : null}
+            </>
+          );
+
+          if (compact) {
+            return (
+              <div key={placeId} className={roomClass}>
+                {inner}
+              </div>
+            );
+          }
+
+          return (
+            <button
+              key={placeId}
+              type="button"
+              onClick={() => {
+                if (!layers.inference) return;
+                onEdit(isEditing ? null : { time, place: placeId });
+              }}
+              className={roomClass}
+            >
+              {inner}
             </button>
           );
         })}
@@ -538,18 +589,18 @@ export function DeskTimeline({
                             {conflict && (
                               <span className="absolute right-0 top-0 h-1 w-1 rounded-full bg-[var(--amber)]" />
                             )}
-                            {layers.public &&
-                              visitFact?.public.count != null && (
-                                <div className="font-mono text-[10px] text-[var(--green-win)]">
-                                  x{visitFact.public.count}
-                                </div>
-                              )}
                             {layers.private &&
                               visitFact &&
                               visitFact.private.amongTimes.length > 0 && (
-                                <div className="text-[9px] italic text-[var(--ink-deep)]/50">
-                                  其中一次 ·{" "}
+                                <div className="rounded-sm bg-[var(--stage)] px-0.5 text-[9px] text-[var(--parchment)]">
+                                  私 · 其中一次{" "}
                                   {visitFact.private.amongTimes.join("/")}
+                                </div>
+                              )}
+                            {layers.public &&
+                              visitFact?.public.count != null && (
+                                <div className="font-mono text-[12px] font-semibold text-[var(--green-win)]">
+                                  {visitFact.public.count} 人
                                 </div>
                               )}
                             {layers.inference && (
