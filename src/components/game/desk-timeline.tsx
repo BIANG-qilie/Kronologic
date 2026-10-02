@@ -17,8 +17,10 @@ import {
   type SuspectBoard as Board,
 } from "@/lib/game/notes-format";
 import {
+  cellHasFacts,
   mergeCellMarks,
   projectFacts,
+  visitHasFacts,
   sourcesLabel,
   visitHasConflict,
   type FactProjection,
@@ -176,6 +178,7 @@ function RoomCell({
   board,
   open,
   canEdit,
+  locked,
   onOpenChange,
   onChange,
 }: {
@@ -187,6 +190,7 @@ function RoomCell({
   board: Board;
   open: boolean;
   canEdit: boolean;
+  locked: boolean;
   onOpenChange: (open: boolean) => void;
   onChange: (mark: CellMark) => void;
 }) {
@@ -200,6 +204,8 @@ function RoomCell({
         <button
           type="button"
           aria-label={`时间${time} ${name}`}
+          aria-disabled={!canEdit}
+          title={locked ? "已有公开或私有信息，这一格不再标推理" : undefined}
           className={cn(
             "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
             canEdit ? "cursor-pointer hover:border-[var(--ink-deep)]/45" : "cursor-default",
@@ -583,7 +589,8 @@ export function DeskTimeline({
                   merged={mergedFor(activeTime, place)}
                   mark={cellMarkOf(payload, activeTime, place)}
                   board={payload.board}
-                  canEdit={layers.inference}
+                  canEdit={layers.inference && !cellHasFacts(facts.cells[String(activeTime)]?.[place])}
+                  locked={cellHasFacts(facts.cells[String(activeTime)]?.[place])}
                   open={editing?.time === activeTime && editing.place === place}
                   onOpenChange={(o) => setEditing(o ? { time: activeTime, place } : null)}
                   onChange={(mark) => setCell(activeTime, place, mark)}
@@ -644,6 +651,7 @@ export function DeskTimeline({
                           if (inf != null && (pub == null || inf === pub)) sources.push("inference");
                           const shown = pub ?? inf;
                           const key = `${person.id}-${pid}`;
+                          const visitLocked = visitHasFacts(visitFact);
                           const among =
                             layers.private && visitFact ? visitFact.private.amongTimes : [];
                           return (
@@ -651,14 +659,19 @@ export function DeskTimeline({
                               <Popover
                                 open={editingVisit === key}
                                 onOpenChange={(o) =>
-                                  layers.inference && setEditingVisit(o ? key : null)
+                                  layers.inference && !visitLocked && setEditingVisit(o ? key : null)
                                 }
                               >
                                 <PopoverTrigger asChild>
                                   <button
                                     type="button"
                                     aria-label={`${person.name} 到访 ${placeLabel(view, pid)}`}
-                                    className="mx-auto flex min-h-8 w-full flex-col items-center justify-center gap-0.5 rounded-sm hover:bg-[var(--ink-deep)]/5"
+                                    aria-disabled={visitLocked}
+                                    title={visitLocked ? "已有公开或私有信息，这一格不再标推理" : undefined}
+                                    className={cn(
+                                      "mx-auto flex min-h-8 w-full flex-col items-center justify-center gap-0.5 rounded-sm",
+                                      visitLocked ? "cursor-default" : "hover:bg-[var(--ink-deep)]/5"
+                                    )}
                                   >
                                     {shown != null ? (
                                       <Tip

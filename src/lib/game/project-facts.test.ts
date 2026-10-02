@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   cellHasConflict,
+  cellHasFacts,
+  visitHasFacts,
   mergeCellMarks,
   projectFacts,
   publicLayerOnly,
@@ -290,5 +292,17 @@ describe("structured conflicts", () => {
     assert.equal(visitHasConflict({ count: 2, sources: [] }, 1), true);
     assert.equal(visitHasConflict({ sources: [] }, 1), false);
     assert.equal(visitHasConflict({ count: 2, sources: [] }, null), false);
+  });
+});
+
+describe("fact locks", () => {
+  it("locks cells and visits that carry public or private facts", () => {
+    assert.equal(cellHasFacts(cell()), false);
+    assert.equal(cellHasFacts(cell({ count: 0 })), true);
+    assert.equal(cellHasFacts(cell({ letters: ["A"] })), true);
+    assert.equal(cellHasFacts(cell({}, ["K"])), true);
+    assert.equal(visitHasFacts({ public: { sources: [] }, private: { amongTimes: [], sources: [] } }), false);
+    assert.equal(visitHasFacts({ public: { count: 1, sources: [] }, private: { amongTimes: [], sources: [] } }), true);
+    assert.equal(visitHasFacts({ public: { sources: [] }, private: { amongTimes: [3], sources: [] } }), true);
   });
 });

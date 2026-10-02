@@ -358,3 +358,18 @@ export function visitHasConflict(
   return inference !== publicFact.count;
 }
 
+
+/** Cells and visits that already carry a public or private fact take no new pencil marks. */
+export function cellHasFacts(facts: CellFactLayers | undefined): boolean {
+  if (!facts) return false;
+  return (
+    facts.public.count != null ||
+    facts.public.letters.length > 0 ||
+    facts.private.amongLetters.length > 0
+  );
+}
+
+export function visitHasFacts(facts: VisitFactLayers | undefined): boolean {
+  if (!facts) return false;
+  return facts.public.count != null || facts.private.amongTimes.length > 0;
+}
