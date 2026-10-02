@@ -67,13 +67,13 @@ function Replay({
                         ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_0_24px_rgba(212,161,90,0.7)]"
                         : isCrime
                           ? "shadow-[inset_0_0_0_1px_rgba(26,36,32,0.25)]"
-                          : "bg-[var(--curtain)]/60 shadow-[inset_0_0_0_1px_var(--ink-faint)]"
+                          : "bg-curtain/60 shadow-[inset_0_0_0_1px_var(--ink-faint)]"
                     )}
                   >
                     {here.length === 0 && (
                       <PlaceGlyph
                         id={place}
-                        className={cn("h-3 w-3", isCrime ? "text-[var(--ink-deep)]/30" : "text-[var(--ink-faint)]")}
+                        className={cn("h-3 w-3", isCrime ? "text-ink-deep/30" : "text-[var(--ink-faint)]")}
                       />
                     )}
                     {here.map((p) => (
@@ -192,10 +192,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             </span>
             <span className="whitespace-nowrap text-[var(--amber)]">{tag(culprit)}</span>
             在
-            <span className="inline-flex items-baseline gap-1 whitespace-nowrap text-[var(--ink)]">
-              <PlaceGlyph id={place.id} className="h-[0.8em] w-[0.8em] self-center" />
-              {place.name}
-            </span>
+            <span className="whitespace-nowrap text-[var(--ink)]">{place.name}</span>
             {victim ? (
               <>
                 与<span className="whitespace-nowrap text-[var(--ink)]">{tag(victim)}</span>独处。
@@ -219,8 +216,8 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
               victim={view.revealVictimId}
             />
             <div className="rise mt-4 flex items-center gap-3" style={{ ["--i" as string]: 12 }}>
-              <span className="text-[11px] text-[var(--ink-muted)]/70">房间位置</span>
-              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-[var(--ink-faint)]/60 text-[11px] text-[var(--ink-muted)]">
+              <span className="text-[11px] text-ink-muted/70">房间位置</span>
+              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-ink-faint/60 text-[11px] text-[var(--ink-muted)]">
                 {PLACE_ORDER.map((id) => (
                   <span key={id} className="flex items-center gap-1 bg-[var(--curtain)] px-2 py-1">
                     <PlaceGlyph id={id} className="h-3.5 w-3.5" />
@@ -233,7 +230,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
         )}
 
         <div
-          className="rise mt-14 flex flex-wrap items-center justify-between gap-4 border-t border-[var(--ink-faint)]/60 pt-6"
+          className="rise mt-14 flex flex-wrap items-center justify-between gap-4 border-t border-ink-faint/60 pt-6"
           style={{ ["--i" as string]: 13 }}
         >
           <p className="text-sm text-[var(--ink-muted)]">

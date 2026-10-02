@@ -186,7 +186,7 @@ export function PlayClient({
         className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-atmosphere"
         aria-hidden
       />
-      <header className="sticky top-0 z-30 border-b border-[var(--ink-faint)]/60 bg-[var(--curtain)]/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+      <header className="sticky top-0 z-30 border-b border-ink-faint/60 bg-curtain/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2 md:px-6 md:py-3">
           <Link
             href="/"
@@ -200,7 +200,7 @@ export function PlayClient({
             <p className="truncate font-display text-sm text-[var(--ink)] sm:text-base">
               {view.scenario.title}
             </p>
-            <p className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.2em] text-[var(--ink-muted)]">
+            <p className="flex items-center gap-1.5 text-[11px] text-[var(--ink-muted)]">
               <span
                 className={cn(
                   "h-1.5 w-1.5 rounded-full",
@@ -211,16 +211,17 @@ export function PlayClient({
                 title={connected ? "已同步" : "重连中"}
               />
               {view.scenario.tier ? `${view.scenario.tier} · ` : ""}
-              {view.code} · 已问 <span className="tabular">{view.queryCountTotal}</span>
+              <span className="font-mono tracking-[0.12em]">{view.code}</span> · 已问{" "}
+              <span className="tabular">{view.queryCountTotal}</span>
             </p>
           </div>
           <span
             className={cn(
               "hidden rounded-full px-3 py-1 text-xs sm:inline-flex sm:items-center sm:gap-2",
               inWindow
-                ? "bg-[var(--amber)]/15 text-[var(--amber)]"
+                ? "bg-amber/15 text-[var(--amber)]"
                 : yourTurn
-                  ? "bg-[var(--green-win)]/12 text-[var(--green-win)]"
+                  ? "bg-green-win/12 text-[var(--green-win)]"
                   : "text-[var(--ink-muted)]",
             )}
             aria-live="polite"
@@ -252,7 +253,7 @@ export function PlayClient({
           />
         </div>
         {inWindow && view.submitWindowEndsAt && (
-          <div className="h-px w-full bg-[var(--ink-faint)]/40">
+          <div className="h-px w-full bg-ink-faint/40">
             <div
               className="h-full bg-[var(--amber)] transition-[width] duration-200 ease-linear"
               style={{
@@ -274,7 +275,7 @@ export function PlayClient({
                   className={cn(
                     "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors",
                     turn
-                      ? "bg-[var(--amber)]/15 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+                      ? "bg-amber/15 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
                       : "text-[var(--ink-muted)] shadow-[inset_0_0_0_1px_var(--ink-faint)]",
                     p.eliminated && "opacity-40 line-through",
                   )}
@@ -286,7 +287,7 @@ export function PlayClient({
                   {p.id === view.you?.playerId && (
                     <span className="text-[var(--ink-muted)]">· 你</span>
                   )}
-                  <span className="font-mono text-[10px] text-[var(--ink-muted)]/70 tabular">
+                  <span className="font-mono text-[10px] text-ink-muted/70 tabular">
                     {p.queryCount}
                   </span>
                 </li>
@@ -318,7 +319,7 @@ export function PlayClient({
         )}
 
         <Tabs value={tab} onValueChange={setTab} className="flex-1">
-          <TabsList className="h-auto w-full justify-start gap-6 rounded-none border-b border-[var(--ink-faint)]/60 bg-transparent p-0">
+          <TabsList className="h-auto w-full justify-start gap-6 rounded-none border-b border-ink-faint/60 bg-transparent p-0">
             {[
               ["desk", "桌面", null],
               ["ask", "提问", yourTurn ? "轮到你" : null],
@@ -330,7 +331,7 @@ export function PlayClient({
               >
                 {label}
                 {badge && (
-                  <span className="ml-2 rounded-full bg-[var(--green-win)]/15 px-2 py-0.5 font-sans text-[10px] text-[var(--green-win)]">
+                  <span className="ml-2 rounded-full bg-green-win/15 px-2 py-0.5 font-sans text-[10px] text-[var(--green-win)]">
                     {badge}
                   </span>
                 )}
@@ -364,7 +365,7 @@ export function PlayClient({
             </div>
           </TabsContent>
 
-          <TabsContent value="ask" className="pt-6">
+          <TabsContent value="ask" className="pt-5 sm:pt-6">
             <QueryPanel
               scenario={view.scenario}
               canAct={!!view.you?.canAct}

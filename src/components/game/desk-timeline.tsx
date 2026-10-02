@@ -71,16 +71,16 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
       : `${placeLabel(view, latest.placeId)} × ${personLabel(view, latest.personId!)}`;
 
   return (
-    <div className="mb-4 border-b border-[var(--ink-deep)]/15 pb-3 text-[var(--ink-deep)]">
+    <div className="mb-4 border-b border-ink-deep/15 pb-3 text-[var(--ink-deep)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
         <span className="font-mono font-semibold text-[var(--mark-public)]">
-          绿窗 ·{" "}
+          绿窗{" "}
           {(() => {
             const n = /^x?(\d+)$/i.exec(latest.sharedLabel)?.[1];
             return n != null ? `${n} ${latest.kind === "place_time" ? "人" : "次"}` : latest.sharedLabel;
           })()}
         </span>
-        <span className="text-[var(--ink-deep)]/80">{q}</span>
+        <span className="text-ink-deep/80">{q}</span>
         {privateClue && privateClue.privateLabel && privateClue.privateLabel !== "—" && (
           <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
             {latest.kind === "place_time"
@@ -206,7 +206,8 @@ function RoomCell({
       onOpenChange={(o) => canEdit && onOpenChange(o)}
       title={`时间 ${time} · ${name}`}
       className="bg-[var(--parchment)] p-3"
-      popoverClassName="w-[min(20rem,calc(100vw-2rem))] border-[var(--ink-deep)]/25"
+      sheetClassName="bg-[var(--parchment)]"
+      popoverClassName="w-[min(20rem,calc(100vw-2rem))] border-ink-deep/25"
       trigger={
         <button
           type="button"
@@ -215,8 +216,8 @@ function RoomCell({
           title={locked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
           className={cn(
             "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
-            canEdit ? "cursor-pointer hover:border-[var(--ink-deep)]/45" : "cursor-default",
-            open ? "border-[var(--amber)]" : "border-[var(--ink-deep)]/25",
+            canEdit ? "cursor-pointer hover:border-ink-deep/45" : "cursor-default",
+            open ? "border-[var(--amber)]" : "border-ink-deep/25",
             placeVerdict === "target" && "border-2 border-[var(--amber-dim)] bg-[#dcc596]",
             placeVerdict === "excluded" && "opacity-45"
           )}
@@ -270,7 +271,7 @@ function RoomCell({
           </div>
           {merged.absent.length > 0 && (
             <Tip label={`推理 · 不在这里：${merged.absent.join("、")}`}>
-              <span className="mt-auto font-mono text-[10px] tracking-wider text-[var(--mark-inference)]/80 line-through">
+              <span className="mt-auto font-mono text-[10px] tracking-wider text-mark-inference/80 line-through">
                 {merged.absent.join(" ")}
               </span>
             </Tip>
@@ -310,10 +311,10 @@ function MiniRoom({
       className={cn(
         "relative z-10 flex min-h-0 flex-col items-center justify-center gap-px rounded-[2px] border",
         hasPublic
-          ? "border-[var(--ink-deep)]/35 bg-[#c5b38c]"
+          ? "border-ink-deep/35 bg-[#c5b38c]"
           : hasAny
-            ? "border-[var(--ink-deep)]/25 bg-[#cebf9b]"
-            : "border-[var(--ink-deep)]/15 bg-[var(--parchment)]",
+            ? "border-ink-deep/25 bg-[#cebf9b]"
+            : "border-ink-deep/15 bg-[var(--parchment)]",
         verdict === "excluded" && "opacity-40",
         verdict === "target" && "border-[var(--amber-dim)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
       )}
@@ -321,7 +322,7 @@ function MiniRoom({
       {merged.conflict && (
         <span className="absolute right-px top-px h-1 w-1 rounded-full bg-[var(--mark-conflict)]" />
       )}
-      {!hasAny && <PlaceGlyph id={place} className="h-3 w-3 text-[var(--ink-deep)]/30" />}
+      {!hasAny && <PlaceGlyph id={place} className="h-3 w-3 text-ink-deep/30" />}
       {merged.count && (
         <span
           className={cn(
@@ -349,7 +350,7 @@ function MiniRoom({
               {p.person}
             </span>
           ))}
-          {extra > 0 && <span className="text-[8px] text-[var(--ink-deep)]/60">+{extra}</span>}
+          {extra > 0 && <span className="text-[8px] text-ink-deep/60">+{extra}</span>}
         </span>
       )}
     </div>
@@ -383,7 +384,7 @@ function FilmFrame({
         "relative rounded-sm border bg-[var(--parchment)] p-1 text-left transition-all",
         active
           ? "border-[var(--amber)] shadow-[0_0_0_1px_var(--amber)]"
-          : "border-[var(--ink-deep)]/20 hover:border-[var(--ink-deep)]/45",
+          : "border-ink-deep/20 hover:border-ink-deep/45",
         verdict === "excluded" && "opacity-40 grayscale",
         verdict === "target" && "border-double border-[3px] border-[var(--amber-dim)] bg-[#dcc596]"
       )}
@@ -392,7 +393,7 @@ function FilmFrame({
         <span
           className={cn(
             "font-display text-sm leading-none",
-            active ? "text-[var(--ink-deep)]" : "text-[var(--ink-deep)]/65",
+            active ? "text-[var(--ink-deep)]" : "text-ink-deep/65",
             verdict === "excluded" && "line-through"
           )}
         >
@@ -430,7 +431,7 @@ function LayerToggle({
         aria-label={LAYER_NAME[source]}
         onClick={onToggle}
         className={cn(
-          "flex h-10 items-center gap-1 rounded-sm border border-[var(--ink-deep)]/15 px-2 text-xs text-[var(--ink-deep)] transition-opacity sm:h-7 sm:px-1.5 sm:text-[11px]",
+          "flex h-10 items-center gap-1 rounded-sm border border-ink-deep/15 px-2 text-xs text-[var(--ink-deep)] transition-opacity sm:h-7 sm:px-1.5 sm:text-[11px] coarse:h-10 coarse:px-2.5",
           on ? "opacity-100" : "opacity-35"
         )}
       >
@@ -570,7 +571,7 @@ export function DeskTimeline({
   return (
     <TooltipProvider delayDuration={150}>
       <div className="mx-auto w-full max-w-3xl">
-        <div className="relative rounded-sm border border-[var(--ink-deep)]/15 bg-[var(--parchment)] px-3 py-5 text-[var(--ink-deep)] shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] sm:px-7 sm:py-7">
+        <div className="relative flex flex-col rounded-sm border border-ink-deep/15 bg-[var(--parchment)] px-3 py-5 text-[var(--ink-deep)] shadow-[0_12px_40px_-20px_rgba(0,0,0,0.55)] sm:block sm:px-7 sm:py-7">
           <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
             <h2 className="flex items-center gap-2 font-display text-3xl tracking-tight text-[var(--ink-deep)] sm:text-4xl">
               <span className={cn(activeVerdict === "excluded" && "line-through opacity-50")}>
@@ -597,11 +598,13 @@ export function DeskTimeline({
 
           <LatestClueStrip view={view} />
 
-          <SuspectBoard
-            view={view}
-            board={payload.board}
-            onChange={(board) => setPayload((prev) => ({ ...prev, board }))}
-          />
+          <div className="order-1 mt-3 sm:mt-0">
+            <SuspectBoard
+              view={view}
+              board={payload.board}
+              onChange={(board) => setPayload((prev) => ({ ...prev, board }))}
+            />
+          </div>
 
           <div className="-mx-1 mb-5 grid auto-cols-[6.75rem] grid-flow-col gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-6 sm:overflow-visible sm:px-0">
             {TIMES.map((t) => (
@@ -643,7 +646,7 @@ export function DeskTimeline({
             />
           </div>
 
-          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-[var(--ink-deep)]/55">
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-ink-deep/70">
             {(["public", "private", "inference"] as const).map((s) => (
               <span key={s} className="inline-flex items-center gap-1">
                 <span className="relative inline-block h-3 w-3">
@@ -655,12 +658,12 @@ export function DeskTimeline({
             <span>形状叠在一起，表示几层线索一致</span>
           </p>
 
-          <div className="mt-6 border-t border-[var(--ink-deep)]/12 pt-3">
+          <div className="order-2 mt-6 border-t border-ink-deep/12 pt-3">
             <button
               type="button"
               onClick={() => setVisitsOpen((v) => !v)}
               aria-expanded={visitsOpen}
-              className="group -my-2 inline-flex min-h-11 items-center gap-1 font-display text-sm tracking-wide text-[var(--ink-deep)]/70 hover:text-[var(--ink-deep)]"
+              className="group -my-2 inline-flex min-h-11 items-center gap-1 font-display text-sm tracking-wide text-ink-deep/70 hover:text-[var(--ink-deep)]"
             >
               <ChevronRight
                 aria-hidden
@@ -670,7 +673,7 @@ export function DeskTimeline({
                 )}
               />
               到访表
-              <span className="ml-2 font-sans text-[11px] tracking-normal text-[var(--ink-deep)]/45">
+              <span className="ml-2 font-sans text-[11px] tracking-normal text-ink-deep/60">
                 每人去过每个房间几次
               </span>
             </button>
@@ -679,11 +682,11 @@ export function DeskTimeline({
                 <table className="w-full table-fixed border-collapse text-xs sm:min-w-[420px]">
                   <thead>
                     <tr>
-                      <th className="w-9 py-1 pr-1 text-left font-normal text-[var(--ink-deep)]/50 sm:w-20">
+                      <th className="w-9 py-1 pr-1 text-left font-normal text-ink-deep/50 sm:w-20">
                         <span className="sr-only">人物</span>
                       </th>
                       {PLACE_ORDER.map((pid) => (
-                        <th key={pid} className="px-0.5 py-1 text-center font-normal text-[var(--ink-deep)]/60">
+                        <th key={pid} className="px-0.5 py-1 text-center font-normal text-ink-deep/60">
                           <PlaceMark
                             id={pid}
                             name={placeLabel(view, pid)}
@@ -703,7 +706,7 @@ export function DeskTimeline({
                       <tr key={person.id}>
                         <td className="py-1 pr-1 font-mono text-[var(--ink-deep)]" title={person.name}>
                           <span className="font-semibold">{person.letter}</span>
-                          <span className="ml-1 hidden font-sans text-[var(--ink-deep)]/55 sm:inline">{person.name}</span>
+                          <span className="ml-1 hidden font-sans text-ink-deep/55 sm:inline">{person.name}</span>
                         </td>
                         {PLACE_ORDER.map((pid) => {
                           const visitFact = facts.visits[person.id]?.[pid];
@@ -729,15 +732,16 @@ export function DeskTimeline({
                                 }
                                 title={`${person.name}（${person.letter}）到访${placeLabel(view, pid)}几次`}
                                 className="bg-[var(--parchment)] p-2"
-                                popoverClassName="w-auto border-[var(--ink-deep)]/25"
+                                sheetClassName="bg-[var(--parchment)]"
+                                popoverClassName="w-auto border-ink-deep/25"
                                 trigger={<button
                                     type="button"
                                     aria-label={`${person.name}（${person.letter}）到访${placeLabel(view, pid)}`}
                                     aria-disabled={visitLocked}
                                     title={visitLocked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
                                     className={cn(
-                                      "mx-auto flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-sm sm:min-h-8",
-                                      visitLocked ? "cursor-default" : "hover:bg-[var(--ink-deep)]/5"
+                                      "mx-auto flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-sm sm:min-h-8 coarse:min-h-11",
+                                      visitLocked ? "cursor-default" : "hover:bg-ink-deep/5"
                                     )}
                                   >
                                     {shown != null ? (
@@ -755,7 +759,7 @@ export function DeskTimeline({
                                         </span>
                                       </Tip>
                                     ) : (
-                                      <span className="h-1 w-1 rounded-full bg-[var(--ink-deep)]/15" />
+                                      <span className="h-1 w-1 rounded-full bg-ink-deep/15" />
                                     )}
                                     {among.length > 0 && (
                                       <Tip label={`白窗 · 其中一次在时间 ${among.join("、")}`}>
@@ -769,7 +773,7 @@ export function DeskTimeline({
                                     )}
                                   </button>}
                               >
-                                  <p className="mb-1.5 text-[11px] text-[var(--ink-deep)]/70">
+                                  <p className="mb-3 font-display text-lg text-[var(--ink-deep)] sm:mb-1.5 sm:font-sans sm:text-[11px] sm:text-ink-deep/70">
                                     {person.name}（{person.letter}）到访{placeLabel(view, pid)}几次
                                   </p>
                                   <VisitPicker
@@ -792,12 +796,12 @@ export function DeskTimeline({
             )}
           </div>
 
-          <div className="mt-5 border-t border-[var(--ink-deep)]/12 pt-2">
+          <div className="order-2 mt-5 border-t border-ink-deep/12 pt-2">
             {!marginOpen && !payload.free ? (
               <button
                 type="button"
                 onClick={() => setMarginOpen(true)}
-                className="block w-full border-b border-[var(--ink-deep)]/20 py-2 text-left text-xs text-[var(--ink-deep)]/40"
+                className="block min-h-11 w-full border-b border-ink-deep/20 py-2 text-left text-xs text-ink-deep/60"
               >
                 旁注
               </button>
@@ -806,7 +810,7 @@ export function DeskTimeline({
                 <button
                   type="button"
                   onClick={() => setMarginOpen((v) => !v)}
-                  className="mb-1 text-xs text-[var(--ink-deep)]/50"
+                  className="mb-1 min-h-8 text-xs text-ink-deep/65"
                 >
                   旁注
                 </button>
@@ -825,7 +829,7 @@ export function DeskTimeline({
             )}
           </div>
 
-          <p aria-live="polite" className="mt-4 text-right text-[10px] text-[var(--ink-deep)]/40">
+          <p aria-live="polite" className="order-2 mt-4 text-right text-[10px] text-ink-deep/60">
             {saving
               ? "记下中…"
               : savedAt

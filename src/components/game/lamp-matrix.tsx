@@ -2,8 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import type { PlaceId } from "@/lib/game/types";
+import { PlaceGlyph } from "./place-glyph";
 
-const PLACES = ["门廊", "正厅", "舞台", "妆室", "夹层", "库房"];
+const PLACES: [PlaceId, string][] = [
+  ["porch", "门廊"],
+  ["hall", "正厅"],
+  ["stage", "舞台"],
+  ["dress", "妆室"],
+  ["gallery", "夹层"],
+  ["prop", "库房"],
+];
 const TIMES = [1, 2, 3, 4, 5, 6];
 
 type Lamp = "off" | "shared" | "private";
@@ -51,15 +60,16 @@ export function LampMatrix({ className, animate = true }: { className?: string; 
             key={t}
             className={cn(
               "text-center font-display text-xs italic transition-colors duration-300 tabular sm:text-sm",
-              hoverTime === t ? "text-[var(--amber)]" : "text-[var(--ink-muted)]/70"
+              hoverTime === t ? "text-[var(--amber)]" : "text-ink-muted/70"
             )}
           >
             {t}
           </span>
         ))}
-        {PLACES.map((place, row) => (
+        {PLACES.map(([id, place], row) => (
           <Row
-            key={place}
+            key={id}
+            id={id}
             place={place}
             row={row}
             lamps={lamps}
@@ -73,12 +83,14 @@ export function LampMatrix({ className, animate = true }: { className?: string; 
 }
 
 function Row({
+  id,
   place,
   row,
   lamps,
   hoverTime,
   onHover,
 }: {
+  id: PlaceId;
   place: string;
   row: number;
   lamps: Lamp[];
@@ -87,7 +99,8 @@ function Row({
 }) {
   return (
     <>
-      <span className="self-center pr-2 text-right text-[11px] tracking-[0.2em] text-[var(--ink-muted)]/70 sm:text-xs">
+      <span className="flex items-center justify-end gap-1.5 self-center pr-2 text-[11px] tracking-[0.2em] text-ink-muted/70 sm:text-xs">
+        <PlaceGlyph id={id} className="h-3.5 w-3.5 text-amber/60" />
         {place}
       </span>
       {TIMES.map((t, col) => {
@@ -112,7 +125,7 @@ function Row({
               style={{ ["--i" as string]: (row + col) * 70 + 300 }}
             />
             {hoverTime === t && (
-              <span className="absolute inset-0 rounded-full ring-1 ring-[var(--amber)]/30" />
+              <span className="absolute inset-0 rounded-full ring-1 ring-amber/30" />
             )}
           </span>
         );

@@ -15,6 +15,7 @@ export function AdaptivePopover({
   children,
   className,
   popoverClassName,
+  sheetClassName,
   align = "center",
 }: {
   open: boolean;
@@ -24,6 +25,7 @@ export function AdaptivePopover({
   children: ReactNode;
   className?: string;
   popoverClassName?: string;
+  sheetClassName?: string;
   align?: "start" | "center" | "end";
 }) {
   const phone = usePhone();
@@ -35,7 +37,10 @@ export function AdaptivePopover({
         <DialogContent
           sheet
           aria-describedby={undefined}
-          className={cn("gap-0 border-0 px-4 pt-6 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.7)]", className)}
+          className={cn(
+            "gap-0 border-0 px-4 pt-9 shadow-[0_-20px_60px_-20px_rgba(0,0,0,0.7)]",
+            sheetClassName
+          )}
           closeClassName="text-[var(--ink-deep)]"
         >
           <DialogTitle className="sr-only">{title}</DialogTitle>

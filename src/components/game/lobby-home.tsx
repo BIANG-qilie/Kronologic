@@ -168,7 +168,7 @@ export function LobbyHome() {
       }}
       className={cn(
         "relative h-11 flex-1 font-display text-lg transition-colors duration-200",
-        mode === value ? "text-[var(--ink)]" : "text-[var(--ink-muted)]/70 hover:text-[var(--ink)]"
+        mode === value ? "text-[var(--ink)]" : "text-ink-muted/70 hover:text-[var(--ink)]"
       )}
     >
       {label}
@@ -201,7 +201,7 @@ export function LobbyHome() {
         </nav>
 
         {resume && (
-          <div className="rise mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-y border-[var(--amber)]/25 py-2" style={{ ["--i" as string]: 1 }}>
+          <div className="rise mb-6 flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-y border-amber/25 py-2" style={{ ["--i" as string]: 1 }}>
             <p className="text-sm text-[var(--ink-muted)]">
               上一局还没散场
               <span className="ml-2 font-mono tracking-[0.2em] text-[var(--ink)]">{resume.code}</span>
@@ -250,12 +250,12 @@ export function LobbyHome() {
             </p>
 
             <div
-              className="rise ticket-edge relative mt-10 max-w-md bg-[var(--stage)]/80 px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
+              className="rise ticket-edge relative mt-10 max-w-md bg-stage/80 px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
               style={{ ["--i" as string]: 4 }}
             >
-              <div className="pointer-events-none absolute inset-y-4 left-0 right-0 border-y border-dashed border-[var(--ink-faint)]/70" aria-hidden />
+              <div className="pointer-events-none absolute inset-y-4 left-0 right-0 border-y border-dashed border-ink-faint/70" aria-hidden />
               <div className="relative">
-                <div className="mb-5 flex border-b border-[var(--ink-faint)]/70" role="tablist" aria-label="新建或加入">
+                <div className="mb-5 flex border-b border-ink-faint/70" role="tablist" aria-label="新建或加入">
                   {segment("create", "新建游戏")}
                   {segment("join", "加入游戏")}
                 </div>
@@ -287,7 +287,7 @@ export function LobbyHome() {
                       <legend className="mb-3 flex w-full items-baseline justify-between text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
                         <span>关卡选择</span>
                         {selected && (
-                          <span className="font-mono tracking-normal text-[var(--ink)] tabular" aria-live="polite">
+                          <span className="tracking-normal text-[var(--ink)] tabular" aria-live="polite">
                             {levelLabel(selected.level)}
                             <span className="text-[var(--ink-muted)]"> · 最少 {selected.greedyMin} 问</span>
                           </span>
@@ -326,14 +326,21 @@ export function LobbyHome() {
                                   )}
                                 >
                                   {l.level}
-                                  <span className="mt-1 flex gap-[2px]" aria-hidden>
-                                    {Array.from({ length: rung }, (_, i) => (
+                                  <span className="mt-1.5 flex h-1 items-end gap-[3px]" aria-hidden>
+                                    {Array.from({ length: 5 }, (_, i) => (
                                       <span
                                         key={i}
                                         className={cn(
-                                          "h-[3px] w-[3px] rounded-full",
-                                          on ? "bg-[var(--curtain)]/60" : "bg-[var(--amber)]/55"
+                                          "w-[3px] rounded-[1px]",
+                                          i < rung
+                                            ? on
+                                              ? "bg-curtain/70"
+                                              : "bg-amber/80"
+                                            : on
+                                              ? "bg-curtain/20"
+                                              : "bg-[var(--ink-faint)]"
                                         )}
+                                        style={{ height: `${2 + i}px` }}
                                       />
                                     ))}
                                   </span>
@@ -341,7 +348,7 @@ export function LobbyHome() {
                                     <Check
                                       className={cn(
                                         "absolute right-1 top-1 h-3 w-3",
-                                        on ? "text-[var(--curtain)]/70" : "text-[var(--green-win)]"
+                                        on ? "text-curtain/70" : "text-[var(--green-win)]"
                                       )}
                                       aria-hidden
                                     />
@@ -350,14 +357,14 @@ export function LobbyHome() {
                               );
                             })}
                       </div>
-                      <p className="mt-3 flex items-baseline justify-between gap-3 text-[11px] leading-relaxed text-[var(--ink-muted)]/80">
+                      <p className="mt-3 flex items-baseline justify-between gap-3 text-[11px] leading-relaxed text-ink-muted/80">
                         {loadErr ? (
                           <span className="text-[#e07a5f]">关卡没加载出来，刷新页面再试</span>
                         ) : (
                           <span>关卡难度递进，以最少提问次数为判断依据</span>
                         )}
                         {cleared.size > 0 && (
-                          <span className="shrink-0 font-mono text-[var(--green-win)]/90 tabular">
+                          <span className="shrink-0 font-mono text-green-win/90 tabular">
                             已通关 {cleared.size}/{levels.length || 15}
                           </span>
                         )}
@@ -425,19 +432,19 @@ export function LobbyHome() {
               </div>
             </div>
 
-            <div className="rise mt-12 border-l border-[var(--amber)]/40 pl-5 md:ml-12" style={{ ["--i" as string]: 5 }}>
+            <div className="rise mt-12 border-l border-amber/40 pl-5 md:ml-12" style={{ ["--i" as string]: 5 }}>
               <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">今晚的案子</p>
               <h2 className="mt-2 font-display text-3xl text-[var(--ink)]">
                 {family?.title ?? "夜茶的毒"}
               </h2>
-              <p className="mt-3 max-w-sm text-sm leading-[1.9] text-[var(--ink-muted)]">
+              <p className="mt-3 max-w-sm whitespace-pre-line text-sm leading-[1.9] text-[var(--ink-muted)]">
                 {family?.synopsis ?? "　"}
               </p>
             </div>
           </aside>
         </section>
 
-        <section className="border-t border-[var(--ink-faint)]/60 py-14 md:py-20" aria-labelledby="how">
+        <section className="border-t border-ink-faint/60 py-14 md:py-20" aria-labelledby="how">
           <h2 id="how" className="sr-only">
             怎么玩
           </h2>
@@ -467,12 +474,12 @@ export function LobbyHome() {
           </ol>
         </section>
 
-        <footer className="flex flex-col gap-4 border-t border-[var(--ink-faint)]/60 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 text-[11px] text-[var(--ink-muted)]/80 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
+        <footer className="flex flex-col gap-4 border-t border-ink-faint/60 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 text-[11px] text-ink-muted/80 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
           <div className="space-y-1.5">
             <p className="font-display text-sm tracking-[0.18em] text-[var(--ink)]">
               BY BIANG
             </p>
-            <p className="max-w-md leading-[1.7] text-[var(--ink-muted)]/75">
+            <p className="max-w-md leading-[1.7] text-ink-muted/75">
               规则启发自桌游{" "}
               <span className="text-[var(--ink-muted)]">Kronologic</span>
               ，非商业致敬作品。
@@ -482,7 +489,7 @@ export function LobbyHome() {
                 href="https://github.com/BIANG-qilie/Kronologic"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[var(--amber)]/90 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+                className="inline-flex items-center gap-1.5 text-amber/90 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
               >
                 GitHub · BIANG-qilie/Kronologic
               </a>
@@ -490,7 +497,7 @@ export function LobbyHome() {
           </div>
           <div className="flex flex-col gap-1 sm:items-end">
             <span>1–4 人 · 凭房间码入座 · 无需注册</span>
-            <span className="font-display italic text-[var(--ink-muted)]/70">灯序 · 时间推理</span>
+            <span className="font-display italic text-ink-muted/70">灯序 · 时间推理</span>
           </div>
         </footer>
       </div>

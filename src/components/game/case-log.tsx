@@ -49,7 +49,7 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
                     <span className="mx-1.5 text-[var(--ink-faint)]">×</span>
                     {q.kind === "place_time" ? `时间 ${q.timeId}` : who ? tag(who.id) : "—"}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-[var(--ink-muted)]/80">
+                  <p className="mt-0.5 text-[11px] text-ink-muted/80">
                     {q.askerNickname}
                     {q.askAgain && <span className="ml-2 text-[var(--ink-muted)]">白窗为空 · 不计次</span>}
                     {priv && (
@@ -67,7 +67,7 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
                 >
                   {count != null ? `${count}${q.kind === "place_time" ? " 人" : " 次"}` : q.sharedLabel}
                 </span>
-                <span className="absolute inset-x-0 bottom-0 h-px bg-[var(--ink-faint)]/50" />
+                <span className="absolute inset-x-0 bottom-0 h-px bg-ink-faint/50" />
               </li>
             );
           })}

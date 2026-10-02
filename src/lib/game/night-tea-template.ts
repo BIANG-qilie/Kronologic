@@ -45,7 +45,7 @@ export const NIGHT_TEA_WIN: WinQuestion[] = [
 ];
 
 export const NIGHT_TEA_SYNOPSIS =
-  "散场后，指挥缪舟（M）喝下了一杯毒茶。整晚只有一个人与缪舟单独同处过一室——那人就是下毒者。查出：谁、何时、何地。";
+  "散场后，指挥缪舟（M）喝下了一杯毒茶。整晚只有一个人与缪舟单独同处过一室，那人就是下毒者。\n查出：谁、何时、何地。";
 
 export const PLACE_IDS = NIGHT_TEA_PLACES.map((p) => p.id);
 export const PERSON_IDS = NIGHT_TEA_PEOPLE.map((p) => p.id);

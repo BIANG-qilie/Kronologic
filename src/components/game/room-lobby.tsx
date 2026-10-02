@@ -84,7 +84,7 @@ export function RoomLobby({
             {copied ? "已复制，发给同伴就能入座" : "点一下复制，发给同伴，最多 4 人"}
           </p>
 
-          <div className="rise mt-12 border-l border-[var(--amber)]/40 pl-5" style={{ ["--i" as string]: 3 }}>
+          <div className="rise mt-12 border-l border-amber/40 pl-5" style={{ ["--i" as string]: 3 }}>
             <p className="flex items-baseline gap-3 text-[11px] tracking-[0.32em] text-[var(--amber)]">
               {view.scenario.tier && (
                 <span className="font-display text-base tracking-[0.12em]">{view.scenario.tier}</span>
@@ -94,7 +94,7 @@ export function RoomLobby({
               )}
             </p>
             <h1 className="mt-2 font-display text-4xl text-[var(--ink)] sm:text-5xl">{view.scenario.title}</h1>
-            <p className="mt-4 max-w-sm text-sm leading-[1.9] text-[var(--ink-muted)]">{view.scenario.synopsis}</p>
+            <p className="mt-4 max-w-sm whitespace-pre-line text-sm leading-[1.9] text-[var(--ink-muted)]">{view.scenario.synopsis}</p>
           </div>
         </section>
 
@@ -113,7 +113,7 @@ export function RoomLobby({
                   "rise relative flex aspect-[4/3] flex-col justify-between rounded-[3px] p-4 transition-colors",
                   p
                     ? "bg-[var(--stage)] shadow-[inset_0_0_0_1px_var(--ink-faint)]"
-                    : "border border-dashed border-[var(--ink-faint)]/80"
+                    : "border border-dashed border-ink-faint/80"
                 )}
                 style={{ ["--i" as string]: 3 + i }}
               >
@@ -136,14 +136,14 @@ export function RoomLobby({
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-[var(--ink-muted)]/60">空座</p>
+                  <p className="text-sm text-ink-muted/60">空座</p>
                 )}
               </li>
             ))}
           </ul>
 
           <div
-            className="rise fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[var(--curtain)] via-[var(--curtain)]/95 to-transparent px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-8 md:static md:mt-8 md:bg-none md:p-0"
+            className="rise fixed inset-x-0 bottom-0 z-20 bg-gradient-to-t from-[var(--curtain)] via-curtain/95 to-transparent px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-8 md:static md:mt-8 md:bg-none md:p-0"
             style={{ ["--i" as string]: 7 }}
           >
             {err && (

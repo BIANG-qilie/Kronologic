@@ -62,7 +62,7 @@ export function BoardMap({
           isSel
             ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_18px_40px_-16px_rgba(212,161,90,0.9)]"
             : isNeighbor
-              ? "bg-[var(--amber)]/10 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+              ? "bg-amber/10 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
               : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
           highlight === id && "animate-pulse-soft",
           !onSelect && "cursor-default"
@@ -72,7 +72,7 @@ export function BoardMap({
           <span
             className={cn(
               "font-display text-xs italic",
-              isSel ? "text-[var(--curtain)]/60" : "text-[var(--ink-faint)] group-hover:text-[var(--amber-dim)]"
+              isSel ? "text-curtain/60" : "text-[var(--ink-faint)] group-hover:text-[var(--amber-dim)]"
             )}
           >
             0{i + 1}
@@ -81,7 +81,7 @@ export function BoardMap({
             id={id}
             className={cn(
               "h-5 w-5 transition-colors duration-300 sm:h-6 sm:w-6",
-              isSel ? "text-[var(--curtain)]/80" : "text-[var(--amber)]/70 group-hover:text-[var(--amber)]"
+              isSel ? "text-curtain/80" : "text-amber/70 group-hover:text-[var(--amber)]"
             )}
           />
         </span>

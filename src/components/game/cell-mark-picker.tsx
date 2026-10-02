@@ -60,7 +60,7 @@ export function CellMarkPicker({
       </p>
 
       <div>
-        <p className="mb-1.5 text-[11px] text-[var(--ink-deep)]/60">
+        <p className="mb-1.5 text-[11px] text-ink-deep/60">
           谁在这里 · 点一次标「在」，再点标「不在」
         </p>
         <div className="grid grid-cols-3 gap-1.5">
@@ -76,11 +76,11 @@ export function CellMarkPicker({
                 aria-label={`${p.name}：${state === "in" ? "在" : state === "out" ? "不在" : "未标"}`}
                 onClick={() => onChange(cyclePerson(mark, p.id))}
                 className={cn(
-                  "flex min-h-11 items-center gap-1.5 rounded-sm border px-1.5 py-1 text-left text-xs transition-colors sm:min-h-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+                  "flex min-h-11 items-center gap-1.5 rounded-sm border px-1.5 py-1 text-left text-xs transition-colors sm:min-h-0 coarse:min-h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
                   state === "in" &&
-                    "border-[var(--mark-inference)] bg-[var(--mark-inference)]/15",
-                  state === "out" && "border-[var(--ink-deep)]/30 bg-[var(--ink-deep)]/5",
-                  state === "none" && "border-[var(--ink-deep)]/15 hover:border-[var(--ink-deep)]/35"
+                    "border-[var(--mark-inference)] bg-mark-inference/15",
+                  state === "out" && "border-ink-deep/30 bg-ink-deep/5",
+                  state === "none" && "border-ink-deep/15 hover:border-ink-deep/35"
                 )}
               >
                 <GlyphToken
@@ -93,7 +93,7 @@ export function CellMarkPicker({
                 <span className={cn("truncate", state === "out" && "line-through opacity-50")}>
                   {p.name}
                 </span>
-                <span className="ml-auto text-[10px] text-[var(--ink-deep)]/55">
+                <span className="ml-auto text-[10px] text-ink-deep/55">
                   {state === "in" ? "在" : state === "out" ? "不在" : ""}
                 </span>
               </button>
@@ -103,7 +103,7 @@ export function CellMarkPicker({
       </div>
 
       <div>
-        <p className="mb-1.5 text-[11px] text-[var(--ink-deep)]/60">
+        <p className="mb-1.5 text-[11px] text-ink-deep/60">
           人数{factCount != null ? ` · 已知 ${factCount} 人` : ""}
         </p>
         <div className="flex gap-1">
@@ -118,10 +118,10 @@ export function CellMarkPicker({
                 aria-label={`推理 ${n} 人`}
                 onClick={() => onChange({ ...mark, count: on ? null : n })}
                 className={cn(
-                  "h-11 flex-1 rounded-sm border font-mono text-sm transition-colors sm:h-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+                  "h-11 flex-1 rounded-sm border font-mono text-sm transition-colors sm:h-8 coarse:h-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
                   on
                     ? "border-[var(--mark-inference)] bg-[var(--mark-inference)] text-[var(--parchment)]"
-                    : "border-[var(--ink-deep)]/15 hover:border-[var(--ink-deep)]/35",
+                    : "border-ink-deep/15 hover:border-ink-deep/35",
                   factCount === n && !on && "border-[var(--mark-public)] text-[var(--mark-public)]"
                 )}
               >
@@ -133,7 +133,7 @@ export function CellMarkPicker({
       </div>
 
       {(merged.people.length > 0 || merged.count) && (
-        <div className="space-y-0.5 border-t border-[var(--ink-deep)]/10 pt-2 text-[11px] text-[var(--ink-deep)]/70">
+        <div className="space-y-0.5 border-t border-ink-deep/10 pt-2 text-[11px] text-ink-deep/70">
           {merged.count && (
             <p>
               {merged.count.value} 人 · {sourcesLabel(merged.count.sources)}
@@ -148,14 +148,14 @@ export function CellMarkPicker({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-[var(--ink-deep)]/10 pt-2">
+      <div className="flex items-center justify-between border-t border-ink-deep/10 pt-2">
         <span className={cn("text-[11px]", merged.conflict ? "text-[var(--mark-conflict)]" : "text-transparent")}>
           推理与线索冲突
         </span>
         <button
           type="button"
           onClick={() => onChange({ in: [], out: [], count: null })}
-          className="-my-2 min-h-11 px-1 text-xs text-[var(--ink-deep)]/60 underline-offset-4 hover:underline sm:min-h-0"
+          className="-my-2 min-h-11 px-1 text-xs text-ink-deep/60 underline-offset-4 hover:underline sm:min-h-0"
         >
           清空此格
         </button>
@@ -186,10 +186,10 @@ export function VisitPicker({
             aria-label={`推理 ${n} 次`}
             onClick={() => onChange(on ? null : n)}
             className={cn(
-              "h-11 flex-1 rounded-sm border font-mono text-sm text-[var(--ink-deep)] sm:h-8 sm:w-8 sm:flex-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+              "h-11 flex-1 rounded-sm border font-mono text-sm text-[var(--ink-deep)] sm:h-8 sm:w-8 sm:flex-none coarse:h-11 coarse:w-11 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
               on
                 ? "border-[var(--mark-inference)] bg-[var(--mark-inference)] text-[var(--parchment)]"
-                : "border-[var(--ink-deep)]/15 hover:border-[var(--ink-deep)]/35",
+                : "border-ink-deep/15 hover:border-ink-deep/35",
               factCount === n && !on && "border-[var(--mark-public)] text-[var(--mark-public)]"
             )}
           >

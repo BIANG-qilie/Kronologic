@@ -1,4 +1,26 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
+
+/** Theme CSS variables as colours that accept opacity modifiers (e.g. `text-ink-deep/55`). */
+const themeVar = (name: string) =>
+  `color-mix(in srgb, var(--${name}) calc(<alpha-value> * 100%), transparent)`;
+
+const stageColors = {
+  "ink": themeVar("ink"),
+  "ink-deep": themeVar("ink-deep"),
+  "ink-muted": themeVar("ink-muted"),
+  "ink-faint": themeVar("ink-faint"),
+  "curtain": themeVar("curtain"),
+  "stage": themeVar("stage"),
+  "parchment": themeVar("parchment"),
+  "amber": themeVar("amber"),
+  "amber-dim": themeVar("amber-dim"),
+  "green-win": themeVar("green-win"),
+  "mark-public": themeVar("mark-public"),
+  "mark-private": themeVar("mark-private"),
+  "mark-inference": themeVar("mark-inference"),
+  "mark-conflict": themeVar("mark-conflict"),
+};
 
 export default {
     darkMode: ["class"],
@@ -9,7 +31,9 @@ export default {
   ],
   theme: {
   	extend: {
+  		opacity: { "12": "0.12", "92": "0.92" },
   		colors: {
+  			...stageColors,
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
@@ -65,5 +89,8 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    plugin(({ addVariant }) => addVariant("coarse", "@media (pointer: coarse)")),
+  ],
 } satisfies Config;

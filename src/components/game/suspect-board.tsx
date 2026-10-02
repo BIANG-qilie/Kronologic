@@ -42,13 +42,13 @@ function Chip({
       onClick={onClick}
       aria-label={`${title}：${verdict === "target" ? "目标" : verdict === "excluded" ? "排除" : "未标"}`}
       className={cn(
-        "inline-flex h-10 min-w-10 shrink-0 items-center justify-center gap-1 rounded-sm border px-2 text-xs transition-colors sm:h-7 sm:min-w-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+        "inline-flex h-10 min-w-0 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-sm border px-1.5 text-xs transition-colors sm:px-2 sm:h-7 sm:min-w-0 coarse:h-10 coarse:px-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
         verdict === "target" &&
-          "border-[var(--amber-dim)] bg-[var(--amber)]/30 font-semibold text-[var(--ink-deep)]",
+          "border-[var(--amber-dim)] bg-amber/30 font-semibold text-[var(--ink-deep)]",
         verdict === "excluded" &&
-          "border-[var(--ink-deep)]/10 text-[var(--ink-deep)]/35 line-through",
+          "border-ink-deep/10 text-ink-deep/35 line-through",
         !verdict &&
-          "border-[var(--ink-deep)]/15 text-[var(--ink-deep)]/75 hover:border-[var(--ink-deep)]/35"
+          "border-ink-deep/15 text-ink-deep/75 hover:border-ink-deep/35"
       )}
     >
       {verdict === "target" && <Crosshair className="h-3 w-3" aria-hidden />}
@@ -103,15 +103,21 @@ export function SuspectBoard({
   ];
 
   return (
-    <div className="mb-4 mt-3 space-y-1.5 rounded-sm border border-[var(--ink-deep)]/12 bg-[var(--ink-deep)]/[0.03] p-2.5">
+    <div className="mb-4 mt-3 space-y-1.5 rounded-sm border border-ink-deep/12 bg-ink-deep/[0.03] p-2.5">
       <div className="flex items-baseline justify-between">
         <p className="font-display text-sm text-[var(--ink-deep)]">嫌疑板</p>
-        <p className="text-[10px] text-[var(--ink-deep)]/55">点一次标目标，再点排除，三点清除</p>
+        <p className="text-[10px] text-ink-deep/65">点一次标目标，再点排除，三点清除</p>
       </div>
       {rows.map(({ row, name, items }) => (
         <div key={row} className="flex items-start gap-2">
-          <span className="w-7 shrink-0 pt-3 text-[11px] text-[var(--ink-deep)]/55 sm:pt-1.5">{name}</span>
-          <div className="flex flex-wrap gap-1" onKeyDown={rovingKeys}>
+          <span className="w-7 shrink-0 pt-3 text-[11px] text-ink-deep/65 sm:pt-1.5">{name}</span>
+          <div
+            className={cn(
+              "grid flex-1 gap-1 sm:flex sm:flex-wrap",
+              row === "times" ? "grid-cols-6" : "grid-cols-3"
+            )}
+            onKeyDown={rovingKeys}
+          >
             {items.map((it) => (
               <Chip
                 key={it.key}

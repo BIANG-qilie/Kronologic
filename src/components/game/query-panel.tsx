@@ -130,13 +130,13 @@ export function QueryPanel({
   );
 
   return (
-    <div className="grid gap-10 pb-36 lg:grid-cols-[1.25fr_1fr] lg:gap-14 lg:pb-0">
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-[var(--ink-faint)]/60 bg-[var(--curtain)]/92 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
+    <div className="grid gap-6 pb-36 sm:gap-10 lg:grid-cols-[1.25fr_1fr] lg:gap-14 lg:pb-0">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-faint/60 bg-curtain/92 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
         <div className="mx-auto max-w-xl">{summary}</div>
       </div>
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {askAgain && (
-          <p className="animate-fade-up rounded-[3px] bg-[var(--green-win)]/10 px-4 py-2.5 text-sm text-[var(--green-win)]">
+          <p className="animate-fade-up rounded-[3px] bg-green-win/10 px-4 py-2.5 text-sm text-[var(--green-win)]">
             上一问白窗没有内容，不计次，再问一次。
           </p>
         )}
@@ -144,8 +144,8 @@ export function QueryPanel({
           <div className="grid grid-cols-2 gap-2" role="radiogroup">
             {(
               [
-                ["place_time", "房间 × 时间", "绿窗：几人 · 白窗：其中一位"],
-                ["place_person", "房间 × 人物", "绿窗：几次 · 白窗：其中一次的时间"],
+                ["place_time", "房间 × 时间", "绿窗：几人 · 白窗：一个人"],
+                ["place_person", "房间 × 人物", "绿窗：几次 · 白窗：一个时间"],
               ] as const
             ).map(([k, label, hint]) => (
               <button
@@ -157,7 +157,7 @@ export function QueryPanel({
                 className={cn(chip(kind === k), "min-h-[4.25rem] px-3 py-3 text-left sm:px-4")}
               >
                 <span className="block font-display text-base sm:text-lg">{label}</span>
-                <span className={cn("mt-0.5 block text-xs", kind === k ? "text-[var(--curtain)]/70" : "text-[var(--ink-muted)]")}>
+                <span className={cn("mt-0.5 block text-xs", kind === k ? "text-curtain/70" : "text-[var(--ink-muted)]")}>
                   {hint}
                 </span>
               </button>
@@ -170,7 +170,7 @@ export function QueryPanel({
         </Step>
       </div>
 
-      <div className="space-y-8 lg:sticky lg:top-24 lg:self-start">
+      <div className="space-y-6 sm:space-y-8 lg:sticky lg:top-24 lg:self-start">
         {kind === "place_time" ? (
           <Step n={3} title="哪个时间">
             <div className="grid grid-cols-6 gap-1.5" role="radiogroup">
@@ -201,7 +201,7 @@ export function QueryPanel({
                   className={cn(chip(personId === p.id), "flex min-h-12 items-center px-3 py-2 text-left")}
                 >
                   <span className="font-mono text-base font-semibold">{p.letter}</span>
-                  <span className={cn("ml-2 truncate text-sm", personId === p.id ? "text-[var(--curtain)]/80" : "text-[var(--ink-muted)]")}>
+                  <span className={cn("ml-2 truncate text-sm", personId === p.id ? "text-curtain/80" : "text-[var(--ink-muted)]")}>
                     {p.name}
                   </span>
                 </button>
@@ -210,7 +210,7 @@ export function QueryPanel({
           </Step>
         )}
 
-        <div className="hidden border-t border-[var(--ink-faint)]/60 pt-6 lg:block">{summary}</div>
+        <div className="hidden border-t border-ink-faint/60 pt-6 lg:block">{summary}</div>
       </div>
     </div>
   );
