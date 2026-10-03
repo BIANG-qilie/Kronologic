@@ -61,10 +61,10 @@ export function AnswerChoices({
             role="radio"
             aria-checked={on}
             aria-label={o.aria}
-            disabled={disabled}
+            disabled={disabled || !!judged}
             onClick={() => onPick(o.value)}
             className={cn(
-              "flex h-12 items-center justify-center gap-1.5 rounded-[3px] text-sm transition-all duration-200 active:scale-[0.97] disabled:active:scale-100 sm:h-11",
+              "flex h-12 items-center justify-center gap-1.5 rounded-[3px] text-sm transition-all duration-200 active:scale-[0.97] disabled:cursor-default disabled:active:scale-100 sm:h-11",
               judged === "correct"
                 ? "bg-[var(--green-win)] text-[var(--curtain)] shadow-[0_10px_24px_-12px_rgba(111,191,138,0.9)]"
                 : judged === "wrong"

@@ -242,7 +242,11 @@ export function askAnchor(ask: QueryTarget, focus: AskFocus): string {
 
 export const MAX_HINTS = 2;
 
-/** Two hints, light then plain; the third miss reveals the answer with the reason. */
+/**
+ * Two hints for the whole paper, light then plain; the third miss reveals the
+ * answer with the reason. The budget is shared because each question has only
+ * three options: two misses on one question leave only the answer.
+ */
 export const SUBMIT_FEEDBACK: Record<string, { correct: string; hints: [string, string]; reveal: string }> = {
   who: {
     correct: "对，是裴砚（P）。",
@@ -267,11 +271,17 @@ export type SubmitFeedback =
   | { type: "hint"; text: string; left: number }
   | { type: "reveal"; text: string };
 
-export function judgeAnswer(questionId: string, expected: string, picked: string, missesBefore: number): SubmitFeedback {
+export function judgeAnswer(
+  questionId: string,
+  expected: string,
+  picked: string,
+  missesOnQuestion: number,
+  missesTotal: number
+): SubmitFeedback {
   const copy = SUBMIT_FEEDBACK[questionId];
   if (picked === expected) return { type: "correct", text: copy.correct };
-  if (missesBefore < MAX_HINTS) {
-    return { type: "hint", text: copy.hints[missesBefore], left: MAX_HINTS - missesBefore - 1 };
+  if (missesTotal < MAX_HINTS) {
+    return { type: "hint", text: copy.hints[Math.min(missesOnQuestion, 1)], left: MAX_HINTS - missesTotal - 1 };
   }
   return { type: "reveal", text: copy.reveal };
 }

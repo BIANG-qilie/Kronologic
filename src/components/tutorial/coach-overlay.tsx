@@ -28,8 +28,24 @@ function bottomInset(): number {
   return inset;
 }
 
-function sheetOpen(): boolean {
-  return !!document.querySelector('[role="dialog"][data-state="open"]');
+/** Bottom edge of headers that stay usable above the mask (e.g. 规则, 离开). */
+function topInset(): number {
+  let inset = 0;
+  for (const el of document.querySelectorAll<HTMLElement>("[data-coach-top]")) {
+    const r = el.getBoundingClientRect();
+    if (r.height > 0 && r.top <= 1) inset = Math.max(inset, r.bottom);
+  }
+  return inset;
+}
+
+/** Top edge of the highest open Radix dialog or popover, or null when none is open. */
+function openLayerTop(): number | null {
+  let top: number | null = null;
+  for (const el of document.querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]')) {
+    const r = el.getBoundingClientRect();
+    if (r.height > 0) top = Math.min(top ?? Infinity, r.top);
+  }
+  return top;
 }
 
 function sameRect(a: Rect | null, b: Rect | null) {
@@ -57,7 +73,8 @@ export function CoachOverlay({
   const [mounted, setMounted] = useState(false);
   const [rect, setRect] = useState<Rect | null>(null);
   const [inset, setInset] = useState(0);
-  const [sheet, setSheet] = useState(false);
+  const [top, setTop] = useState(0);
+  const [layerTop, setLayerTop] = useState<number | null>(null);
   const [vh, setVh] = useState(0);
   const cardRef = useRef<HTMLDivElement>(null);
   const [cardH, setCardH] = useState(0);
@@ -86,7 +103,8 @@ export function CoachOverlay({
       const next = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null;
       setRect((prev) => (sameRect(prev, next) ? prev : next));
       setInset(bottomInset());
-      setSheet(sheetOpen());
+      setTop(topInset());
+      setLayerTop(openLayerTop());
       setVh(window.innerHeight);
       if (cardRef.current) setCardH(cardRef.current.offsetHeight);
       raf = requestAnimationFrame(tick);
@@ -96,6 +114,8 @@ export function CoachOverlay({
   }, [target]);
 
   if (!mounted) return null;
+
+  const sheet = layerTop != null;
 
   const hole = rect && !sheet
     ? {
@@ -109,7 +129,7 @@ export function CoachOverlay({
   let place: "top" | "bottom" = "bottom";
   if (sheet) place = "top";
   else if (hole) {
-    const above = hole.top - GAP;
+    const above = hole.top - top - GAP;
     const below = vh - inset - (hole.top + hole.height) - GAP;
     const fitsAbove = above >= cardH + GAP;
     const fitsBelow = below >= cardH + GAP;
@@ -118,6 +138,9 @@ export function CoachOverlay({
     else if (fitsBelow !== fitsAbove) place = fitsBelow ? "bottom" : "top";
     else place = below >= above ? "bottom" : "top";
   }
+
+  const cardTop = center ? (vh - cardH) / 2 : place === "top" ? top + GAP : vh - inset - GAP - cardH;
+  const covered = layerTop != null && cardTop + cardH > layerTop - 4;
 
   const mask = "fixed z-[45] bg-black/70 transition-[top,left,width,height] duration-200 motion-reduce:transition-none";
 
@@ -145,11 +168,18 @@ export function CoachOverlay({
         aria-modal="false"
         aria-live="polite"
         className={cn(
-          "fixed inset-x-3 z-[60] mx-auto max-w-md",
+          "fixed inset-x-3 z-[60] mx-auto max-w-md transition-opacity duration-150",
           center && "top-1/2 -translate-y-1/2",
-          !center && place === "top" && "top-[max(0.75rem,env(safe-area-inset-top))]"
+          covered && "pointer-events-none opacity-0"
         )}
-        style={!center && place === "bottom" ? { bottom: `max(${inset + GAP}px, env(safe-area-inset-bottom))` } : undefined}
+        aria-hidden={covered || undefined}
+        style={
+          center
+            ? undefined
+            : place === "bottom"
+              ? { bottom: `max(${inset + GAP}px, env(safe-area-inset-bottom))` }
+              : { top: top + GAP }
+        }
       >
         {card}
       </div>

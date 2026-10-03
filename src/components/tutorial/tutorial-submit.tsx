@@ -33,13 +33,14 @@ export function TutorialSubmit({
   const questions = scenario.winQuestions;
   const [state, setState] = useState<QuestionState[]>(() => questions.map(fresh));
   const current = state.findIndex((s) => !s.settled);
+  const totalMisses = state.reduce((n, s) => n + s.misses, 0);
   const allDone = current === -1;
 
   function pick(qi: number, value: string) {
     const q = questions[qi];
     const s = state[qi];
     if (s.settled || s.marks[value]) return;
-    const fb = judgeAnswer(q.id, answers[q.id], value, s.misses);
+    const fb = judgeAnswer(q.id, answers[q.id], value, s.misses, totalMisses);
     const next: QuestionState =
       fb.type === "correct"
         ? { ...s, marks: { ...s.marks, [value]: "correct" }, feedback: fb, settled: true }
@@ -93,7 +94,9 @@ export function TutorialSubmit({
                   {s.feedback.text}
                   {s.feedback.type === "hint" && (
                     <span className="mt-0.5 block text-[11px] opacity-80">
-                      {s.feedback.left > 0 ? `提示 ${s.misses}/${MAX_HINTS}` : `提示 ${MAX_HINTS}/${MAX_HINTS} · 再错会直接给出答案`}
+                      {s.feedback.left > 0
+                        ? `提示 ${MAX_HINTS - s.feedback.left}/${MAX_HINTS}`
+                        : `提示 ${MAX_HINTS}/${MAX_HINTS} · 之后再错，会直接给出答案`}
                     </span>
                   )}
                 </span>
@@ -106,7 +109,7 @@ export function TutorialSubmit({
         className="group w-full"
         size="lg"
         disabled={!allDone}
-        onClick={() => onDone(state.reduce((n, s) => n + s.misses, 0))}
+        onClick={() => onDone(totalMisses)}
       >
         {allDone ? "结案" : "两题都答完才能结案"}
         {allDone && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}

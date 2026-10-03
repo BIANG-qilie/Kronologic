@@ -61,7 +61,7 @@ function askHint(ask: QueryTarget, draft: AskDraft | null): string {
     case "kind":
       return `先选「${ask.kind === "place_time" ? "房间 × 时间" : "房间 × 人物"}」。`;
     case "place":
-      return `再点「${placeName(ask.placeId)}」。`;
+      return `点「${placeName(ask.placeId)}」。`;
     case "detail":
       return ask.kind === "place_time" ? `再选时间 ${ask.timeId}。` : `再选 ${personTag(ask.personId!)}。`;
     case "send":
@@ -492,7 +492,7 @@ export function TutorialClient() {
 
 function TutorialHeader({ queryCount }: { queryCount?: number }) {
   return (
-    <header className="sticky top-0 z-30 border-b border-ink-faint/60 bg-curtain/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+    <header data-coach-top className="sticky top-0 z-[47] border-b border-ink-faint/60 bg-curtain/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-2 md:px-6 md:py-3">
         <Link
           href="/"

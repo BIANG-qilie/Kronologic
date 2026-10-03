@@ -51,8 +51,10 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
           ] as const
         ).map(([s, shape, meaning]) => (
           <span key={s} className="flex items-center gap-2">
-            <span className="relative inline-block h-4 w-4 shrink-0">
-              <SourceGlyph sources={[s]} />
+            <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-sm bg-[var(--parchment)]">
+              <span className="relative inline-block h-4 w-4">
+                <SourceGlyph sources={[s]} />
+              </span>
             </span>
             {shape}：{meaning}
           </span>

@@ -123,15 +123,21 @@ describe("tutorial script", () => {
     assert.equal(askFocus(ask, { kind: "place_person", placeId: "hall", timeId: null, personId: "P" }), "send");
   });
 
-  it("gives at most two hints, then the answer", () => {
+  it("gives at most two hints across the paper, then the answer", () => {
     assert.equal(MAX_HINTS, 2);
-    assert.equal(judgeAnswer("when", "2", "2", 0).type, "correct");
-    const first = judgeAnswer("when", "2", "1", 0);
+    assert.equal(judgeAnswer("when", "2", "2", 0, 0).type, "correct");
+    const first = judgeAnswer("when", "2", "1", 0, 0);
     assert.equal(first.type, "hint");
     assert.match(first.text, /时间 2 的绿窗人数/);
-    assert.equal(judgeAnswer("when", "2", "3", 1).type, "hint");
-    assert.equal(judgeAnswer("when", "2", "1", 2).type, "reveal");
-    assert.equal(judgeAnswer("who", "P", "A", 2).type, "reveal");
+    const second = judgeAnswer("when", "2", "3", 1, 1);
+    assert.equal(second.type, "hint");
+    assert.equal(second.type === "hint" && second.left, 0);
+    // one miss on 「谁」 and one on 「何时」 use up both hints; the next miss shows the answer
+    assert.equal(judgeAnswer("who", "P", "A", 0, 0).type, "hint");
+    assert.equal(judgeAnswer("when", "2", "1", 0, 1).type, "hint");
+    const reveal = judgeAnswer("when", "2", "3", 1, 2);
+    assert.equal(reveal.type, "reveal");
+    assert.match(reveal.text, /答案是时间 2/);
   });
 
   it("leaves exactly one answer once the tutorial's clues and the movement rule are applied", () => {
