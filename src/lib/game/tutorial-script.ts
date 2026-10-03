@@ -77,6 +77,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: "read-dress-2",
         tab: "desk",
         target: "latest-clue",
+        focusTime: 2,
         text: "绿窗：时间 2 的妆室里有 1 人，全桌都看得见。白窗：其中有 P，只亮给你一个人。",
       },
     ],
@@ -118,6 +119,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: "read-hall-p",
         tab: "desk",
         target: "latest-clue",
+        focusTime: 2,
         text: "绿窗 0 次：P 从没进过正厅，白窗也就没有内容。白窗为空时不计次，马上再问一次。",
       },
       {
@@ -131,6 +133,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: "read-dress-p",
         tab: "desk",
         target: "latest-clue",
+        focusTime: 2,
         text: "绿窗 1 次：P 整晚只进过妆室一次。白窗：那一次就是时间 2。",
       },
     ],

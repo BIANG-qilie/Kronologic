@@ -6,7 +6,7 @@ import { setDb, type Db } from "./db";
 import { achievements, gameRecords } from "./db/schema";
 import { authenticate, createSession, createUser, resolveSession } from "./auth/accounts";
 import { askQuery, createRoom, getRoom, joinRoom, startGame, submitAnswers } from "./rooms";
-import { clearedLevels, getProfile, recordGameResult } from "./records";
+import { clearedLevels, getProfile, recordGameResult, unlockAchievement } from "./records";
 import { listLevels, pickScenarioIdForLevel } from "@/lib/game/scenarios";
 
 async function codesOf(db: Db, userId: number) {
@@ -167,6 +167,17 @@ describe("game records (integration)", () => {
     assert.equal(profile.levels[0].bestQueries, profile.levels[0].minQueries + 2);
     assert.equal(profile.recent.length, 16);
     assert.equal(profile.recent[0].result, "lose");
+  });
+
+  it("开场白 unlocks once from the prologue and shows on the profile without a game record", async () => {
+    const user = await createUser(db, "first_timer", "lamp-order-7");
+    assert.equal(await unlockAchievement(db, user.id, "prologue"), true);
+    assert.equal(await unlockAchievement(db, user.id, "prologue"), false);
+    assert.deepEqual(await codesOf(db, user.id), ["prologue"]);
+    const profile = await getProfile(db, user.id, listLevels());
+    assert.equal(profile?.totals.games, 0);
+    assert.deepEqual(profile?.achievements.map((a) => a.code), ["prologue"]);
+    assert.deepEqual(await clearedLevels(db, user.id), []);
   });
 
   it("a failed write is logged and marks the seat failed without throwing", async () => {

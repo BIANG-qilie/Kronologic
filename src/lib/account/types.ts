@@ -49,3 +49,6 @@ export interface Profile {
   achievements: { code: AchievementCode; unlockedAt: string }[];
   recent: ProfileRecord[];
 }
+
+/** POST /api/tutorial/complete. Guests get `saved: false`. */
+export type TutorialCompleteResponse = { saved: false } | { saved: true; newlyUnlocked: boolean };

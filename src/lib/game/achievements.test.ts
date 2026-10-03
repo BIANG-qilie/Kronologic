@@ -32,9 +32,9 @@ describe("first clear", () => {
 });
 
 describe("achievements", () => {
-  it("has seven unique codes", () => {
-    assert.equal(ACHIEVEMENTS.length, 7);
-    assert.equal(new Set(ACHIEVEMENTS.map((a) => a.code)).size, 7);
+  it("has eight unique codes", () => {
+    assert.equal(ACHIEVEMENTS.length, 8);
+    assert.equal(new Set(ACHIEVEMENTS.map((a) => a.code)).size, 8);
   });
 
   it("初登场 on any finished game, even a loss", () => {
@@ -79,6 +79,12 @@ describe("achievements", () => {
     assert.ok(!evaluateAchievements({ ...late, msAfterFirstSubmit: 12_500 }, veteran([])).includes("comeback"));
     assert.ok(!evaluateAchievements({ ...late, result: "eliminated" }, veteran([])).includes("comeback"));
     assert.ok(!evaluateAchievements({ ...late, firstToSubmit: true }, veteran([])).includes("comeback"));
+  });
+
+  it("开场白 comes from the prologue, never from a recorded game", () => {
+    const perfectRun = { ...base, queriesUsed: 1, mode: "solo" as const };
+    assert.ok(!evaluateAchievements(perfectRun, fresh).includes("prologue"));
+    assert.ok(!evaluateAchievements({ ...base, level: 15 }, veteran(Array.from({ length: 14 }, (_, i) => i + 1))).includes("prologue"));
   });
 
   it("never re-awards an unlocked achievement", () => {

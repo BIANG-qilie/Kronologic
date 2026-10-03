@@ -13,7 +13,11 @@ export const ACHIEVEMENTS = [
   { code: "all_clear", title: "灯序大师", description: `通关全部 ${TOTAL_LEVELS} 关` },
   { code: "quick_draw", title: "抢答者", description: "多人局里第一个交卷并答对" },
   { code: "comeback", title: "绝境翻盘", description: "多人局里他人先交卷后，在 12 秒内答对" },
+  { code: "prologue", title: "开场白", description: "走完第 0 关 · 序幕" },
 ] as const;
+
+/** Unlocked outside a recorded game (see `unlockAchievement`). */
+export const PROLOGUE_ACHIEVEMENT = "prologue" satisfies AchievementCode;
 
 export type AchievementCode = (typeof ACHIEVEMENTS)[number]["code"];
 export type AchievementDef = (typeof ACHIEVEMENTS)[number];
@@ -59,6 +63,7 @@ const RULES: Record<AchievementCode, (o: GameOutcome, clearedAfter: ReadonlySet<
     !o.firstToSubmit &&
     o.msAfterFirstSubmit != null &&
     o.msAfterFirstSubmit <= COMEBACK_WINDOW_MS,
+  prologue: () => false,
 };
 
 /** Achievements this game newly unlocks, in display order. */

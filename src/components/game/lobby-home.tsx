@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowRight, Check } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Check, Sparkles } from "lucide-react";
 import { LampMatrix } from "@/components/game/lamp-matrix";
 import { levelLabel, suggestLevel, type LevelInfo } from "@/lib/game/levels";
 import { loadClearedLevels } from "@/lib/game/progress";
+import { loadPrologueDone } from "@/lib/game/tutorial-progress";
+import { PROLOGUE_LEVEL } from "@/lib/game/prologue";
+import { RulesSheet } from "@/components/game/rules-sheet";
 import { cn } from "@/lib/utils";
 import { useAccount } from "@/hooks/use-account";
 import { AccountMenu } from "@/components/account/account-menu";
@@ -45,6 +49,7 @@ export function LobbyHome() {
   const [loadErr, setLoadErr] = useState(false);
   const [resume, setResume] = useState<ReturnType<typeof loadSession>>(null);
   const [localCleared, setLocalCleared] = useState<Set<number>>(() => new Set());
+  const [prologueDone, setPrologueDone] = useState(false);
   const account = useAccount();
   const user = account.status === "ready" ? account.user : null;
   const accountCleared = account.status === "ready" && account.user ? account.clearedLevels : null;
@@ -57,6 +62,7 @@ export function LobbyHome() {
 
   useEffect(() => {
     setResume(loadSession());
+    setPrologueDone(loadPrologueDone());
     fetch("/api/rooms")
       .then((r) => r.json())
       .then((d) => {
@@ -84,6 +90,7 @@ export function LobbyHome() {
   const levels = useMemo(() => family?.levels ?? [], [family]);
   const tiers = family?.tiers ?? [];
   const selected = levels.find((l) => l.level === level) ?? null;
+  const prologuePicked = level === PROLOGUE_LEVEL;
 
   function requireNickname(): boolean {
     if (nickname.trim()) return true;
@@ -176,7 +183,7 @@ export function LobbyHome() {
     }
   }
 
-  const action = mode === "create" ? create : join;
+  const action = mode === "create" ? (prologuePicked ? () => router.push("/tutorial") : create) : join;
 
   const segment = (value: "create" | "join", label: string) => (
     <button
@@ -216,8 +223,9 @@ export function LobbyHome() {
           <span className="rise font-display text-base tracking-[0.2em] text-[var(--ink)]" style={{ ["--i" as string]: 0 }}>
             灯序
           </span>
-          <div className="rise flex items-center gap-6" style={{ ["--i" as string]: 1 }}>
+          <div className="rise flex items-center gap-4 sm:gap-6" style={{ ["--i" as string]: 1 }}>
             <span className="hidden sm:inline">星河音乐厅 · 1925 · 散场之后</span>
+            <RulesSheet className="tracking-[0.24em]" />
             <AccountMenu />
           </div>
         </nav>
@@ -271,8 +279,23 @@ export function LobbyHome() {
               <span className="block">抢先拼出案发那一刻。</span>
             </p>
 
+            <Link
+              href="/tutorial"
+              className="rise group mt-10 flex max-w-md items-center gap-3 rounded-[3px] border border-amber/30 bg-amber/[0.06] px-4 py-3 transition-colors hover:border-amber/60 hover:bg-amber/10"
+              style={{ ["--i" as string]: 4 }}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-[var(--amber)]" aria-hidden />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-[var(--ink)]">
+                  {prologueDone ? "序幕已走完，想再看一遍规则？" : "第一次玩？先走一遍序幕（约 3 分钟）"}
+                </span>
+                <span className="block text-xs text-[var(--ink-muted)]">三个时刻、三间房、三个人，亲手问一次、记一笔、交一次卷</span>
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-[var(--amber)] transition-transform group-hover:translate-x-1" aria-hidden />
+            </Link>
+
             <div
-              className="rise ticket-edge relative mt-10 max-w-md bg-stage/80 px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
+              className="rise ticket-edge relative mt-4 max-w-md bg-stage/80 px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
               style={{ ["--i" as string]: 4 }}
             >
               <div className="pointer-events-none absolute inset-y-4 left-0 right-0 border-y border-dashed border-ink-faint/70" aria-hidden />
@@ -309,14 +332,48 @@ export function LobbyHome() {
                     <fieldset>
                       <legend className="mb-3 flex w-full items-baseline justify-between text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
                         <span>关卡选择</span>
-                        {selected && (
-                          <span className="tracking-normal text-[var(--ink)] tabular" aria-live="polite">
-                            {levelLabel(selected.level)}
-                            <span className="text-[var(--ink-muted)]"> · 最少 {selected.greedyMin} 问</span>
+                        {prologuePicked ? (
+                          <span className="tracking-normal text-[var(--ink)]" aria-live="polite">
+                            第 0 关 · 序幕
+                            <span className="text-[var(--ink-muted)]"> · 单人教学</span>
                           </span>
+                        ) : (
+                          selected && (
+                            <span className="tracking-normal text-[var(--ink)] tabular" aria-live="polite">
+                              {levelLabel(selected.level)}
+                              <span className="text-[var(--ink-muted)]"> · 最少 {selected.greedyMin} 问</span>
+                            </span>
+                          )
                         )}
                       </legend>
-                      <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="关卡">
+                      <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="关卡">
+                        <button
+                          type="button"
+                          role="radio"
+                          aria-checked={prologuePicked}
+                          aria-label={`第 0 关 · 序幕，单人教学${prologueDone ? "，已走完" : ""}`}
+                          onClick={() => {
+                            levelPicked.current = true;
+                            setLevel(PROLOGUE_LEVEL);
+                          }}
+                          className={cn(
+                            "relative flex h-12 flex-col items-center justify-center rounded-[3px] font-display text-base leading-none transition-[background-color,box-shadow,color,transform] duration-200 active:scale-[0.96]",
+                            prologuePicked
+                              ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_8px_24px_-10px_rgba(212,161,90,0.8)]"
+                              : "text-[var(--amber)] shadow-[inset_0_0_0_1px_var(--amber-dim)] hover:bg-amber/10"
+                          )}
+                        >
+                          序幕
+                          <span className={cn("mt-1 text-[9px] tracking-[0.2em]", prologuePicked ? "text-curtain/70" : "text-amber/70")}>
+                            教学
+                          </span>
+                          {prologueDone && (
+                            <Check
+                              className={cn("absolute right-1 top-1 h-3 w-3", prologuePicked ? "text-curtain/70" : "text-[var(--green-win)]")}
+                              aria-hidden
+                            />
+                          )}
+                        </button>
                         {levels.length === 0
                           ? Array.from({ length: 15 }, (_, i) => (
                               <span
@@ -387,7 +444,7 @@ export function LobbyHome() {
                         {loadErr ? (
                           <span className="text-[#e07a5f]">关卡没加载出来，刷新页面再试</span>
                         ) : (
-                          <span>关卡难度递进，以最少提问次数为判断依据</span>
+                          <span>{prologuePicked ? "单人本地运行，不建房，不计战绩" : "关卡难度递进，以最少提问次数为判断依据"}</span>
                         )}
                         {cleared.size > 0 && (
                           <span className="shrink-0 font-mono text-green-win/90 tabular">
@@ -424,15 +481,22 @@ export function LobbyHome() {
                   )}
 
                   <div>
-                    <Button className="group w-full" size="lg" disabled={busy || (mode === "create" && !selected)} onClick={action}>
+                    <Button
+                      className="group w-full"
+                      size="lg"
+                      disabled={busy || (mode === "create" && !selected && !prologuePicked)}
+                      onClick={action}
+                    >
                       {busy
                         ? "稍等…"
                         : mode === "create"
-                          ? `新建游戏 · ${levelLabel(level)}`
+                          ? prologuePicked
+                            ? "开始序幕 · 单人"
+                            : `新建游戏 · ${levelLabel(level)}`
                           : "入座"}
                       {!busy && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
                     </Button>
-                    {resume && mode === "create" && (
+                    {resume && mode === "create" && !prologuePicked && (
                       <p className="mt-2 text-center text-xs text-[var(--ink-muted)]">
                         新建游戏会放弃房间 {resume.code}
                       </p>

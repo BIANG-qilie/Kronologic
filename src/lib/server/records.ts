@@ -88,6 +88,16 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
   });
 }
 
+/** Unlock an achievement that is not tied to a game record. Returns true only the first time. */
+export async function unlockAchievement(db: Db, userId: number, code: AchievementCode): Promise<boolean> {
+  const inserted = await db
+    .insert(achievements)
+    .values({ userId, code })
+    .onConflictDoNothing()
+    .returning({ code: achievements.code });
+  return inserted.length > 0;
+}
+
 export async function getProfile(db: Db, userId: number, levels: readonly LevelInfo[]): Promise<Profile | null> {
   const [user] = await db
     .select({ id: users.id, username: users.username, createdAt: users.createdAt })
