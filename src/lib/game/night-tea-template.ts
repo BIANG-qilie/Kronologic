@@ -4,6 +4,7 @@ import type {
   ScenarioBundle,
   ScenarioPublic,
   SoloBands,
+  Trajectory,
   WinQuestion,
 } from "./types";
 import { levelLabel } from "./levels";
@@ -55,7 +56,7 @@ export function assembleNightTeaBundle(input: {
   level?: number;
   difficulty: number;
   opening: Partial<Record<PersonId, PlaceId>>;
-  trajectory: Record<PersonId, Record<string, PlaceId>>;
+  trajectory: Trajectory;
   answers: Record<string, string>;
   soloBands: SoloBands;
   seed?: string;

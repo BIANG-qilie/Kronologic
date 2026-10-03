@@ -5,14 +5,23 @@ import type {
   PlaceId,
   PersonId,
   QueryKind,
+  QueryTarget,
   ScenarioPublic,
   TimeId,
 } from "@/lib/game/types";
+import { timesOf } from "@/lib/game/board";
 import { BoardMap } from "./board-map";
 import { PlaceGlyph } from "./place-glyph";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Hourglass } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+export type QueryDraft = {
+  kind: QueryKind;
+  placeId: PlaceId | null;
+  timeId: TimeId | null;
+  personId: PersonId | null;
+};
 
 export function QueryPanel({
   scenario,
@@ -20,23 +29,35 @@ export function QueryPanel({
   askAgain,
   busy,
   onAsk,
+  allowedTargets,
+  onDraftChange,
 }: {
   scenario: ScenarioPublic;
   canAct: boolean;
   askAgain: boolean;
   busy: boolean;
-  onAsk: (input: {
-    kind: QueryKind;
-    placeId: PlaceId;
-    timeId?: TimeId;
-    personId?: PersonId;
-  }) => Promise<void>;
+  onAsk: (input: QueryTarget) => Promise<void>;
+  /** When set, only these exact questions can be put together and asked. */
+  allowedTargets?: QueryTarget[];
+  onDraftChange?: (draft: QueryDraft) => void;
 }) {
   const [kind, setKind] = useState<QueryKind>("place_time");
   const [placeId, setPlaceId] = useState<PlaceId | null>(null);
   const [timeId, setTimeId] = useState<TimeId | null>(null);
   const [personId, setPersonId] = useState<PersonId | null>(null);
   const [flash, setFlash] = useState<PlaceId | null>(null);
+  const times = timesOf(scenario);
+
+  useEffect(() => {
+    onDraftChange?.({ kind, placeId, timeId, personId });
+  }, [kind, placeId, timeId, personId, onDraftChange]);
+
+  const fits = (t: QueryTarget, d: Partial<QueryDraft>) =>
+    t.kind === (d.kind ?? t.kind) &&
+    (d.placeId == null || t.placeId === d.placeId) &&
+    (d.timeId == null || t.timeId === d.timeId) &&
+    (d.personId == null || t.personId === d.personId);
+  const allowed = (d: Partial<QueryDraft>) => !allowedTargets || allowedTargets.some((t) => fits(t, d));
 
   useEffect(() => {
     if (!flash) return;
@@ -79,7 +100,10 @@ export function QueryPanel({
   const placeName = scenario.places.find((p) => p.id === placeId)?.name;
   const person = scenario.people.find((p) => p.id === personId);
   const personName = person ? `${person.name}（${person.letter}）` : null;
-  const ready = !!placeId && (kind === "place_time" ? !!timeId : !!personId);
+  const ready =
+    !!placeId &&
+    (kind === "place_time" ? !!timeId : !!personId) &&
+    allowed({ kind, placeId, timeId: kind === "place_time" ? timeId : null, personId: kind === "place_person" ? personId : null });
 
   const Step = ({ n, title, children }: { n: number; title: string; children: React.ReactNode }) => (
     <section>
@@ -100,7 +124,7 @@ export function QueryPanel({
     );
 
   const summary = (
-    <>
+    <div data-tutorial="query-send">
       <p
         className="flex min-h-[2rem] items-center gap-2 font-display text-xl leading-snug text-[var(--ink-muted)] lg:min-h-[2.5rem] lg:text-2xl"
         aria-live="polite"
@@ -126,12 +150,12 @@ export function QueryPanel({
         {busy ? "灯在亮…" : ready ? "提问" : placeId ? (kind === "place_time" ? "再选一个时间" : "再选一个人物") : "先选一个房间"}
         {!busy && ready && <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />}
       </Button>
-    </>
+    </div>
   );
 
   return (
     <div className="grid gap-6 pb-36 sm:gap-10 lg:grid-cols-[1.25fr_1fr] lg:gap-14 lg:pb-0">
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-faint/60 bg-curtain/92 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
+      <div data-coach-avoid className="fixed inset-x-0 bottom-0 z-20 border-t border-ink-faint/60 bg-curtain/92 px-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur-md lg:hidden">
         <div className="mx-auto max-w-xl">{summary}</div>
       </div>
       <div className="space-y-6 sm:space-y-8">
@@ -141,7 +165,7 @@ export function QueryPanel({
           </p>
         )}
         <Step n={1} title="提问方式">
-          <div className="grid grid-cols-2 gap-2" role="radiogroup">
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" data-tutorial="query-kind">
             {(
               [
                 ["place_time", "房间 × 时间", "绿窗：几人 · 白窗：一个人"],
@@ -153,8 +177,13 @@ export function QueryPanel({
                 type="button"
                 role="radio"
                 aria-checked={kind === k}
-                onClick={() => setKind(k)}
-                className={cn(chip(kind === k), "min-h-[4.25rem] px-3 py-3 text-left sm:px-4")}
+                disabled={!allowed({ kind: k })}
+                data-tutorial={`kind-${k}`}
+                onClick={() => {
+                  setKind(k);
+                  if (!allowed({ kind: k, placeId })) setPlaceId(null);
+                }}
+                className={cn(chip(kind === k), "min-h-[4.25rem] px-3 py-3 text-left disabled:cursor-not-allowed disabled:opacity-35 sm:px-4")}
               >
                 <span className="block font-display text-base sm:text-lg">{label}</span>
                 <span className={cn("mt-0.5 block text-xs", kind === k ? "text-curtain/70" : "text-[var(--ink-muted)]")}>
@@ -166,22 +195,35 @@ export function QueryPanel({
         </Step>
 
         <Step n={2} title="哪个房间">
-          <BoardMap scenario={scenario} selected={placeId} highlight={flash} onSelect={setPlaceId} />
+          <div data-tutorial="query-map">
+            <BoardMap
+              scenario={scenario}
+              selected={placeId}
+              highlight={flash}
+              onSelect={setPlaceId}
+              isEnabled={allowedTargets ? (id) => allowed({ kind, placeId: id }) : undefined}
+            />
+          </div>
         </Step>
       </div>
 
       <div className="space-y-6 sm:space-y-8 lg:sticky lg:top-24 lg:self-start">
         {kind === "place_time" ? (
           <Step n={3} title="哪个时间">
-            <div className="grid grid-cols-6 gap-1.5" role="radiogroup">
-              {([1, 2, 3, 4, 5, 6] as TimeId[]).map((t) => (
+            <div
+              className={cn("grid gap-1.5", times.length === 6 ? "grid-cols-6" : "grid-cols-3")}
+              role="radiogroup"
+              data-tutorial="query-times"
+            >
+              {times.map((t) => (
                 <button
                   key={t}
                   type="button"
                   role="radio"
                   aria-checked={timeId === t}
+                  disabled={!allowed({ kind, placeId, timeId: t })}
                   onClick={() => setTimeId(t)}
-                  className={cn(chip(timeId === t), "h-14 font-display text-2xl tabular")}
+                  className={cn(chip(timeId === t), "h-14 font-display text-2xl tabular disabled:cursor-not-allowed disabled:opacity-35")}
                 >
                   {t}
                 </button>
@@ -190,15 +232,16 @@ export function QueryPanel({
           </Step>
         ) : (
           <Step n={3} title="哪个人物">
-            <div className="grid grid-cols-3 gap-1.5" role="radiogroup">
+            <div className="grid grid-cols-3 gap-1.5" role="radiogroup" data-tutorial="query-people">
               {scenario.people.map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   role="radio"
                   aria-checked={personId === p.id}
+                  disabled={!allowed({ kind, placeId, personId: p.id })}
                   onClick={() => setPersonId(p.id)}
-                  className={cn(chip(personId === p.id), "flex min-h-12 items-center px-3 py-2 text-left")}
+                  className={cn(chip(personId === p.id), "flex min-h-12 items-center px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-35")}
                 >
                   <span className="font-mono text-base font-semibold">{p.letter}</span>
                   <span className={cn("ml-2 truncate text-sm", personId === p.id ? "text-curtain/80" : "text-[var(--ink-muted)]")}>

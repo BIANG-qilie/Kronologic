@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { GlyphToken } from "./source-glyph";
 import { PlaceGlyph } from "./place-glyph";
 
-const COUNTS = [0, 1, 2, 3, 4, 5, 6];
+const upTo = (max: number) => Array.from({ length: max + 1 }, (_, i) => i);
 
 /** Arrow keys move focus between sibling chips inside the container. */
 export function rovingKeys(e: KeyboardEvent<HTMLElement>) {
@@ -107,7 +107,7 @@ export function CellMarkPicker({
           人数{factCount != null ? ` · 已知 ${factCount} 人` : ""}
         </p>
         <div className="flex gap-1">
-          {COUNTS.map((n) => {
+          {upTo(view.scenario.people.length).map((n) => {
             const on = mark.count === n;
             return (
               <button
@@ -167,15 +167,17 @@ export function CellMarkPicker({
 export function VisitPicker({
   value,
   factCount,
+  max = 6,
   onChange,
 }: {
   value: number | null;
   factCount: number | null;
+  max?: number;
   onChange: (v: number | null) => void;
 }) {
   return (
     <div className="flex w-full gap-1" onKeyDown={rovingKeys}>
-      {COUNTS.map((n) => {
+      {upTo(max).map((n) => {
         const on = value === n;
         return (
           <button

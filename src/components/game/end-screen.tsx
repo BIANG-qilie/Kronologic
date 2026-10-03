@@ -2,17 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
-import type { PersonId, PlaceId, RoomPublicView } from "@/lib/game/types";
+import type { PersonId, PlaceId, RoomPublicView, Trajectory } from "@/lib/game/types";
 import { clearSession } from "@/hooks/use-room";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { levelLabel } from "@/lib/game/levels";
 import { markLevelCleared } from "@/lib/game/progress";
+import { placeOrder, timesOf } from "@/lib/game/board";
 import { PlaceGlyph } from "./place-glyph";
 import { SeatRecordLine } from "@/components/account/seat-record";
 
-const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
-const TIMES = [1, 2, 3, 4, 5, 6];
 const LAST_LEVEL = 15;
 
 const MEDAL = {
@@ -21,23 +20,24 @@ const MEDAL = {
   copper: { label: "铜放大镜", color: "#c27c4e", glow: "rgba(194,124,78,0.45)" },
 } as const;
 
-function Replay({
+export function Replay({
   view,
   trajectory,
   crime,
   culprit,
   victim,
 }: {
-  view: RoomPublicView;
-  trajectory: Record<PersonId, Record<string, PlaceId>>;
+  view: Pick<RoomPublicView, "scenario">;
+  trajectory: Trajectory;
   crime: { time: number; place: PlaceId } | null;
   culprit: string | null;
   victim: PersonId | null;
 }) {
   const placeName = (id: PlaceId) => view.scenario.places.find((p) => p.id === id)?.name ?? id;
+  const times = timesOf(view.scenario);
   return (
-    <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-      {TIMES.map((t, i) => {
+    <ol className={cn("grid gap-3", times.length === 6 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-6" : "grid-cols-1 sm:grid-cols-3")}>
+      {times.map((t, i) => {
         const isCrime = crime?.time === t;
         return (
           <li
@@ -55,7 +55,7 @@ function Replay({
               {isCrime && <span className="text-[10px] tracking-[0.2em] text-[var(--amber-dim)]">案发</span>}
             </p>
             <div className="grid grid-cols-3 gap-1">
-              {PLACE_ORDER.map((place) => {
+              {placeOrder(view.scenario).map((place) => {
                 const here = view.scenario.people.filter((p) => trajectory[p.id]?.[String(t)] === place);
                 const hot = isCrime && crime?.place === place;
                 return (
@@ -225,7 +225,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             <div className="rise mt-4 flex items-center gap-3" style={{ ["--i" as string]: 12 }}>
               <span className="text-[11px] text-ink-muted/70">房间位置</span>
               <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-ink-faint/60 text-[11px] text-[var(--ink-muted)]">
-                {PLACE_ORDER.map((id) => (
+                {placeOrder(view.scenario).map((id) => (
                   <span key={id} className="flex items-center gap-1 bg-[var(--curtain)] px-2 py-1">
                     <PlaceGlyph id={id} className="h-3.5 w-3.5" />
                     {view.scenario.places.find((p) => p.id === id)?.name}

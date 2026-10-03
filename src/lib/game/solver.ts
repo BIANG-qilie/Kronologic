@@ -49,7 +49,7 @@ export type SolverReport = {
 };
 
 export function enumeratePaths(
-  adjacency: Record<PlaceId, PlaceId[]>,
+  adjacency: Partial<Record<PlaceId, PlaceId[]>>,
   start?: PlaceId
 ): PlaceId[][] {
   const places = Object.keys(adjacency) as PlaceId[];

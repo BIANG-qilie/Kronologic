@@ -1,7 +1,7 @@
 import type { PlaceId, PersonId, TimeId } from "./types";
 
-const TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
-const PERSON_IDS: PersonId[] = ["A", "R", "M", "E", "T", "K"];
+const DEFAULT_TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
+const PERSON_IDS: PersonId[] = ["A", "R", "M", "E", "T", "K", "P"];
 
 /** Pencil marks on one room × time. `in` and `out` never share a person. */
 export type CellMark = {
@@ -59,9 +59,9 @@ export function isCellMarkEmpty(mark: CellMark | undefined): boolean {
   return !mark || (mark.in.length === 0 && mark.out.length === 0 && mark.count == null);
 }
 
-function emptyInference(people: string[], places: string[]): NotesInference {
+function emptyInference(people: string[], places: string[], times: TimeId[]): NotesInference {
   const cells: NotesInference["cells"] = {};
-  for (const t of TIMES) {
+  for (const t of times) {
     cells[String(t)] = {};
     for (const p of places) cells[String(t)][p] = emptyCellMark();
   }
@@ -75,11 +75,12 @@ function emptyInference(people: string[], places: string[]): NotesInference {
 
 export function emptyNotesV3(
   people: PersonId[] | string[],
-  places: PlaceId[] | string[]
+  places: PlaceId[] | string[],
+  times: TimeId[] = DEFAULT_TIMES
 ): NotesPayloadV3 {
   return {
     version: 3,
-    inference: emptyInference(people, places),
+    inference: emptyInference(people, places, times),
     board: { times: {}, places: {}, people: {} },
     free: "",
   };
@@ -179,9 +180,10 @@ function migrateLegacy(
 export function parseNotes(
   raw: string | undefined,
   people: PersonId[] | string[],
-  places: PlaceId[] | string[]
+  places: PlaceId[] | string[],
+  times: TimeId[] = DEFAULT_TIMES
 ): NotesPayloadV3 {
-  const base = emptyNotesV3(people, places);
+  const base = emptyNotesV3(people, places, times);
   if (!raw?.trim()) return base;
   let parsed: NotesPayloadV3 | NotesPayloadV2 | NotesPayloadV1;
   try {

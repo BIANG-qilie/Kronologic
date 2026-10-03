@@ -1,0 +1,43 @@
+{
+  "public": {
+    "id": "prologue-swapped-key",
+    "title": "换掉的钥匙",
+    "subtitle": "星河音乐厅 · 开演前 · 第 0 关",
+    "synopsis": "开演前，道具师裴砚（P）报告：妆室里的一把钥匙被人换了。值班表记着，开演前的三个时刻里，只有一个人单独进过妆室。\n查出：谁、在时间几。地点已知：妆室。",
+    "places": [
+      { "id": "hall", "name": "正厅" },
+      { "id": "stage", "name": "舞台" },
+      { "id": "dress", "name": "妆室" }
+    ],
+    "people": [
+      { "id": "P", "name": "裴砚", "letter": "P" },
+      { "id": "A", "name": "安澄", "letter": "A" },
+      { "id": "T", "name": "唐珀", "letter": "T" }
+    ],
+    "adjacency": {
+      "hall": ["stage"],
+      "stage": ["hall", "dress"],
+      "dress": ["stage"]
+    },
+    "timeCount": 3,
+    "layout": [["hall", "stage", "dress"]],
+    "opening": { "P": "stage", "A": "dress", "T": "dress" },
+    "winQuestions": [
+      { "id": "who", "prompt": "谁单独进过妆室？", "kind": "person" },
+      { "id": "when", "prompt": "在时间几？", "kind": "time" }
+    ],
+    "soloBands": { "goldMax": 2, "silverMax": 4 },
+    "difficulty": 0,
+    "tier": "第 0 关 · 序幕",
+    "level": 0
+  },
+  "sealed": {
+    "rule": { "type": "alone_at_place", "placeId": "dress" },
+    "trajectory": {
+      "P": { "1": "stage", "2": "dress", "3": "stage" },
+      "A": { "1": "dress", "2": "stage", "3": "dress" },
+      "T": { "1": "dress", "2": "stage", "3": "dress" }
+    },
+    "answers": { "who": "P", "when": "2" }
+  }
+}

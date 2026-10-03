@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { rovingKeys } from "./cell-mark-picker";
 import { PlaceGlyph } from "./place-glyph";
+import { timesOf } from "@/lib/game/board";
 
 type Row = keyof Board;
 
@@ -70,7 +71,7 @@ export function SuspectBoard({
     {
       row: "times",
       name: "时间",
-      items: [1, 2, 3, 4, 5, 6].map((t) => ({ key: String(t), label: String(t), title: `时间 ${t}` })),
+      items: timesOf(view.scenario).map((t) => ({ key: String(t), label: String(t), title: `时间 ${t}` })),
     },
     {
       row: "places",
@@ -114,7 +115,7 @@ export function SuspectBoard({
           <div
             className={cn(
               "grid flex-1 gap-1 sm:flex sm:flex-wrap",
-              row === "times" ? "grid-cols-6" : "grid-cols-3"
+              row === "times" && timesOf(view.scenario).length === 6 ? "grid-cols-6" : "grid-cols-3"
             )}
             onKeyDown={rovingKeys}
           >

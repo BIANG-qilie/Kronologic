@@ -23,7 +23,7 @@ describe("enumeratePaths", () => {
       assert.equal(path[0], "hall");
       for (let i = 1; i < 6; i++) {
         assert.notEqual(path[i], path[i - 1]);
-        assert.ok(adj[path[i - 1]].includes(path[i]));
+        assert.ok(adj[path[i - 1]]?.includes(path[i]));
       }
     }
   });

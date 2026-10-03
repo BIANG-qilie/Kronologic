@@ -3,20 +3,23 @@
 import { useMemo, useState } from "react";
 import type { PlaceId, ScenarioPublic } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
+import { layoutOf, placeOrder } from "@/lib/game/board";
 import { PlaceGlyph } from "./place-glyph";
-
-const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
+import { FloorPlan, planAspect } from "./floor-plan";
 
 export function BoardMap({
   scenario,
   highlight,
   onSelect,
   selected,
+  isEnabled,
 }: {
   scenario: ScenarioPublic;
   highlight?: PlaceId | null;
   onSelect?: (id: PlaceId) => void;
   selected?: PlaceId | null;
+  /** Rooms outside this predicate are shown but cannot be picked. */
+  isEnabled?: (id: PlaceId) => boolean;
 }) {
   const [hovered, setHovered] = useState<PlaceId | null>(null);
   const byId = useMemo(() => new Map(scenario.places.map((p) => [p.id, p])), [scenario.places]);
@@ -46,11 +49,13 @@ export function BoardMap({
     const place = byId.get(id)!;
     const isSel = selected === id;
     const isNeighbor = !!focus && neighbors.has(id) && id !== focus;
+    const off = !!isEnabled && !isEnabled(id);
     return (
       <button
         key={id}
         type="button"
-        disabled={!onSelect}
+        data-tutorial={`place-${id}`}
+        disabled={!onSelect || off}
         aria-pressed={isSel}
         onClick={() => onSelect?.(id)}
         onMouseEnter={() => setHovered(id)}
@@ -65,7 +70,8 @@ export function BoardMap({
               ? "bg-amber/10 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
               : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
           highlight === id && "animate-pulse-soft",
-          !onSelect && "cursor-default"
+          !onSelect && "cursor-default",
+          off && "cursor-not-allowed opacity-35 active:scale-100"
         )}
       >
         <span className="flex w-full items-start justify-between">
@@ -91,28 +97,9 @@ export function BoardMap({
   };
 
   return (
-    <div className="relative aspect-[3/2] w-full">
-      <div
-        className="absolute inset-0 grid"
-        style={{ gridTemplateColumns: "1fr 14px 1fr 14px 1fr", gridTemplateRows: "1fr 14px 1fr" }}
-      >
-        {room("porch", 0)}
-        {door("porch", "hall", "h")}
-        {room("hall", 1)}
-        {door("hall", "stage", "h")}
-        {room("stage", 2)}
-        {door("porch", "dress", "v")}
-        <div />
-        {door("hall", "gallery", "v")}
-        <div />
-        {door("stage", "prop", "v")}
-        {room("dress", 3)}
-        {door("dress", "gallery", "h")}
-        {room("gallery", 4)}
-        {door("gallery", "prop", "h")}
-        {room("prop", 5)}
-      </div>
-      <span className="sr-only">{PLACE_ORDER.map((id) => byId.get(id)?.name).join("、")}</span>
+    <div className="relative w-full" style={{ aspectRatio: planAspect(layoutOf(scenario)) }}>
+      <FloorPlan layout={layoutOf(scenario)} gap="14px" className="absolute inset-0 grid" room={room} door={door} />
+      <span className="sr-only">{placeOrder(scenario).map((id) => byId.get(id)?.name).join("、")}</span>
     </div>
   );
 }

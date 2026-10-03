@@ -14,7 +14,7 @@ import {
   VICTIM_ID,
   assembleNightTeaBundle,
 } from "./night-tea-template";
-import type { PlaceId, PersonId, ScenarioBundle } from "./types";
+import type { PlaceId, PersonId, ScenarioBundle, Trajectory } from "./types";
 
 export type GeneratedCaseMeta = {
   id: string;
@@ -281,7 +281,7 @@ export type CaseBankFile = {
     greedySteps: number;
     fingerprint: string;
     opening: Partial<Record<PersonId, PlaceId>>;
-    trajectory: Record<PersonId, Record<string, PlaceId>>;
+    trajectory: Trajectory;
     answers: Record<string, string>;
     soloBands: { goldMax: number; silverMax: number };
   }>;

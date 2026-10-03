@@ -22,7 +22,7 @@ const places: PlaceId[] = [
   "prop",
 ];
 const people: PersonId[] = ["A", "R", "M", "E", "T", "K"];
-const opening: Record<PersonId, PlaceId> = {
+const opening: Partial<Record<PersonId, PlaceId>> = {
   A: "hall",
   R: "stage",
   M: "dress",

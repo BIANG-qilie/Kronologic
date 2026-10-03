@@ -46,7 +46,7 @@ export type FactProjection = {
   visits: Record<string, Record<string, VisitFactLayers>>;
 };
 
-const TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
+const DEFAULT_TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
 
 function emptyCell(): CellFactLayers {
   return {
@@ -95,6 +95,8 @@ export interface ProjectFactsInput {
   queryLog: QueryLogEntry[];
   /** Omit or empty → private layer stays empty (public still projects) */
   privateClues?: PrivateClue[] | null;
+  /** Timeline length; defaults to 6. */
+  times?: TimeId[];
 }
 
 /**
@@ -105,8 +107,9 @@ export interface ProjectFactsInput {
 export function projectFacts(input: ProjectFactsInput): FactProjection {
   const cells: FactProjection["cells"] = {};
   const visits: FactProjection["visits"] = {};
+  const times = input.times ?? DEFAULT_TIMES;
 
-  for (const t of TIMES) {
+  for (const t of times) {
     cells[String(t)] = {};
     for (const place of input.places) {
       cells[String(t)][place] = emptyCell();
@@ -129,7 +132,7 @@ export function projectFacts(input: ProjectFactsInput): FactProjection {
       cell.public.sources.push("opening");
     }
   }
-  for (const t of TIMES) {
+  for (const t of times) {
     for (const place of input.places) {
       const cell = cells[String(t)][place];
       cell.public.letters.sort();
@@ -187,7 +190,7 @@ export function projectFacts(input: ProjectFactsInput): FactProjection {
           visit.private.sources.push(q.id);
         }
         // Mirror onto the desk cell so film + floor show 「其中有 S」
-        if (Number.isFinite(timeNum) && timeNum >= 1 && timeNum <= 6) {
+        if (Number.isFinite(timeNum) && times.includes(timeNum as TimeId)) {
           const cell = ensureCell(cells, String(timeNum), q.placeId);
           const letter = String(q.personId);
           if (!cell.private.amongLetters.includes(letter)) {

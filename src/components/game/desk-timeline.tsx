@@ -40,9 +40,8 @@ import { GlyphToken, SOURCE_COLOR, SourceGlyph } from "./source-glyph";
 import { SuspectBoard } from "./suspect-board";
 import { AdaptivePopover } from "./adaptive-popover";
 import { PlaceGlyph, PlaceMark } from "./place-glyph";
-
-const TIMES: TimeId[] = [1, 2, 3, 4, 5, 6];
-const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
+import { FloorPlan, planAspect } from "./floor-plan";
+import { layoutOf, placeOrder, timesOf } from "@/lib/game/board";
 
 const LAYER_NAME: Record<MarkSource, string> = {
   public: "绿窗",
@@ -50,7 +49,7 @@ const LAYER_NAME: Record<MarkSource, string> = {
   inference: "推理",
 };
 
-type CellKey = { time: TimeId; place: PlaceId };
+export type CellKey = { time: TimeId; place: PlaceId };
 
 function placeLabel(view: RoomPublicView, id: string): string {
   return view.scenario.places.find((p) => p.id === id)?.name ?? id;
@@ -71,7 +70,7 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
       : `${placeLabel(view, latest.placeId)} × ${personLabel(view, latest.personId!)}`;
 
   return (
-    <div className="mb-4 border-b border-ink-deep/15 pb-3 text-[var(--ink-deep)]">
+    <div data-tutorial="latest-clue" className="mb-4 border-b border-ink-deep/15 pb-3 text-[var(--ink-deep)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
         <span className="font-mono font-semibold text-[var(--mark-public)]">
           绿窗{" "}
@@ -81,6 +80,7 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
           })()}
         </span>
         <span className="text-ink-deep/80">{q}</span>
+        {latest.askAgain && <span className="text-ink-deep/65">白窗为空 · 不计次</span>}
         {privateClue && privateClue.privateLabel && privateClue.privateLabel !== "—" && (
           <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
             {latest.kind === "place_time"
@@ -103,17 +103,18 @@ function useEdges(view: RoomPublicView) {
   }, [view.scenario.adjacency]);
 }
 
-/** 5×3 track: room / door / room / door / room, rows joined by vertical doors. */
+/** Rooms and doors from the scenario floor plan; rows joined by vertical doors. */
 function FloorGrid({
+  layout,
   linked,
   compact,
   room,
 }: {
+  layout: PlaceId[][];
   linked: (a: PlaceId, b: PlaceId) => boolean;
   compact?: boolean;
   room: (place: PlaceId) => ReactNode;
 }) {
-  const gap = compact ? "5px" : "16px";
   const door = (a: PlaceId, b: PlaceId, dir: "h" | "v") =>
     linked(a, b) ? (
       <div className="flex items-center justify-center self-stretch">
@@ -129,32 +130,13 @@ function FloorGrid({
       <div />
     );
   return (
-    <div
-      className="absolute inset-0 grid h-full w-full"
-      style={{
-        gridTemplateColumns: `1fr ${gap} 1fr ${gap} 1fr`,
-        gridTemplateRows: `1fr ${gap} 1fr`,
-        padding: compact ? "2px" : "6px",
-      }}
-    >
-      {room("porch")}
-      {door("porch", "hall", "h")}
-      {room("hall")}
-      {door("hall", "stage", "h")}
-      {room("stage")}
-
-      {door("porch", "dress", "v")}
-      <div />
-      {door("hall", "gallery", "v")}
-      <div />
-      {door("stage", "prop", "v")}
-
-      {room("dress")}
-      {door("dress", "gallery", "h")}
-      {room("gallery")}
-      {door("gallery", "prop", "h")}
-      {room("prop")}
-    </div>
+    <FloorPlan
+      layout={layout}
+      gap={compact ? "5px" : "16px"}
+      padding={compact ? "2px" : "6px"}
+      room={(place) => room(place)}
+      door={door}
+    />
   );
 }
 
@@ -213,6 +195,7 @@ function RoomCell({
           type="button"
           aria-label={`时间${time} ${name}`}
           aria-disabled={!canEdit}
+          data-tutorial={`cell-${time}-${place}`}
           title={locked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
           className={cn(
             "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
@@ -361,13 +344,17 @@ function FilmFrame({
   time,
   active,
   verdict,
+  layout,
   linked,
   mergedFor,
   board,
+  disabled,
   onSelect,
 }: {
   time: TimeId;
   active: boolean;
+  layout: PlaceId[][];
+  disabled?: boolean;
   verdict?: "target" | "excluded";
   linked: (a: PlaceId, b: PlaceId) => boolean;
   mergedFor: (time: TimeId, place: PlaceId) => MergedCell;
@@ -378,10 +365,12 @@ function FilmFrame({
     <button
       type="button"
       onClick={onSelect}
+      disabled={disabled}
       aria-label={`时间 ${time}`}
       aria-current={active}
+      data-tutorial={`frame-${time}`}
       className={cn(
-        "relative rounded-sm border bg-[var(--parchment)] p-1 text-left transition-all",
+        "relative rounded-sm border bg-[var(--parchment)] p-1 text-left transition-all disabled:cursor-default",
         active
           ? "border-[var(--amber)] shadow-[0_0_0_1px_var(--amber)]"
           : "border-ink-deep/20 hover:border-ink-deep/45",
@@ -401,8 +390,9 @@ function FilmFrame({
         </span>
         {verdict === "target" && <Crosshair className="h-3 w-3 text-[var(--amber-dim)]" aria-hidden />}
       </div>
-      <div className="relative aspect-[3/2] w-full">
+      <div className="relative w-full" style={{ aspectRatio: planAspect(layout) }}>
         <FloorGrid
+          layout={layout}
           linked={linked}
           compact
           room={(place) => (
@@ -417,10 +407,12 @@ function FilmFrame({
 function LayerToggle({
   source,
   on,
+  disabled,
   onToggle,
 }: {
   source: MarkSource;
   on: boolean;
+  disabled?: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -429,6 +421,7 @@ function LayerToggle({
         type="button"
         aria-pressed={on}
         aria-label={LAYER_NAME[source]}
+        disabled={disabled}
         onClick={onToggle}
         className={cn(
           "flex h-10 items-center gap-1 rounded-sm border border-ink-deep/15 px-2 text-xs text-[var(--ink-deep)] transition-opacity sm:h-7 sm:px-1.5 sm:text-[11px] coarse:h-10 coarse:px-2.5",
@@ -448,14 +441,29 @@ export function DeskTimeline({
   view,
   onSaveNotes,
   onBoardChange,
+  allowedTargets,
+  focusTime,
 }: {
   view: RoomPublicView;
   onSaveNotes: (text: string) => Promise<void>;
   onBoardChange?: (board: Board) => void;
+  /**
+   * When set, only these room × time cells take pencil marks and the rest of
+   * the desk (film strip, layers, suspect board, visit table) is read-only.
+   */
+  allowedTargets?: { cells: CellKey[] };
+  /** Jump the floor to this time whenever it changes. */
+  focusTime?: TimeId;
 }) {
   const people = view.scenario.people.map((p) => p.id);
   const places = view.scenario.places.map((p) => p.id) as PlaceId[];
+  const times = timesOf(view.scenario);
+  const layout = layoutOf(view.scenario);
+  const order = placeOrder(view.scenario);
   const linked = useEdges(view);
+  const restricted = !!allowedTargets;
+  const cellAllowed = (time: TimeId, place: PlaceId) =>
+    !allowedTargets || allowedTargets.cells.some((c) => c.time === time && c.place === place);
 
   const facts: FactProjection = useMemo(
     () =>
@@ -465,13 +473,14 @@ export function DeskTimeline({
         people,
         queryLog: view.queryLog,
         privateClues: view.you?.privateClues ?? null,
+        times,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view.scenario.opening, view.queryLog, view.you?.privateClues, view.scenario.id]
   );
 
   const [payload, setPayload] = useState<NotesPayloadV3>(() =>
-    parseNotes(view.you?.notes, people, places)
+    parseNotes(view.you?.notes, people, places, times)
   );
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -522,7 +531,7 @@ export function DeskTimeline({
     const notes = view.you?.notes;
     if (notes != null && notes === lastSaved.current) return;
     if (pending.current != null) return;
-    const next = parseNotes(notes, people, places);
+    const next = parseNotes(notes, people, places, times);
     lastSaved.current = serializeNotes(next);
     setPayload(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -531,6 +540,19 @@ export function DeskTimeline({
   useEffect(() => {
     onBoardChange?.(payload.board);
   }, [payload.board, onBoardChange]);
+
+  useEffect(() => {
+    if (focusTime == null) return;
+    setActiveTime(focusTime);
+    setEditing(null);
+  }, [focusTime]);
+
+  const allowedKey = allowedTargets?.cells.map((c) => `${c.time}:${c.place}`).join(",");
+  useEffect(() => {
+    if (allowedKey == null) return;
+    setEditing((e) => (e && allowedKey.split(",").includes(`${e.time}:${e.place}`) ? e : null));
+    setEditingVisit(null);
+  }, [allowedKey]);
 
   const mergedFor = (time: TimeId, place: PlaceId): MergedCell => {
     const cell = facts.cells[String(time)]?.[place] ?? {
@@ -587,6 +609,7 @@ export function DeskTimeline({
                   key={key}
                   source={key}
                   on={layers[key]}
+                  disabled={restricted}
                   onToggle={() => {
                     setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
                     if (key === "inference") setEditing(null);
@@ -598,7 +621,7 @@ export function DeskTimeline({
 
           <LatestClueStrip view={view} />
 
-          <div className="order-1 mt-3 sm:mt-0">
+          <div className={cn("order-1 mt-3 sm:mt-0", restricted && "pointer-events-none")} aria-disabled={restricted || undefined}>
             <SuspectBoard
               view={view}
               board={payload.board}
@@ -606,13 +629,23 @@ export function DeskTimeline({
             />
           </div>
 
-          <div className="-mx-1 mb-5 grid auto-cols-[6.75rem] grid-flow-col gap-1.5 overflow-x-auto px-1 pb-1 sm:mx-0 sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-6 sm:overflow-visible sm:px-0">
-            {TIMES.map((t) => (
+          <div
+            data-tutorial="film"
+            className={cn(
+              "-mx-1 mb-5 grid gap-1.5 px-1 pb-1 sm:mx-0 sm:px-0",
+              times.length === 6
+                ? "auto-cols-[6.75rem] grid-flow-col overflow-x-auto sm:auto-cols-auto sm:grid-flow-row sm:grid-cols-6 sm:overflow-visible"
+                : "grid-cols-3"
+            )}
+          >
+            {times.map((t) => (
               <FilmFrame
                 key={t}
                 time={t}
                 active={t === activeTime}
                 verdict={payload.board.times[String(t)]}
+                layout={layout}
+                disabled={restricted}
                 linked={linked}
                 mergedFor={mergedFor}
                 board={payload.board}
@@ -624,8 +657,9 @@ export function DeskTimeline({
             ))}
           </div>
 
-          <div className="relative aspect-[3/2] max-h-[440px] w-full">
+          <div data-tutorial="floor" className="relative max-h-[440px] w-full" style={{ aspectRatio: planAspect(layout) }}>
             <FloorGrid
+              layout={layout}
               linked={linked}
               room={(place) => (
                 <RoomCell
@@ -636,7 +670,11 @@ export function DeskTimeline({
                   merged={mergedFor(activeTime, place)}
                   mark={cellMarkOf(payload, activeTime, place)}
                   board={payload.board}
-                  canEdit={layers.inference && !cellHasFacts(facts.cells[String(activeTime)]?.[place])}
+                  canEdit={
+                    layers.inference &&
+                    !cellHasFacts(facts.cells[String(activeTime)]?.[place]) &&
+                    cellAllowed(activeTime, place)
+                  }
                   locked={cellHasFacts(facts.cells[String(activeTime)]?.[place])}
                   open={editing?.time === activeTime && editing.place === place}
                   onOpenChange={(o) => setEditing(o ? { time: activeTime, place } : null)}
@@ -658,7 +696,7 @@ export function DeskTimeline({
             <span>形状叠在一起，表示几层线索一致</span>
           </p>
 
-          <div className="order-2 mt-6 border-t border-ink-deep/12 pt-3">
+          <div className={cn("order-2 mt-6 border-t border-ink-deep/12 pt-3", restricted && "pointer-events-none opacity-60")}>
             <button
               type="button"
               onClick={() => setVisitsOpen((v) => !v)}
@@ -685,7 +723,7 @@ export function DeskTimeline({
                       <th className="w-9 py-1 pr-1 text-left font-normal text-ink-deep/50 sm:w-20">
                         <span className="sr-only">人物</span>
                       </th>
-                      {PLACE_ORDER.map((pid) => (
+                      {order.map((pid) => (
                         <th key={pid} className="px-0.5 py-1 text-center font-normal text-ink-deep/60">
                           <PlaceMark
                             id={pid}
@@ -708,7 +746,7 @@ export function DeskTimeline({
                           <span className="font-semibold">{person.letter}</span>
                           <span className="ml-1 hidden font-sans text-ink-deep/55 sm:inline">{person.name}</span>
                         </td>
-                        {PLACE_ORDER.map((pid) => {
+                        {order.map((pid) => {
                           const visitFact = facts.visits[person.id]?.[pid];
                           const inferred = payload.inference.visits[person.id]?.[pid] ?? null;
                           const pub = layers.public ? visitFact?.public.count ?? null : null;
@@ -778,6 +816,7 @@ export function DeskTimeline({
                                   </p>
                                   <VisitPicker
                                     value={inferred}
+                                    max={times.length}
                                     factCount={visitFact?.public.count ?? null}
                                     onChange={(v) => {
                                       setVisit(person.id, pid, v);
@@ -796,7 +835,7 @@ export function DeskTimeline({
             )}
           </div>
 
-          <div className="order-2 mt-5 border-t border-ink-deep/12 pt-2">
+          <div className={cn("order-2 mt-5 border-t border-ink-deep/12 pt-2", restricted && "pointer-events-none opacity-60")}>
             {!marginOpen && !payload.free ? (
               <button
                 type="button"

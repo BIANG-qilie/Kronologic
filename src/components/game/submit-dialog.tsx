@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import type { RoomPublicView } from "@/lib/game/types";
+import type { RoomPublicView, ScenarioPublic, WinQuestion } from "@/lib/game/types";
+import { timesOf } from "@/lib/game/board";
 import { soleTarget, type SuspectBoard } from "@/lib/game/notes-format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,71 @@ import {
 } from "@/components/ui/dialog";
 
 const BOARD_ROW = { person: "people", place: "places", time: "times" } as const;
+
+export type ChoiceState = "correct" | "wrong";
+
+/** One answer question as a row of chips; `marks` tints chips already judged. */
+export function AnswerChoices({
+  scenario,
+  question,
+  value,
+  onPick,
+  marks,
+  disabled,
+}: {
+  scenario: ScenarioPublic;
+  question: WinQuestion;
+  value: string | undefined;
+  onPick: (value: string) => void;
+  marks?: Record<string, ChoiceState>;
+  disabled?: boolean;
+}) {
+  const kind = question.kind;
+  const times = timesOf(scenario);
+  const options =
+    kind === "person"
+      ? scenario.people.map((p) => ({ value: p.id, label: p.name, aria: `${p.name}（${p.letter}）`, mark: p.letter }))
+      : kind === "place"
+        ? scenario.places.map((p) => ({ value: p.id, label: p.name, aria: p.name, mark: null }))
+        : times.map((t) => ({ value: String(t), label: `时间 ${t}`, aria: `时间 ${t}`, mark: null }));
+  return (
+    <div
+      className={cn("grid gap-1.5", kind === "time" && times.length === 6 ? "grid-cols-6" : "grid-cols-3")}
+      role="radiogroup"
+      aria-label={question.prompt}
+    >
+      {options.map((o) => {
+        const on = value === o.value;
+        const judged = marks?.[o.value];
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            aria-label={o.aria}
+            disabled={disabled}
+            onClick={() => onPick(o.value)}
+            className={cn(
+              "flex h-12 items-center justify-center gap-1.5 rounded-[3px] text-sm transition-all duration-200 active:scale-[0.97] disabled:active:scale-100 sm:h-11",
+              judged === "correct"
+                ? "bg-[var(--green-win)] text-[var(--curtain)] shadow-[0_10px_24px_-12px_rgba(111,191,138,0.9)]"
+                : judged === "wrong"
+                  ? "text-[var(--ink-muted)] line-through opacity-50 shadow-[inset_0_0_0_1px_rgba(224,122,95,0.5)]"
+                  : on
+                    ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_10px_24px_-12px_rgba(212,161,90,0.9)]"
+                    : "text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+            )}
+          >
+            {o.mark && <span className="font-mono font-semibold">{o.mark}</span>}
+            {kind === "place" && <PlaceGlyph id={o.value as PlaceId} className="h-4 w-4 opacity-80" />}
+            <span className={cn(kind === "time" && "font-display text-lg")}>{kind === "time" ? o.value : o.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function SubmitDialog({
   view,
@@ -67,12 +133,6 @@ export function SubmitDialog({
     }
   }
 
-  const options = (kind: "person" | "place" | "time") =>
-    kind === "person"
-      ? view.scenario.people.map((p) => ({ value: p.id, label: p.name, aria: `${p.name}（${p.letter}）`, mark: p.letter }))
-      : kind === "place"
-        ? view.scenario.places.map((p) => ({ value: p.id, label: p.name, aria: p.name, mark: null }))
-        : [1, 2, 3, 4, 5, 6].map((t) => ({ value: String(t), label: `时间 ${t}`, aria: `时间 ${t}`, mark: null }));
   const complete = view.scenario.winQuestions.every((q) => !!answers[q.id]);
 
   return (
@@ -102,33 +162,12 @@ export function SubmitDialog({
                 <span className="font-display text-sm italic text-[var(--amber)]">0{qi + 1}</span>
                 <span className="text-sm text-[var(--ink)]">{q.prompt}</span>
               </legend>
-              <div className={cn("grid gap-1.5", q.kind === "time" ? "grid-cols-6" : "grid-cols-3")} role="radiogroup">
-                {options(q.kind).map((o) => {
-                  const on = answers[q.id] === o.value;
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      role="radio"
-                      aria-checked={on}
-                      aria-label={o.aria}
-                      onClick={() => setAnswers((a) => ({ ...a, [q.id]: o.value }))}
-                      className={cn(
-                        "flex h-12 items-center justify-center gap-1.5 rounded-[3px] text-sm transition-all duration-200 active:scale-[0.97] sm:h-11",
-                        on
-                          ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_10px_24px_-12px_rgba(212,161,90,0.9)]"
-                          : "text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
-                      )}
-                    >
-                      {o.mark && <span className="font-mono font-semibold">{o.mark}</span>}
-                      {q.kind === "place" && <PlaceGlyph id={o.value as PlaceId} className="h-4 w-4 opacity-80" />}
-                      <span className={cn(q.kind === "time" && "font-display text-lg")}>
-                        {q.kind === "time" ? o.value : o.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+              <AnswerChoices
+                scenario={view.scenario}
+                question={q}
+                value={answers[q.id]}
+                onPick={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))}
+              />
             </fieldset>
           ))}
           {err && (

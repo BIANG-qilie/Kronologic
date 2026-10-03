@@ -8,7 +8,8 @@ export type PlaceId =
   | "gallery"
   | "prop";
 
-export type PersonId = "A" | "R" | "M" | "E" | "T" | "K";
+/** P only appears in the prologue (第 0 关); the case bank uses the other six. */
+export type PersonId = "A" | "R" | "M" | "E" | "T" | "K" | "P";
 
 export type TimeId = 1 | 2 | 3 | 4 | 5 | 6;
 
@@ -56,7 +57,14 @@ export interface ScenarioPublic {
   synopsis: string;
   places: PlaceDef[];
   people: PersonDef[];
-  adjacency: Record<PlaceId, PlaceId[]>;
+  adjacency: Partial<Record<PlaceId, PlaceId[]>>;
+  /** Number of times on the timeline (1…timeCount). Defaults to 6. */
+  timeCount?: number;
+  /**
+   * Floor plan rows, left to right. Doors are drawn between horizontal and
+   * vertical neighbours that are adjacent. Defaults to the 2×3 concert hall.
+   */
+  layout?: PlaceId[][];
   /**
    * Time-1 positions visible to all. Partial opening allowed:
    * omitted people are unknown at curtain-up.
@@ -75,9 +83,11 @@ export interface ScenarioPublic {
   greedyMin?: number;
 }
 
+/** position[person][time] = place ; times keyed as "1"…"6". Only the case's cast appears. */
+export type Trajectory = Partial<Record<PersonId, Record<string, PlaceId>>>;
+
 export interface ScenarioCase {
-  /** position[person][time] = place ; times keyed as "1"…"6" */
-  trajectory: Record<PersonId, Record<string, PlaceId>>;
+  trajectory: Trajectory;
   answers: Record<string, string>;
   /** Offline solver rule matching the synopsis logic */
   rule: ScenarioRule;
@@ -86,6 +96,14 @@ export interface ScenarioCase {
 export interface ScenarioBundle {
   public: ScenarioPublic;
   sealed: ScenarioCase;
+}
+
+/** One question as the asker puts it together. */
+export interface QueryTarget {
+  kind: QueryKind;
+  placeId: PlaceId;
+  timeId?: TimeId;
+  personId?: PersonId;
 }
 
 export interface SharedQueryPayload {
@@ -150,7 +168,7 @@ export interface RoomPublicView {
   winners: string[];
   revealAnswers: Record<string, string> | null;
   /** Full trajectory, only after the case is closed. */
-  revealTrajectory: Record<PersonId, Record<string, PlaceId>> | null;
+  revealTrajectory: Trajectory | null;
   revealVictimId: PersonId | null;
   soloRating: "gold" | "silver" | "copper" | null;
   you: {
