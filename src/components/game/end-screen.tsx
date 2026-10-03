@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { levelLabel } from "@/lib/game/levels";
 import { markLevelCleared } from "@/lib/game/progress";
 import { PlaceGlyph } from "./place-glyph";
+import { SeatRecordLine } from "@/components/account/seat-record";
 
 const PLACE_ORDER: PlaceId[] = ["porch", "hall", "stage", "dress", "gallery", "prop"];
 const TIMES = [1, 2, 3, 4, 5, 6];
@@ -177,6 +178,12 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             </div>
           )}
         </div>
+
+        {view.you?.record && (
+          <div className="rise mt-6" style={{ ["--i" as string]: 7 }}>
+            <SeatRecordLine record={view.you.record} />
+          </div>
+        )}
 
         {isSolo && !isWin && !showAnswers && (
           <p className="animate-fade-up mt-8 text-lg text-[var(--ink-muted)]">灯快亮了……</p>

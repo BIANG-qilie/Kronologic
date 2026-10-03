@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { LampMatrix } from "@/components/game/lamp-matrix";
 import { levelLabel, suggestLevel, type LevelInfo } from "@/lib/game/levels";
 import { loadClearedLevels } from "@/lib/game/progress";
 import { cn } from "@/lib/utils";
+import { useAccount } from "@/hooks/use-account";
+import { AccountMenu } from "@/components/account/account-menu";
 import {
   apiJson,
   loadSession,
@@ -42,7 +44,16 @@ export function LobbyHome() {
   const [err, setErr] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState(false);
   const [resume, setResume] = useState<ReturnType<typeof loadSession>>(null);
-  const [cleared, setCleared] = useState<Set<number>>(() => new Set());
+  const [localCleared, setLocalCleared] = useState<Set<number>>(() => new Set());
+  const account = useAccount();
+  const user = account.status === "ready" ? account.user : null;
+  const accountCleared = account.status === "ready" && account.user ? account.clearedLevels : null;
+  const cleared = useMemo(
+    () => (accountCleared ? new Set(accountCleared) : localCleared),
+    [accountCleared, localCleared]
+  );
+  const levelPicked = useRef(false);
+  const nicknameTouched = useRef(false);
 
   useEffect(() => {
     setResume(loadSession());
@@ -51,14 +62,24 @@ export function LobbyHome() {
       .then((d) => {
         if (!d.family) return;
         setFamily(d.family);
-        const done = loadClearedLevels(d.family.levels ?? []);
-        setCleared(done);
+        setLocalCleared(loadClearedLevels(d.family.levels ?? []));
         const asked = Number(new URLSearchParams(window.location.search).get("level"));
-        const known = (d.family.levels ?? []).some((l: LevelInfo) => l.level === asked);
-        setLevel(known ? asked : suggestLevel(d.family.levels ?? [], done));
+        if ((d.family.levels ?? []).some((l: LevelInfo) => l.level === asked)) {
+          levelPicked.current = true;
+          setLevel(asked);
+        }
       })
       .catch(() => setLoadErr(true));
   }, []);
+
+  useEffect(() => {
+    if (!family || account.status === "loading" || levelPicked.current) return;
+    setLevel(suggestLevel(family.levels ?? [], cleared));
+  }, [family, account.status, cleared]);
+
+  useEffect(() => {
+    if (user && !nicknameTouched.current) setNickname(user.username);
+  }, [user]);
 
   const levels = useMemo(() => family?.levels ?? [], [family]);
   const tiers = family?.tiers ?? [];
@@ -191,13 +212,14 @@ export function LobbyHome() {
       />
 
       <div className="relative mx-auto max-w-6xl px-5 sm:px-8">
-        <nav className="flex items-center justify-between py-6 text-[11px] tracking-[0.32em] text-[var(--ink-muted)]">
+        <nav className="flex items-center justify-between py-3.5 text-[11px] tracking-[0.32em] text-[var(--ink-muted)]">
           <span className="rise font-display text-base tracking-[0.2em] text-[var(--ink)]" style={{ ["--i" as string]: 0 }}>
             灯序
           </span>
-          <span className="rise hidden sm:inline" style={{ ["--i" as string]: 1 }}>
-            星河音乐厅 · 1925 · 散场之后
-          </span>
+          <div className="rise flex items-center gap-6" style={{ ["--i" as string]: 1 }}>
+            <span className="hidden sm:inline">星河音乐厅 · 1925 · 散场之后</span>
+            <AccountMenu />
+          </div>
         </nav>
 
         {resume && (
@@ -275,6 +297,7 @@ export function LobbyHome() {
                       aria-invalid={err === NICK_MISSING}
                       onKeyDown={(e) => e.key === "Enter" && action()}
                       onChange={(e) => {
+                        nicknameTouched.current = true;
                         setNickname(e.target.value);
                         if (err === NICK_MISSING) setErr(null);
                       }}
@@ -315,7 +338,10 @@ export function LobbyHome() {
                                   role="radio"
                                   aria-checked={on}
                                   aria-label={`${levelLabel(l.level)}，最少 ${l.greedyMin} 问${done ? "，已通关" : ""}`}
-                                  onClick={() => setLevel(l.level)}
+                                  onClick={() => {
+                                    levelPicked.current = true;
+                                    setLevel(l.level);
+                                  }}
                                   className={cn(
                                     "relative flex h-12 flex-col items-center justify-center rounded-[3px] font-display text-lg leading-none tabular transition-[background-color,box-shadow,color,transform] duration-200 active:scale-[0.96]",
                                     on
@@ -365,7 +391,7 @@ export function LobbyHome() {
                         )}
                         {cleared.size > 0 && (
                           <span className="shrink-0 font-mono text-green-win/90 tabular">
-                            已通关 {cleared.size}/{levels.length || 15}
+                            {user ? "账号" : ""}已通关 {cleared.size}/{levels.length || 15}
                           </span>
                         )}
                       </p>
@@ -496,7 +522,10 @@ export function LobbyHome() {
             </p>
           </div>
           <div className="flex flex-col gap-1 sm:items-end">
-            <span>1–4 人 · 凭房间码入座 · 无需注册</span>
+            <span>
+              1–4 人 · 凭房间码入座 · 无需注册
+              {account.status === "ready" && account.enabled && "，登录可记战绩"}
+            </span>
             <span className="font-display italic text-ink-muted/70">灯序 · 时间推理</span>
           </div>
         </footer>

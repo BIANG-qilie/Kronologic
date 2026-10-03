@@ -1,7 +1,6 @@
 type Bucket = { hits: number[] };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __kronoRate: Map<string, Bucket> | undefined;
 }
 
