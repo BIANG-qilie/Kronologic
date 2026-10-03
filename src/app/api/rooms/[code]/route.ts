@@ -8,6 +8,7 @@ import {
   setScenario,
   kickPlayer,
 } from "@/lib/server/rooms";
+import { currentUser } from "@/lib/server/auth/current";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,8 @@ export async function POST(req: Request, ctx: Ctx) {
     const action = String(body.action ?? "");
 
     if (action === "join") {
-      const { room, player, token } = joinRoom(code, String(body.nickname ?? ""));
+      const user = await currentUser();
+      const { room, player, token } = joinRoom(code, String(body.nickname ?? ""), user?.id ?? null);
       return NextResponse.json({
         code: room.code,
         token,

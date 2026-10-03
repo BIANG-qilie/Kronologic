@@ -21,6 +21,8 @@ import type {
   SubmitAnswer,
   TimeId,
 } from "@/lib/game/types";
+import type { SeatRecord } from "@/lib/account/types";
+import { recordRoomResults } from "@/lib/server/room-records";
 
 export interface NotesState {
   text: string;
@@ -41,6 +43,10 @@ export interface InternalPlayer {
   privateClues: PrivateClue[];
   notes: NotesState;
   pendingSubmit: SubmitAnswer | null;
+  /** Signed-in account behind this seat; guests stay null and are never recorded. */
+  userId: number | null;
+  submittedAt: number | null;
+  record: SeatRecord | null;
 }
 
 export interface InternalRoom {
@@ -56,6 +62,10 @@ export interface InternalRoom {
   queryCountTotal: number;
   submitWindowEndsAt: number | null;
   winners: string[];
+  /** Who opened the submit window that is (or was last) running, and when. */
+  firstSubmitterId: string | null;
+  windowOpenedAt: number | null;
+  recording: Promise<void> | null;
   createdAt: number;
   listeners: Set<(viewPlayerId: string | null) => void>;
 }
@@ -95,7 +105,7 @@ function getBundleOrThrow(id: string) {
   return b;
 }
 
-export function createRoom(nickname: string, scenarioId?: string) {
+export function createRoom(nickname: string, scenarioId?: string, userId: number | null = null) {
   const id = scenarioId || getDefaultScenarioId();
   const resolved = getBundleOrThrow(id);
 
@@ -114,6 +124,9 @@ export function createRoom(nickname: string, scenarioId?: string) {
     privateClues: [],
     notes: { text: "", updatedAt: Date.now() },
     pendingSubmit: null,
+    userId,
+    submittedAt: null,
+    record: null,
   };
 
   const room: InternalRoom = {
@@ -129,6 +142,9 @@ export function createRoom(nickname: string, scenarioId?: string) {
     queryCountTotal: 0,
     submitWindowEndsAt: null,
     winners: [],
+    firstSubmitterId: null,
+    windowOpenedAt: null,
+    recording: null,
     createdAt: Date.now(),
     listeners: new Set(),
   };
@@ -181,7 +197,7 @@ export function subscribeRoom(
   };
 }
 
-export function joinRoom(code: string, nickname: string) {
+export function joinRoom(code: string, nickname: string, userId: number | null = null) {
   const room = getRoom(code);
   if (!room) throw new Error("没找到这个房间，核对一下房间码");
   if (room.phase !== "lobby") throw new Error("这一局已经开始，没法再入座");
@@ -199,6 +215,9 @@ export function joinRoom(code: string, nickname: string) {
     privateClues: [],
     notes: { text: "", updatedAt: Date.now() },
     pendingSubmit: null,
+    userId,
+    submittedAt: null,
+    record: null,
   };
   room.players.push(player);
   notify(room);
@@ -232,11 +251,16 @@ export function startGame(code: string, token: string) {
   room.queryCountTotal = 0;
   room.winners = [];
   room.submitWindowEndsAt = null;
+  room.firstSubmitterId = null;
+  room.windowOpenedAt = null;
+  room.recording = null;
   for (const p of room.players) {
     p.eliminated = false;
     p.queryCount = 0;
     p.privateClues = [];
     p.pendingSubmit = null;
+    p.submittedAt = null;
+    p.record = null;
   }
   notify(room);
   return room;
@@ -352,6 +376,12 @@ export function askQuery(
   return { entry, privateLabel: priv.privateLabel, askAgain: shared.askAgain };
 }
 
+/** Persist results for signed-in seats; the results screen never waits on the database. */
+function endGame(room: InternalRoom) {
+  if (room.recording) return;
+  room.recording = recordRoomResults(room, () => notify(room));
+}
+
 function finalizeSubmitWindow(room: InternalRoom) {
   if (!room.sealed) return;
   const submissions = room.players.filter((p) => p.pendingSubmit && !p.eliminated);
@@ -371,8 +401,10 @@ function finalizeSubmitWindow(room: InternalRoom) {
   if (winners.length > 0) {
     room.winners = winners;
     room.phase = "reveal";
+    endGame(room);
   } else if (activePlayers(room).length === 0) {
     room.phase = "all_eliminated";
+    endGame(room);
   } else {
     room.phase = "playing";
     if (currentPlayer(room)?.eliminated) {
@@ -398,17 +430,23 @@ export function submitAnswers(code: string, token: string, answers: SubmitAnswer
   }
 
   player.pendingSubmit = { ...answers };
+  const now = Date.now();
 
   if (room.phase === "playing") {
+    for (const p of room.players) p.submittedAt = null;
+    room.firstSubmitterId = player.id;
+    room.windowOpenedAt = now;
     room.phase = "submit_window";
-    room.submitWindowEndsAt = Date.now() + SUBMIT_WINDOW_MS;
+    room.submitWindowEndsAt = now + SUBMIT_WINDOW_MS;
     const endsAt = room.submitWindowEndsAt;
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const r = getRoom(code);
       if (!r || r.submitWindowEndsAt !== endsAt) return;
       finalizeSubmitWindow(r);
     }, SUBMIT_WINDOW_MS + 50);
+    timer.unref?.();
   }
+  player.submittedAt = now;
 
   // If everyone active already submitted, resolve early
   const pendingLeft = activePlayers(room).filter((p) => !p.pendingSubmit);
@@ -505,6 +543,7 @@ export function projectRoom(
           canAct,
           canSubmit,
           eliminated: viewer.eliminated,
+          record: viewer.record,
         }
       : null,
   };

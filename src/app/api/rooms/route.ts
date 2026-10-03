@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createRoom, projectRoom } from "@/lib/server/rooms";
+import { currentUser } from "@/lib/server/auth/current";
 import {
   listCaseBankMeta,
   listScenariosPublic,
@@ -29,7 +30,8 @@ export async function POST(req: Request) {
     if (!scenarioId && body.greedyMin != null) {
       scenarioId = pickScenarioIdForTier(Number(body.greedyMin));
     }
-    const { room, player, token } = createRoom(nickname, scenarioId);
+    const user = await currentUser();
+    const { room, player, token } = createRoom(nickname, scenarioId, user?.id ?? null);
     return NextResponse.json({
       code: room.code,
       token,

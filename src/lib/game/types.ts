@@ -1,3 +1,5 @@
+import type { SeatRecord } from "@/lib/account/types";
+
 export type PlaceId =
   | "porch"
   | "hall"
@@ -158,6 +160,8 @@ export interface RoomPublicView {
     canAct: boolean;
     canSubmit: boolean;
     eliminated: boolean;
+    /** Only for signed-in seats once the game is over. */
+    record: SeatRecord | null;
   } | null;
 }
 
