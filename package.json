@@ -12,7 +12,9 @@
     "lint": "eslint src",
     "validate:scenario": "tsx scripts/validate-scenario.mjs",
     "generate:bank": "tsx scripts/generate-case-bank.ts",
-    "test": "tsx --test src/lib/game/*.test.ts"
+    "test": "tsx --test src/lib/game/*.test.ts src/lib/server/*.test.ts",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.23",
@@ -24,18 +26,22 @@
     "@radix-ui/react-tooltip": "^1.2.16",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "drizzle-orm": "^0.45.3",
     "lucide-react": "^1.49.0",
     "next": "^16.3.8",
+    "postgres": "^3.4.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "^15.5.7",
     "postcss": "^8",
