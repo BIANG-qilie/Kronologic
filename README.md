@@ -26,10 +26,11 @@ DATABASE_URL=postgres://postgres:kr@127.0.0.1:5432/postgres npm run dev
 - 改了 `src/lib/server/db/schema.ts` 后运行 `npm run db:generate` 生成新迁移并提交。
 - `npm test` 默认用进程内的 PGlite 跑集成测试；设 `TEST_DATABASE_URL`（需有建库权限）则改用真实 Postgres，每个测试文件各建一个临时库。
 - 用户名 2–16 位（中英文、数字、下划线，不区分大小写），密码至少 8 位，scrypt 加盐哈希；会话是 30 天的 `httpOnly` cookie。没有找回密码。
-- 成就定义在 `src/lib/game/achievements.ts`。
+- 成就定义在 `src/lib/game/achievements.ts`。「开场白」由走完序幕时 `POST /api/tutorial/complete` 记下；游客只记在本地存储。
 
 ## 怎么玩
 
+0. 第一次玩先走 `/tutorial`「第 0 关 · 序幕」：3 时 × 3 地 × 3 人，单人本地运行，六步引导走完提问、记笔记和交卷。首页入口和关卡网格第一格都能进；任何一局的页头都有「规则」卡。
 1. 大厅输入昵称，创建房间或加入六位房间码。调查《夜茶的毒》，按提问数选难度。
 2. 房主开始调查。
 3. 轮流问地点×时间或地点×人物。
@@ -59,3 +60,5 @@ DATABASE_URL=postgres://postgres:kr@127.0.0.1:5432/postgres npm run dev
 ## 题库
 
 `src/data/case-bank/night-tea-bank.json`：同案情换轨迹与开场，难度按贪心最少提问数分档。
+
+序幕案件单独放在 `src/data/tutorial/prologue.json`，不进题库、不参与难度标定；引导步骤与文案在 `src/lib/game/tutorial-script.ts`。
