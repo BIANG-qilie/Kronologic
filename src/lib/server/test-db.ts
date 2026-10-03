@@ -8,13 +8,23 @@ export async function openTestDb(): Promise<{ db: Db; close: () => Promise<void>
     const { default: postgres } = await import("postgres");
     const { drizzle } = await import("drizzle-orm/postgres-js");
     const { migrate } = await import("drizzle-orm/postgres-js/migrator");
-    const client = postgres(url, { max: 4, onnotice: () => undefined });
-    await client.unsafe(
-      "drop schema if exists public cascade; create schema public; drop schema if exists drizzle cascade;"
-    );
+    // Test files run in parallel processes, so each one gets a throwaway database.
+    const name = `kr_test_${process.pid}_${Date.now()}`;
+    const admin = postgres(url, { max: 1, onnotice: () => undefined });
+    await admin.unsafe(`create database ${name}`);
+    const target = new URL(url);
+    target.pathname = `/${name}`;
+    const client = postgres(target.toString(), { max: 4, onnotice: () => undefined });
     const db = drizzle(client, { schema });
     await migrate(db, { migrationsFolder: migrationsFolder() });
-    return { db: db as unknown as Db, close: () => client.end() };
+    return {
+      db: db as unknown as Db,
+      close: async () => {
+        await client.end();
+        await admin.unsafe(`drop database if exists ${name}`);
+        await admin.end();
+      },
+    };
   }
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
