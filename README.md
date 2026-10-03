@@ -13,6 +13,21 @@ npm run dev                 # http://127.0.0.1:4317
 npm run build && PORT=43218 HOSTNAME=0.0.0.0 npm run start   # standalone；强制 IPv4；PORT 默认 3000
 ```
 
+### 账号、战绩与成就（可选）
+
+不设 `DATABASE_URL` 时，账号入口自动隐藏，游客照常玩，不会报错。要在本地试账号功能，起一个 Postgres 再带上连接串：
+
+```bash
+docker run -d --name kr-pg -e POSTGRES_PASSWORD=kr -p 5432:5432 postgres:16
+DATABASE_URL=postgres://postgres:kr@127.0.0.1:5432/postgres npm run dev
+```
+
+- 服务启动时自动执行 `drizzle/` 里的迁移（`src/instrumentation.ts`），无需手动建表。
+- 改了 `src/lib/server/db/schema.ts` 后运行 `npm run db:generate` 生成新迁移并提交。
+- `npm test` 默认用进程内的 PGlite 跑集成测试；设 `TEST_DATABASE_URL`（需有建库权限）则改用真实 Postgres，每个测试文件各建一个临时库。
+- 用户名 2–16 位（中英文、数字、下划线，不区分大小写），密码至少 8 位，scrypt 加盐哈希；会话是 30 天的 `httpOnly` cookie。没有找回密码。
+- 成就定义在 `src/lib/game/achievements.ts`。
+
 ## 怎么玩
 
 1. 大厅输入昵称，创建房间或加入六位房间码。调查《夜茶的毒》，按提问数选难度。
@@ -20,6 +35,7 @@ npm run build && PORT=43218 HOSTNAME=0.0.0.0 npm run start   # standalone；强�
 3. 轮流问地点×时间或地点×人物。
 4. 交卷进入 12 秒同时窗；全对揭示，答错淘汰。
 5. 本机令牌可重连；笔记仅本人可读。
+6. 登录后（需配置数据库），每局结束会记下战绩、首次通关和成就，右上角「我的战绩」查看。
 
 ## Railway 部署
 
@@ -36,6 +52,7 @@ npm run build && PORT=43218 HOSTNAME=0.0.0.0 npm run start   # standalone；强�
 5. **环境变量**：`HOSTNAME=0.0.0.0`（`railway.toml` 已写；**不要**再设 `::`）。**不要**手动写死 `PORT`。
 6. **Replicas = 1**：房间在进程内存（`src/lib/server/rooms.ts`）。
 7. Networking：Generate Domain；Target Port **必须留空（自动）** 或显式等于 `$PORT`。
+8. 账号功能（可选）：同一项目里加一个 Postgres 服务，在 kronologic 服务的 Variables 里添加 `DATABASE_URL=${{Postgres.DATABASE_URL}}`，重新部署即可；迁移在启动时自动跑。
 
 生成 Public Domain 后打开 `/` 与 `/api/health` 应返回 200。
 

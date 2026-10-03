@@ -29,6 +29,8 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# SQL migrations; applied on boot when DATABASE_URL is set (src/instrumentation.ts).
+COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 
 USER nextjs
 # Port is whatever $PORT is at runtime — do not hard-require 3000.

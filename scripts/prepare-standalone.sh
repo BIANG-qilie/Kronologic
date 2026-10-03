@@ -17,4 +17,7 @@ cp -R .next/static .next/standalone/.next/static
 rm -rf .next/standalone/public
 cp -R public .next/standalone/public
 
-echo "prepare-standalone: synced .next/static + public into .next/standalone"
+rm -rf .next/standalone/drizzle
+cp -R drizzle .next/standalone/drizzle
+
+echo "prepare-standalone: synced .next/static + public + drizzle into .next/standalone"

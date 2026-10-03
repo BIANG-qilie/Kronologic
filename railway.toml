@@ -1,5 +1,7 @@
 # Prefer Dockerfile (standalone + forced HOSTNAME=0.0.0.0) over Nixpacks.
 # Rooms are in-memory — keep a single replica in the Railway UI.
+# Accounts (optional): add a Postgres service and set DATABASE_URL=${{Postgres.DATABASE_URL}}
+# on this service in the UI. Migrations in ./drizzle run on boot (src/instrumentation.ts).
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"

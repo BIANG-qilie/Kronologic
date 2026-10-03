@@ -4,7 +4,32 @@
 
 - 仓库：https://github.com/BIANG-qilie/Kronologic
 - 栈：Next.js **standalone** + **Dockerfile**（`railway.toml` 指定 `DOCKERFILE`，不再依赖 Nixpacks）
-- 房间：进程内内存（无数据库）→ **Replicas = 1**
+- 房间：进程内内存 → **Replicas = 1**
+- 账号 / 战绩 / 成就：可选的 Railway Postgres（`DATABASE_URL`）；不配置时账号入口隐藏，游客照常玩
+
+## 添加 Postgres（账号、战绩与成就）
+
+1. 打开 Railway 项目画布，点右上角 **+ Create**（或画布空白处右键）→ **Database** → **Add PostgreSQL**。等它变成 Active（服务名默认 `Postgres`）。
+2. 点 **kronologic** 服务 → **Variables** → **+ New Variable**：
+   - Name：`DATABASE_URL`
+   - Value：`${{Postgres.DATABASE_URL}}`（输入 `${{` 会出现自动补全；若数据库服务改过名，把 `Postgres` 换成实际服务名）
+   - 也可以用 **Add Reference** → 选 Postgres → `DATABASE_URL`，效果相同。
+3. 点 **Deploy** / **Apply changes** 让 kronologic 重新部署（变量改动不会自动生效）。
+4. 看 Deploy 日志，应出现：
+
+   ```text
+   accounts: database ready, migrations applied
+   ```
+
+   表（`users`、`sessions`、`game_records`、`achievements`）由镜像里的 `drizzle/` 迁移在启动时自动创建，无需手动执行 SQL；之后新增的迁移也会在下次启动时补上。
+5. 打开公开域名：右上角出现「登录」即为生效。注册一个账号，打完一局，结算页会显示「首次通关」或「最佳 X 问」，右上角菜单 →「我的战绩」可看档案。
+
+说明：
+
+- `${{Postgres.DATABASE_URL}}` 走 Railway 私网（`postgres.railway.internal`），不需要 SSL，也不占公网流量；不要填 `DATABASE_PUBLIC_URL`。
+- 数据库连不上时，健康检查和游戏不受影响；日志会打印 `accounts: database unavailable`，登录会提示「账号服务暂时连不上」。
+- 账号会话存在数据库里，重启 / 重新部署不会让玩家掉线；房间仍在内存里，重新部署会清空进行中的房间。
+- 限流（登录失败、注册次数）在进程内存里，配合 Replicas=1 使用。
 
 ## 本轮硬修复（`[::]` Ready 后仍 502 → 改回 IPv4）
 
@@ -68,7 +93,7 @@ Deploy / HTTP 日志应类似：
 
 ## 为何必须单实例
 
-`src/lib/server/rooms.ts` 把房间、令牌、笔记放在 Node 进程内存。多副本时创建/加入/SSE 会打到不同实例。
+`src/lib/server/rooms.ts` 把房间、令牌、笔记放在 Node 进程内存。多副本时创建/加入/SSE 会打到不同实例。只有对局结果（战绩、成就）和账号会话写进 Postgres。
 
 ## SSE
 
@@ -89,11 +114,11 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:43218/api/health
 
 ## 本机同步到 GitHub（无 token 时）
 
-Origin 分支：`cursor/railway-ipv4-hostname-6b1b`
+Origin 分支：`cursor/accounts-records-97f6`
 
 ```bash
 git fetch origin
-git checkout cursor/railway-ipv4-hostname-6b1b
+git checkout cursor/accounts-records-97f6
 git push git@github.com:BIANG-qilie/Kronologic.git HEAD:main
 # 若已配置 github remote：
 # git push github HEAD:main
