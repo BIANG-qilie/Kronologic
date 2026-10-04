@@ -11,7 +11,7 @@ import { LampMatrix } from "@/components/game/lamp-matrix";
 import { levelLabel, suggestLevel, type LevelInfo } from "@/lib/game/levels";
 import { loadClearedLevels } from "@/lib/game/progress";
 import { loadPrologueDone } from "@/lib/game/tutorial-progress";
-import { PROLOGUE_LEVEL } from "@/lib/game/prologue";
+import { PROLOGUE, PROLOGUE_LEVEL } from "@/lib/game/prologue";
 import { RulesSheet } from "@/components/game/rules-sheet";
 import { cn } from "@/lib/utils";
 import { useAccount } from "@/hooks/use-account";
@@ -224,7 +224,7 @@ export function LobbyHome() {
             灯序
           </span>
           <div className="rise flex items-center gap-4 sm:gap-6" style={{ ["--i" as string]: 1 }}>
-            <span className="hidden sm:inline">星河音乐厅 · 1925 · 散场之后</span>
+            <span className="hidden sm:inline">星河音乐厅 · 1925 · {prologuePicked ? "开演之前" : "散场之后"}</span>
             <RulesSheet className="tracking-[0.24em]" />
             <AccountMenu />
           </div>
@@ -289,7 +289,9 @@ export function LobbyHome() {
                 <span className="block text-sm text-[var(--ink)]">
                   {prologueDone ? "序幕已走完，想再看一遍规则？" : "第一次玩？先走一遍序幕（约 3 分钟）"}
                 </span>
-                <span className="block text-xs text-[var(--ink-muted)]">三个时刻、三间房、三个人，亲手问一次、记一笔、交一次卷</span>
+                <span className="block text-xs text-[var(--ink-muted)]">
+                  《{PROLOGUE.public.title}》：三个时刻、三间房、三个人，亲手问一次、记一笔、交一次卷
+                </span>
               </span>
               <ArrowRight className="h-4 w-4 shrink-0 text-[var(--amber)] transition-transform group-hover:translate-x-1" aria-hidden />
             </Link>
@@ -335,7 +337,7 @@ export function LobbyHome() {
                         {prologuePicked ? (
                           <span className="tracking-normal text-[var(--ink)]" aria-live="polite">
                             第 0 关 · 序幕
-                            <span className="text-[var(--ink-muted)]"> · 单人教学</span>
+                            <span className="text-[var(--ink-muted)]"> · {PROLOGUE.public.title}</span>
                           </span>
                         ) : (
                           selected && (
@@ -351,7 +353,7 @@ export function LobbyHome() {
                           type="button"
                           role="radio"
                           aria-checked={prologuePicked}
-                          aria-label={`第 0 关 · 序幕，单人教学${prologueDone ? "，已走完" : ""}`}
+                          aria-label={`第 0 关 · 序幕《${PROLOGUE.public.title}》，单人教学${prologueDone ? "，已走完" : ""}`}
                           onClick={() => {
                             levelPicked.current = true;
                             setLevel(PROLOGUE_LEVEL);
@@ -523,13 +525,18 @@ export function LobbyHome() {
             </div>
 
             <div className="rise mt-12 border-l border-amber/40 pl-5 md:ml-12" style={{ ["--i" as string]: 5 }}>
-              <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">今晚的案子</p>
+              <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]" aria-live="polite">
+                {prologuePicked ? "序幕的案子" : "今晚的案子"}
+              </p>
               <h2 className="mt-2 font-display text-3xl text-[var(--ink)]">
-                {family?.title ?? "夜茶的毒"}
+                {prologuePicked ? PROLOGUE.public.title : (family?.title ?? "夜茶的毒")}
               </h2>
               <p className="mt-3 max-w-sm whitespace-pre-line text-sm leading-[1.9] text-[var(--ink-muted)]">
-                {family?.synopsis ?? "　"}
+                {prologuePicked ? PROLOGUE.public.synopsis : (family?.synopsis ?? "　")}
               </p>
+              {prologuePicked && (
+                <p className="mt-2 text-[11px] tracking-[0.2em] text-ink-muted/70">三时 · 三地 · 三人 · 单人教学</p>
+              )}
             </div>
           </aside>
         </section>
