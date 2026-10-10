@@ -586,7 +586,7 @@ export function LobbyHome() {
                 href="https://github.com/BIANG-qilie/Kronologic"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-amber/90 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+                className="inline-flex min-h-11 items-center gap-1.5 text-amber/90 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
               >
                 GitHub · BIANG-qilie/Kronologic
               </a>
