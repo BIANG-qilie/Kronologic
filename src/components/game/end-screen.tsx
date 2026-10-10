@@ -181,7 +181,11 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
 
         {view.you?.record && (
           <div className="rise mt-6" style={{ ["--i" as string]: 7 }}>
-            <SeatRecordLine record={view.you.record} />
+            <SeatRecordLine
+              record={view.you.record}
+              level={level}
+              playerCount={view.players.length}
+            />
           </div>
         )}
 

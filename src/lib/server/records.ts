@@ -10,11 +10,19 @@ import {
 } from "@/lib/game/achievements";
 import type { LevelInfo } from "@/lib/game/levels";
 import type { Profile, SeatRecord } from "@/lib/account/types";
+import { leaderboardScore } from "@/lib/game/leaderboard";
 
 export interface GameRecordInput extends GameOutcome {
   userId: number;
   caseId: string;
   playedAt?: Date;
+  /** Seated players at kickoff (1–4). Defaults from mode when omitted. */
+  playerCount?: number;
+  ownQueries?: number;
+  greenCount?: number;
+  ownWhiteCount?: number;
+  /** Precomputed board score; derived when omitted. */
+  score?: number;
 }
 
 export type SavedRecord = Extract<SeatRecord, { status: "saved" }>;
@@ -42,6 +50,13 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
     const unlocked = new Set(unlockedRows.map((r) => r.code));
 
     const firstClear = isFirstClear(input, cleared);
+    const playerCount = input.playerCount ?? (input.mode === "solo" ? 1 : 2);
+    const ownQueries = input.ownQueries ?? input.queriesUsed;
+    const greenCount = input.greenCount ?? 0;
+    const ownWhiteCount = input.ownWhiteCount ?? 0;
+    const score =
+      input.score ??
+      leaderboardScore(playerCount, { ownQueries, greenCount, ownWhiteCount });
     await tx.insert(gameRecords).values({
       userId: input.userId,
       level: input.level,
@@ -51,6 +66,11 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
       queriesUsed: input.queriesUsed,
       minQueries: input.minQueries,
       isFirstClear: firstClear,
+      playerCount,
+      ownQueries,
+      greenCount,
+      ownWhiteCount,
+      score,
       ...(input.playedAt ? { playedAt: input.playedAt } : {}),
     });
 

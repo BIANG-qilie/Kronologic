@@ -1,22 +1,34 @@
 import { getDb } from "@/lib/server/db";
 import { recordGameResult, type GameRecordInput } from "@/lib/server/records";
 import type { InternalPlayer, InternalRoom } from "@/lib/server/rooms";
+import { countOwnWhite, leaderboardScore } from "@/lib/game/leaderboard";
 
 export function seatOutcome(room: InternalRoom, p: InternalPlayer, userId: number): GameRecordInput {
   const first = room.firstSubmitterId === p.id;
+  const playerCount = room.players.length;
+  const ownQueries = p.queryCount;
+  /** Every in-play ask produces a shared green window; opening facts are not in queryLog. */
+  const greenCount = room.queryLog.length;
+  const ownWhiteCount = countOwnWhite(p.privateClues.map((c) => c.privateLabel));
+  const score = leaderboardScore(playerCount, { ownQueries, greenCount, ownWhiteCount });
   return {
     userId,
     caseId: room.scenarioId,
     level: room.scenario.level ?? 0,
-    mode: room.players.length === 1 ? "solo" : "multi",
+    mode: playerCount === 1 ? "solo" : "multi",
     result: room.winners.includes(p.id) ? "win" : p.eliminated ? "eliminated" : "lose",
-    queriesUsed: p.queryCount,
+    queriesUsed: ownQueries,
     minQueries: room.scenario.greedyMin ?? 0,
     firstToSubmit: first,
     msAfterFirstSubmit:
       !first && p.submittedAt != null && room.windowOpenedAt != null
         ? p.submittedAt - room.windowOpenedAt
         : null,
+    playerCount,
+    ownQueries,
+    greenCount,
+    ownWhiteCount,
+    score,
   };
 }
 

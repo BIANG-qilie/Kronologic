@@ -36,7 +36,7 @@ DATABASE_URL=postgres://postgres:kr@127.0.0.1:5432/postgres npm run dev
 3. 轮流问地点×时间或地点×人物。
 4. 交卷进入 12 秒同时窗；全对揭示，答错淘汰。
 5. 本机令牌可重连；笔记仅本人可读。
-6. 登录后（需配置数据库），每局结束会记下战绩、首次通关和成就，右上角「我的战绩」查看。
+6. 登录后（需配置数据库），每局结束会记下战绩、首次通关和成就，右上角「我的战绩」查看；页头与战绩页可进「排行榜」（分关 / 总榜，按 1–4 人分榜，只记首通）。
 
 ## Railway 部署
 
@@ -53,7 +53,7 @@ DATABASE_URL=postgres://postgres:kr@127.0.0.1:5432/postgres npm run dev
 5. **环境变量**：`HOSTNAME=0.0.0.0`（`railway.toml` 已写；**不要**再设 `::`）。**不要**手动写死 `PORT`。
 6. **Replicas = 1**：房间在进程内存（`src/lib/server/rooms.ts`）。
 7. Networking：Generate Domain；Target Port **必须留空（自动）** 或显式等于 `$PORT`。
-8. 账号功能（可选）：同一项目里加一个 Postgres 服务，在 kronologic 服务的 Variables 里添加 `DATABASE_URL=${{Postgres.DATABASE_URL}}`，重新部署即可；迁移在启动时自动跑。
+8. 账号功能（可选）：同一项目里加一个 Postgres 服务，在 kronologic 服务的 Variables 里添加 `DATABASE_URL=${{Postgres.DATABASE_URL}}`，重新部署即可；迁移在启动时自动跑（含 `game_records` 排行榜字段扩展）。
 
 生成 Public Domain 后打开 `/` 与 `/api/health` 应返回 200。
 

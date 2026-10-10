@@ -49,11 +49,29 @@ export const gameRecords = pgTable(
     queriesUsed: integer("queries_used").notNull(),
     minQueries: integer("min_queries").notNull(),
     isFirstClear: boolean("is_first_clear").notNull().default(false),
+    /** Seated players at kickoff (1–4). Snapshot for leaderboard boards. */
+    playerCount: integer("player_count").notNull().default(1),
+    /** Counted asks by this seat (empty white / ask-again excluded). */
+    ownQueries: integer("own_queries").notNull().default(0),
+    /** Shared green-window rows produced in-play (excludes opening). */
+    greenCount: integer("green_count").notNull().default(0),
+    /** Non-empty white windows this seat received. */
+    ownWhiteCount: integer("own_white_count").notNull().default(0),
+    /** Board score: solo = own_queries; multi = own_queries + green + own_white. */
+    score: integer("score").notNull().default(0),
     playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("game_records_user_played_idx").on(t.userId, t.playedAt),
     index("game_records_user_level_idx").on(t.userId, t.level),
+    index("game_records_leaderboard_idx").on(
+      t.level,
+      t.playerCount,
+      t.isFirstClear,
+      t.result,
+      t.score,
+      t.playedAt
+    ),
   ]
 );
 

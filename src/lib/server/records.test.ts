@@ -77,6 +77,10 @@ describe("game records (integration)", () => {
     assert.equal(rows[0].mode, "solo");
     assert.equal(rows[0].caseId, room.scenarioId);
     assert.equal(rows[0].minQueries, room.scenario.greedyMin);
+    assert.equal(rows[0].playerCount, 1);
+    assert.equal(rows[0].ownQueries, seat.queryCount);
+    assert.equal(rows[0].greenCount, room.queryLog.length);
+    assert.equal(rows[0].score, seat.queryCount);
     assert.deepEqual(await clearedLevels(db, user.id), [1]);
 
     const again = createRoom("夜班侦探", pickScenarioIdForLevel(1), user.id);
@@ -125,6 +129,12 @@ describe("game records (integration)", () => {
     assert.equal(host.room.players[2].record, null);
     const rows = await db.select().from(gameRecords).where(eq(gameRecords.userId, b.id));
     assert.equal(rows[0].mode, "multi");
+    assert.equal(rows[0].playerCount, 3);
+    assert.equal(rows[0].greenCount, host.room.queryLog.length);
+    assert.equal(
+      rows[0].score,
+      rows[0].ownQueries + rows[0].greenCount + rows[0].ownWhiteCount
+    );
   });
 
   it("灯序大师 after all fifteen levels, and the profile adds it all up", async () => {

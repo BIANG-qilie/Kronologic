@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, LogOut, Ticket } from "lucide-react";
+import { ChevronDown, LogOut, Ticket, Trophy } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOut, useAccount } from "@/hooks/use-account";
 import { cn } from "@/lib/utils";
@@ -22,20 +22,24 @@ export function AccountMenu({ className }: { className?: string }) {
 
   if (!account.user) {
     return (
-      <>
+      <div className={cn("flex items-center gap-1", className)}>
+        <Link
+          href="/leaderboard"
+          className="-mr-1 flex min-h-11 items-center gap-2 px-2 text-xs tracking-[0.24em] text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]"
+        >
+          <Trophy className="h-4 w-4" aria-hidden />
+          排行榜
+        </Link>
         <button
           type="button"
           onClick={() => setAuthOpen(true)}
-          className={cn(
-            "-mr-2 flex min-h-11 items-center gap-2 px-2 text-xs tracking-[0.24em] text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]",
-            className
-          )}
+          className="-mr-2 flex min-h-11 items-center gap-2 px-2 text-xs tracking-[0.24em] text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]"
         >
           <Ticket className="h-4 w-4" aria-hidden />
           登录
         </button>
         <AuthDialog open={authOpen} onOpenChange={setAuthOpen} />
-      </>
+      </div>
     );
   }
 
@@ -59,6 +63,14 @@ export function AccountMenu({ className }: { className?: string }) {
         align="end"
         className="w-48 border-0 bg-[var(--stage)] p-1 text-[var(--ink)] shadow-[0_0_0_1px_var(--ink-faint),0_24px_60px_-20px_rgba(0,0,0,0.9)]"
       >
+        <Link
+          href="/leaderboard"
+          onClick={() => setMenuOpen(false)}
+          className="flex min-h-11 items-center gap-2.5 rounded-[3px] px-3 text-sm transition-colors hover:bg-curtain/70 hover:text-[var(--amber)]"
+        >
+          <Trophy className="h-4 w-4 opacity-80" aria-hidden />
+          排行榜
+        </Link>
         <Link
           href="/me"
           onClick={() => setMenuOpen(false)}

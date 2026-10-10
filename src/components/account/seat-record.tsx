@@ -1,9 +1,19 @@
+import Link from "next/link";
 import { Award } from "lucide-react";
 import type { SeatRecord } from "@/lib/account/types";
 import { achievementByCode } from "@/lib/game/achievements";
+import { isLeaderboardLevel } from "@/lib/game/leaderboard";
 
 /** Results-screen line for a signed-in seat: first clear or best, plus anything newly unlocked. */
-export function SeatRecordLine({ record }: { record: SeatRecord | null }) {
+export function SeatRecordLine({
+  record,
+  level,
+  playerCount,
+}: {
+  record: SeatRecord | null;
+  level?: number | null;
+  playerCount?: number;
+}) {
   if (!record || record.status === "failed") return null;
 
   if (record.status === "pending") {
@@ -22,6 +32,9 @@ export function SeatRecordLine({ record }: { record: SeatRecord | null }) {
         ? `最佳 ${record.bestQueries} 问`
         : "通关"
     : "已记入战绩";
+  const boardLevel = level != null && isLeaderboardLevel(level) ? level : null;
+  const seats = playerCount != null && playerCount >= 1 && playerCount <= 4 ? playerCount : 1;
+  const showBoardLink = won && record.isFirstClear && boardLevel != null;
 
   return (
     <div className="space-y-3" aria-live="polite">
@@ -33,6 +46,14 @@ export function SeatRecordLine({ record }: { record: SeatRecord | null }) {
           <span className="font-mono text-xs text-[var(--ink-muted)] tabular">
             本局 {record.queriesUsed} 问
           </span>
+        )}
+        {showBoardLink && (
+          <Link
+            href={`/leaderboard?level=${boardLevel}&players=${seats}`}
+            className="text-xs tracking-[0.16em] text-[var(--amber)] underline-offset-4 hover:underline"
+          >
+            看本关榜
+          </Link>
         )}
       </p>
       {record.newAchievements.length > 0 && (

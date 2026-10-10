@@ -162,6 +162,15 @@ export function RecordsPage() {
         <p className="rise mt-3 text-xs text-[var(--ink-muted)]" style={{ ["--i" as string]: 2 }}>
           {fullDateFmt.format(new Date(profile.user.createdAt))} 登记入场
         </p>
+        <p className="rise mt-5" style={{ ["--i" as string]: 2 }}>
+          <Link
+            href="/leaderboard"
+            className="inline-flex min-h-11 items-center gap-2 text-sm tracking-[0.16em] text-[var(--amber)] transition-colors hover:text-[var(--ink)]"
+          >
+            查看排行榜
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </p>
       </header>
 
       <dl
