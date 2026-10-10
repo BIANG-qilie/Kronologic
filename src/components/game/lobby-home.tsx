@@ -196,7 +196,7 @@ export function LobbyHome() {
       }}
       className={cn(
         "relative h-11 flex-1 font-display text-lg transition-colors duration-200",
-        mode === value ? "text-[var(--ink)]" : "text-ink-muted/70 hover:text-[var(--ink)]"
+        mode === value ? "text-[var(--ink)]" : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
       )}
     >
       {label}

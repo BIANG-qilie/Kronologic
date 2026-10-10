@@ -23,7 +23,7 @@ import {
 type Kind = "login" | "register";
 
 const FIELD =
-  "h-12 rounded-none border-0 border-b border-[var(--ink-faint)] bg-transparent px-0 text-lg shadow-none transition-colors placeholder:text-[var(--ink-faint)] focus-visible:border-[var(--amber)] focus-visible:outline-none focus-visible:ring-0 aria-[invalid=true]:border-[#e07a5f]";
+  "h-12 rounded-none border-0 border-b border-[var(--ink-muted)]/45 bg-transparent px-0 text-lg shadow-none transition-colors placeholder:text-[var(--ink-faint)] focus-visible:border-[var(--amber)] focus-visible:outline-none focus-visible:ring-0 aria-[invalid=true]:border-[#e07a5f]";
 
 export function AuthDialog({
   open,

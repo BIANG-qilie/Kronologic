@@ -177,7 +177,7 @@ function LevelTable({
             <th className="pb-3 pr-3 font-normal">称呼</th>
             <th className="pb-3 pr-3 text-right font-normal">得分</th>
             {multi && <th className="hidden pb-3 pr-3 text-right font-normal sm:table-cell">提问 / 绿 / 白</th>}
-            <th className="pb-3 text-right font-normal sm:text-left">达成</th>
+            <th className="hidden pb-3 text-right font-normal sm:table-cell sm:text-left">达成</th>
           </tr>
         </thead>
         <tbody>
@@ -197,17 +197,17 @@ function LevelTable({
                   )}
                   <RankCell rank={row.rank} />
                 </td>
-                <td className={cn("py-3.5 pr-3", mine ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]")}>
-                  {row.username}
-                  {mine && <span className="ml-2 text-[10px] tracking-[0.18em] text-[var(--amber)]">你</span>}
+                <td className={cn("min-w-0 py-3.5 pr-3", mine ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]")}>
+                  <span className="block truncate">{row.username}</span>
+                  {mine && <span className="text-[10px] tracking-[0.18em] text-[var(--amber)]">你</span>}
                 </td>
-                <td className="py-3.5 pr-3 text-right font-mono text-[var(--amber)] tabular">{row.score}</td>
+                <td className="py-3.5 pr-0 text-right font-mono text-[var(--amber)] tabular sm:pr-3">{row.score}</td>
                 {multi && (
                   <td className="hidden py-3.5 pr-3 text-right font-mono text-xs text-[var(--ink-muted)] tabular sm:table-cell">
                     {row.ownQueries} / {row.greenCount} / {row.ownWhiteCount}
                   </td>
                 )}
-                <td className="py-3.5 text-right text-xs text-[var(--ink-muted)] tabular sm:text-left">
+                <td className="hidden py-3.5 text-right text-xs text-[var(--ink-muted)] tabular sm:table-cell sm:text-left">
                   {timeFmt.format(new Date(row.playedAt))}
                 </td>
               </tr>
@@ -237,8 +237,8 @@ function SummaryTable({
             <th className="w-14 pb-3 pr-2 font-normal">名次</th>
             <th className="pb-3 pr-3 font-normal">称呼</th>
             <th className="pb-3 pr-3 text-right font-normal">通关</th>
-            <th className="pb-3 pr-3 text-right font-normal">得分和</th>
-            <th className="pb-3 text-right font-normal sm:text-left">最近首通</th>
+            <th className="pb-3 pr-0 text-right font-normal sm:pr-3">得分和</th>
+            <th className="hidden pb-3 text-right font-normal sm:table-cell sm:text-left">最近首通</th>
           </tr>
         </thead>
         <tbody>
@@ -258,13 +258,13 @@ function SummaryTable({
                   )}
                   <RankCell rank={row.rank} />
                 </td>
-                <td className={cn("py-3.5 pr-3", mine ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]")}>
-                  {row.username}
-                  {mine && <span className="ml-2 text-[10px] tracking-[0.18em] text-[var(--amber)]">你</span>}
+                <td className={cn("min-w-0 py-3.5 pr-3", mine ? "font-medium text-[var(--ink)]" : "text-[var(--ink)]")}>
+                  <span className="block truncate">{row.username}</span>
+                  {mine && <span className="text-[10px] tracking-[0.18em] text-[var(--amber)]">你</span>}
                 </td>
                 <td className="py-3.5 pr-3 text-right font-mono text-[var(--ink)] tabular">{row.clears}</td>
-                <td className="py-3.5 pr-3 text-right font-mono text-[var(--amber)] tabular">{row.scoreSum}</td>
-                <td className="py-3.5 text-right text-xs text-[var(--ink-muted)] tabular sm:text-left">
+                <td className="py-3.5 pr-0 text-right font-mono text-[var(--amber)] tabular sm:pr-3">{row.scoreSum}</td>
+                <td className="hidden py-3.5 text-right text-xs text-[var(--ink-muted)] tabular sm:table-cell sm:text-left">
                   {timeFmt.format(new Date(row.lastPlayedAt))}
                 </td>
               </tr>
@@ -456,11 +456,11 @@ export function LeaderboardPage({
         </p>
       </header>
 
-      <div className="rise mt-7 space-y-4" style={{ ["--i" as string]: 3 }}>
+      <div className="rise mt-8 space-y-5" style={{ ["--i" as string]: 3 }}>
         <div>
-          <p className="mb-2 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">关卡</p>
+          <p className="mb-2.5 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">关卡</p>
           <div
-            className="scroll-fade-x -mx-1 flex gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="scroll-fade-x-start -mx-1 flex gap-1.5 overflow-x-auto overscroll-x-contain px-1 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
             role="tablist"
             aria-label="关卡"
           >
@@ -479,9 +479,9 @@ export function LeaderboardPage({
         </div>
 
         <div>
-          <p className="mb-2 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">人数</p>
+          <p className="mb-2.5 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">人数</p>
           <div
-            className="inline-flex max-w-full overflow-hidden rounded-[3px] shadow-[inset_0_0_0_1px_var(--ink-faint)]"
+            className="grid w-full max-w-md grid-cols-4 overflow-hidden rounded-[3px] shadow-[inset_0_0_0_1px_var(--ink-faint)]"
             role="tablist"
             aria-label="人数"
           >
@@ -495,7 +495,7 @@ export function LeaderboardPage({
                   aria-label={`${n} 人榜`}
                   onClick={() => setPlayers(n)}
                   className={cn(
-                    "flex h-11 min-w-[3.5rem] flex-1 items-center justify-center px-4 text-sm tracking-wide transition-colors duration-200",
+                    "flex h-11 items-center justify-center text-sm tracking-wide transition-colors duration-200",
                     i > 0 && "border-l border-ink-faint/70",
                     active
                       ? "bg-[var(--amber)] text-[var(--curtain)]"
@@ -511,7 +511,7 @@ export function LeaderboardPage({
       </div>
 
       <section
-        className="rise ticket-edge parchment-wash relative mt-6 flex-1 px-4 py-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] sm:px-6"
+        className="rise ticket-edge parchment-wash relative mt-8 flex-1 px-4 py-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] sm:px-6"
         style={{ ["--i" as string]: 4 }}
       >
         <div className="pointer-events-none absolute inset-y-3 left-0 right-0 border-y border-dashed border-ink-faint/65" aria-hidden />
