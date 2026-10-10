@@ -50,7 +50,7 @@ export function SeatRecordLine({
         {showBoardLink && (
           <Link
             href={`/leaderboard?level=${boardLevel}&players=${seats}`}
-            className="text-xs tracking-[0.16em] text-[var(--amber)] underline-offset-4 hover:underline"
+            className="inline-flex min-h-11 items-center tracking-[0.16em] text-[var(--amber)] underline-offset-4 transition-colors hover:text-[var(--ink)] hover:underline"
           >
             看本关榜
           </Link>

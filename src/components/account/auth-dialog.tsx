@@ -140,9 +140,13 @@ export function AuthDialog({
         sheet
         className="overflow-y-auto overscroll-contain border-0 bg-[var(--curtain)] px-5 pt-7 text-[var(--ink)] shadow-[0_0_0_1px_var(--ink-faint),0_40px_120px_-30px_rgba(0,0,0,0.9)] sm:max-w-md sm:p-8"
       >
-        <DialogHeader className="text-left">
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(ellipse_80%_100%_at_50%_0%,rgba(212,161,90,0.14),transparent)]"
+          aria-hidden
+        />
+        <DialogHeader className="relative text-left">
           <p className="text-[11px] tracking-[0.42em] text-[var(--amber)]">调查员登记处</p>
-          <DialogTitle className="font-display text-3xl">
+          <DialogTitle className="mt-1.5 font-display text-3xl leading-tight">
             {kind === "login" ? "回到剧院" : "领一张常客票"}
           </DialogTitle>
           <DialogDescription className="sr-only">用称呼和密码登录或注册</DialogDescription>

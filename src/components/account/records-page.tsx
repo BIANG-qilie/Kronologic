@@ -35,10 +35,10 @@ function Shell({ children }: { children: React.ReactNode }) {
         <nav className="flex items-center justify-between py-3.5 text-[11px] tracking-[0.32em] text-[var(--ink-muted)]">
           <Link
             href="/"
-            className="-ml-2 flex min-h-11 items-center px-2 font-display text-base tracking-[0.2em] text-[var(--ink)] hover:text-[var(--amber)]"
+            className="-ml-2 flex min-h-11 items-center px-2 font-display text-base tracking-[0.2em] text-[var(--ink)] transition-colors hover:text-[var(--amber)]"
             aria-label="灯序 · 回大厅"
           >
-            灯序
+            灯<span className="text-[var(--amber)]">序</span>
           </Link>
           <AccountMenu />
         </nav>
@@ -174,7 +174,7 @@ export function RecordsPage() {
       </header>
 
       <dl
-        className="rise ticket-edge relative mt-8 grid grid-cols-3 bg-stage/80 px-2 py-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] sm:px-6"
+        className="rise ticket-edge parchment-wash relative mt-8 grid grid-cols-3 px-2 py-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] sm:px-6"
         style={{ ["--i" as string]: 3 }}
       >
         <div className="pointer-events-none absolute inset-y-3 left-0 right-0 border-y border-dashed border-ink-faint/70" aria-hidden />
@@ -316,7 +316,9 @@ export function RecordsPage() {
                     {RESULT_LABEL[r.result]}
                   </span>
                   {r.isFirstClear && (
-                    <span className="ml-2 rounded-full bg-amber/15 px-1.5 py-0.5 text-[10px] text-[var(--amber)]">首通</span>
+                    <span className="ml-2 rounded-[2px] bg-amber/15 px-1.5 py-0.5 text-[10px] tracking-[0.12em] text-[var(--amber)]">
+                      首通
+                    </span>
                   )}
                   <span className="mt-0.5 block text-[11px] text-[var(--ink-muted)] sm:hidden">
                     {r.mode === "solo" ? "单人" : "多人"} · {timeFmt.format(new Date(r.playedAt))}

@@ -128,6 +128,25 @@
       radial-gradient(circle 9px at 100% 50%, transparent 98%, #000) right / 51% 100% no-repeat;
   }
 
+  /* Soft parchment wash inside ticket panels — theater paper, not cream SaaS. */
+  .parchment-wash {
+    background:
+      linear-gradient(180deg, rgba(215, 201, 168, 0.055) 0%, transparent 42%),
+      linear-gradient(135deg, rgba(212, 161, 90, 0.04), transparent 55%),
+      rgba(28, 41, 35, 0.88);
+  }
+
+  /* Horizontal chip rows: fade edges so overflow reads intentional. */
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 1rem, #000 calc(100% - 1rem), transparent);
+  }
+
+  .scroll-fade-x-start {
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 1.25rem), transparent);
+    mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 1.25rem), transparent);
+  }
+
   .bg-atmosphere {
     background:
       radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212, 161, 90, 0.18), transparent 55%),

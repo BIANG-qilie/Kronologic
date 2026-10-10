@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ChevronDown, LogOut, Ticket, Trophy } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { signOut, useAccount } from "@/hooks/use-account";
@@ -11,6 +12,9 @@ import { AuthDialog } from "./auth-dialog";
 /** Header corner: 「登录」 for guests, the username with a small menu once signed in. Hidden when accounts are off. */
 export function AccountMenu({ className }: { className?: string }) {
   const account = useAccount();
+  const pathname = usePathname();
+  const onBoard = pathname === "/leaderboard";
+  const onMe = pathname === "/me";
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -25,7 +29,11 @@ export function AccountMenu({ className }: { className?: string }) {
       <div className={cn("flex items-center gap-1", className)}>
         <Link
           href="/leaderboard"
-          className="-mr-1 flex min-h-11 items-center gap-2 px-2 text-xs tracking-[0.24em] text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]"
+          aria-current={onBoard ? "page" : undefined}
+          className={cn(
+            "-mr-1 flex min-h-11 items-center gap-2 px-2 text-xs tracking-[0.24em] transition-colors",
+            onBoard ? "text-[var(--amber)]" : "text-[var(--ink-muted)] hover:text-[var(--amber)]"
+          )}
         >
           <Trophy className="h-4 w-4" aria-hidden />
           排行榜
@@ -66,7 +74,11 @@ export function AccountMenu({ className }: { className?: string }) {
         <Link
           href="/leaderboard"
           onClick={() => setMenuOpen(false)}
-          className="flex min-h-11 items-center gap-2.5 rounded-[3px] px-3 text-sm transition-colors hover:bg-curtain/70 hover:text-[var(--amber)]"
+          aria-current={onBoard ? "page" : undefined}
+          className={cn(
+            "flex min-h-11 items-center gap-2.5 rounded-[3px] px-3 text-sm transition-colors hover:bg-curtain/70 hover:text-[var(--amber)]",
+            onBoard && "bg-curtain/50 text-[var(--amber)]"
+          )}
         >
           <Trophy className="h-4 w-4 opacity-80" aria-hidden />
           排行榜
@@ -74,7 +86,11 @@ export function AccountMenu({ className }: { className?: string }) {
         <Link
           href="/me"
           onClick={() => setMenuOpen(false)}
-          className="flex min-h-11 items-center gap-2.5 rounded-[3px] px-3 text-sm transition-colors hover:bg-curtain/70 hover:text-[var(--amber)]"
+          aria-current={onMe ? "page" : undefined}
+          className={cn(
+            "flex min-h-11 items-center gap-2.5 rounded-[3px] px-3 text-sm transition-colors hover:bg-curtain/70 hover:text-[var(--amber)]",
+            onMe && "bg-curtain/50 text-[var(--amber)]"
+          )}
         >
           <Ticket className="h-4 w-4 opacity-80" aria-hidden />
           我的战绩

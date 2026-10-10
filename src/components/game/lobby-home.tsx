@@ -297,7 +297,7 @@ export function LobbyHome() {
             </Link>
 
             <div
-              className="rise ticket-edge relative mt-4 max-w-md bg-stage/80 px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
+              className="rise ticket-edge parchment-wash relative mt-4 max-w-md px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
               style={{ ["--i" as string]: 4 }}
             >
               <div className="pointer-events-none absolute inset-y-4 left-0 right-0 border-y border-dashed border-ink-faint/70" aria-hidden />

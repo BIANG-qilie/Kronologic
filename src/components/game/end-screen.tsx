@@ -7,6 +7,7 @@ import { clearSession } from "@/hooks/use-room";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { levelLabel } from "@/lib/game/levels";
+import { isLeaderboardLevel } from "@/lib/game/leaderboard";
 import { markLevelCleared } from "@/lib/game/progress";
 import { placeOrder, timesOf } from "@/lib/game/board";
 import { PlaceGlyph } from "./place-glyph";
@@ -249,18 +250,25 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             <span className="mx-2 text-[var(--ink-faint)]">/</span>
             全场共问 {view.queryCountTotal} 次
           </p>
-          <Button
-            size="lg"
-            className="group"
-            onClick={() => {
-              clearSession();
-              const target = isWin ? nextLevel : level;
-              window.location.href = target ? `/?level=${target}` : "/";
-            }}
-          >
-            {isWin ? (nextLevel ? `下一关 · ${levelLabel(nextLevel)}` : "回大厅") : "再试一次"}
-            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {youWon && level != null && isLeaderboardLevel(level) && (
+              <Button asChild variant="secondary" size="lg" className="min-h-12">
+                <a href={`/leaderboard?level=${level}&players=${view.players.length}`}>看排行榜</a>
+              </Button>
+            )}
+            <Button
+              size="lg"
+              className="group min-h-12"
+              onClick={() => {
+                clearSession();
+                const target = isWin ? nextLevel : level;
+                window.location.href = target ? `/?level=${target}` : "/";
+              }}
+            >
+              {isWin ? (nextLevel ? `下一关 · ${levelLabel(nextLevel)}` : "回大厅") : "再试一次"}
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Button>
+          </div>
         </div>
       </div>
     </main>
