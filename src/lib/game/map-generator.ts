@@ -386,6 +386,7 @@ export function collectNonAdjacentEdges(
 }
 
 export type PolygonVertex = { x: number; y: number };
+export type Pt2 = { x: number; y: number };
 
 /**
  * Regular n-gon vertices on the unit circle, starting at the top (−π/2)
@@ -397,6 +398,59 @@ export function polygonVertexPositions(n: number): PolygonVertex[] {
     const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
     return { x: Math.cos(angle), y: Math.sin(angle) };
   });
+}
+
+/** Quadratic Bezier control for a slight outward bow away from `center`. */
+export function outwardArcControl(
+  from: Pt2,
+  to: Pt2,
+  center: Pt2,
+  bendFrac = 0.18
+): Pt2 {
+  const mx = (from.x + to.x) / 2;
+  const my = (from.y + to.y) / 2;
+  const ox = mx - center.x;
+  const oy = my - center.y;
+  const olen = Math.hypot(ox, oy) || 1;
+  const chord = Math.hypot(to.x - from.x, to.y - from.y);
+  const bend = chord * bendFrac;
+  return { x: mx + (ox / olen) * bend, y: my + (oy / olen) * bend };
+}
+
+/** Point on quadratic Bezier at parameter `t` ∈ [0, 1]. */
+export function quadBezierPoint(p0: Pt2, p1: Pt2, p2: Pt2, t: number): Pt2 {
+  const u = 1 - t;
+  return {
+    x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
+    y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y,
+  };
+}
+
+/** Tangent vector of quadratic Bezier at `t` (not normalised). */
+export function quadBezierTangent(p0: Pt2, p1: Pt2, p2: Pt2, t: number): Pt2 {
+  return {
+    x: 2 * (1 - t) * (p1.x - p0.x) + 2 * t * (p2.x - p1.x),
+    y: 2 * (1 - t) * (p1.y - p0.y) + 2 * t * (p2.y - p1.y),
+  };
+}
+
+/**
+ * Pull endpoints inward along the chord so strokes clear node discs.
+ * Returns shortened [from, to]; if the segment is too short, returns originals.
+ */
+export function shortenChord(from: Pt2, to: Pt2, pad: number): [Pt2, Pt2] {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const maxPad = len * 0.38;
+  const p = Math.min(Math.max(0, pad), maxPad);
+  if (p * 2 >= len) return [from, to];
+  const ux = dx / len;
+  const uy = dy / len;
+  return [
+    { x: from.x + ux * p, y: from.y + uy * p },
+    { x: to.x - ux * p, y: to.y - uy * p },
+  ];
 }
 
 export function isStayPlace(

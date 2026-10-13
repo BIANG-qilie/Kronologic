@@ -91,10 +91,29 @@ function MatrixTable({ map }: { map: GeneratedMap }) {
   );
 }
 
+function LegendMidArrow() {
+  return (
+    <span className="relative flex h-6 w-10 items-center justify-center" aria-hidden>
+      <span className="absolute inset-x-0 top-1/2 h-[2.5px] -translate-y-1/2 rounded-full bg-[var(--amber-dim)]" />
+      <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-[var(--curtain)] ring-1 ring-[var(--amber)]/50">
+        <svg viewBox="0 0 12 12" className="h-3 w-3 text-[var(--amber)]">
+          <path d="M1.5 1.5 L10.5 6 L1.5 10.5 Z" fill="currentColor" />
+        </svg>
+      </span>
+    </span>
+  );
+}
+
 function MapLabPlan({ map }: { map: GeneratedMap }) {
+  const [selected, setSelected] = useState<string | null>(null);
+
   return (
     <div
-      className="animate-fade-up overflow-hidden rounded-[3px] border border-ink-faint/40 bg-[var(--curtain)]/90 p-2 shadow-[inset_0_1px_0_rgba(215,201,168,0.06)] sm:p-4"
+      className={cn(
+        "animate-fade-up overflow-hidden rounded-[3px] border border-ink-faint/40",
+        "bg-[var(--curtain)]/95",
+        "p-2 shadow-[inset_0_1px_0_rgba(215,201,168,0.07),0_28px_70px_-42px_rgba(0,0,0,0.9)] sm:p-5"
+      )}
       data-testid="map-lab-plan"
     >
       <PolygonMap
@@ -102,9 +121,14 @@ function MapLabPlan({ map }: { map: GeneratedMap }) {
         matrix={map.matrix}
         stayIds={map.stayIds}
         labelOf={placeLabelForGeneratedId}
+        selected={selected}
+        onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}
         markerPrefix={`map-lab-${map.nodeCount}`}
         className="bg-transparent"
       />
+      <p className="mt-2 text-center font-display text-[11px] italic tracking-wide text-[var(--ink-faint)] sm:text-xs">
+        点选地点可点亮相邻边 · 琥珀中点箭头为单向
+      </p>
     </div>
   );
 }
@@ -154,30 +178,34 @@ export function MapLabClient() {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-[42vh] bg-[radial-gradient(ellipse_70%_55%_at_50%_-8%,rgba(212,161,90,0.16),transparent_60%)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-[46vh] bg-[radial-gradient(ellipse_72%_58%_at_50%_-10%,rgba(212,161,90,0.18),transparent_62%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[28vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_110%,rgba(215,201,168,0.05),transparent_70%)]"
       />
 
-      <header className="relative mx-auto flex max-w-5xl items-start justify-between gap-4 px-4 pb-2 pt-6 sm:px-6 sm:pt-8">
+      <header className="relative mx-auto flex max-w-5xl items-start justify-between gap-4 px-4 pb-2 pt-6 sm:px-6 sm:pt-10">
         <div className="min-w-0 rise" style={{ ["--i" as string]: 0 }}>
           <p className="font-display text-[11px] tracking-[0.38em] text-[var(--amber)] sm:text-xs">
             灯序 · 内部验收
           </p>
-          <h1 className="mt-1.5 font-display text-[1.65rem] leading-tight tracking-wide text-[var(--parchment)] sm:text-4xl">
+          <h1 className="mt-2 font-display text-[1.75rem] leading-[1.1] tracking-wide text-[var(--parchment)] sm:text-4xl">
             随机地图实验室
           </h1>
-          <p className="mt-2 max-w-md text-[13px] leading-relaxed text-[var(--ink-muted)] sm:text-sm">
-            种子驱动邻接矩阵：单向门洞与可停留锚点。
+          <p className="mt-2.5 max-w-md text-[13px] leading-relaxed text-[var(--ink-muted)] sm:text-sm">
+            种子驱动邻接矩阵：正多边形顶点布局，单向琥珀中点箭头，淡墨双向弦。
           </p>
         </div>
         <Link
           href="/"
-          className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm text-[var(--ink-muted)] underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+          className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm text-[var(--ink-muted)] underline-offset-4 transition-colors duration-300 hover:text-[var(--amber)] hover:underline motion-reduce:transition-none"
         >
           回大厅
         </Link>
       </header>
 
-      <main className="relative mx-auto max-w-5xl space-y-7 px-4 pb-20 pt-4 sm:space-y-9 sm:px-6">
+      <main className="relative mx-auto max-w-5xl space-y-8 px-4 pb-24 pt-5 sm:space-y-10 sm:px-6">
         <section
           className="parchment-wash rise rounded-[3px] border border-ink-faint/45 p-4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.85)] sm:p-5"
           style={{ ["--i" as string]: 1 }}
@@ -283,12 +311,12 @@ export function MapLabClient() {
           <>
             <section className="space-y-4 rise" style={{ ["--i" as string]: 2 }}>
               <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <h2 className="font-display text-xl text-[var(--parchment)] sm:text-2xl">
                     平面图
                   </h2>
-                  <p className="mt-1 text-xs text-[var(--ink-muted)] sm:text-sm">
-                    节点均布于正多边形顶点；琥珀色箭头为单向，淡墨为双向；锚点可在原位停留。
+                  <p className="mt-1 max-w-xl text-xs leading-relaxed text-[var(--ink-muted)] sm:text-sm">
+                    节点均布于正多边形顶点；单向边在弦心画琥珀箭头，双向边仅淡墨连线。
                   </p>
                 </div>
                 <dl className="flex flex-wrap gap-2 font-mono text-[11px] text-[var(--ink-muted)] sm:text-xs">
@@ -318,22 +346,12 @@ export function MapLabClient() {
 
               <ul className="flex flex-wrap gap-x-5 gap-y-2.5 text-[11px] text-[var(--ink-muted)] sm:text-xs">
                 <li className="inline-flex min-h-8 items-center gap-2">
-                  <span className="h-[3px] w-7 rounded-full bg-[var(--ink-muted)]" aria-hidden />
-                  双向边（淡墨）
+                  <span className="h-[3px] w-8 rounded-full bg-[var(--ink-muted)]" aria-hidden />
+                  双向边（淡墨，无箭头）
                 </li>
                 <li className="inline-flex min-h-8 items-center gap-2">
-                  <span
-                    className="relative flex h-5 w-7 items-center justify-center"
-                    aria-hidden
-                  >
-                    <span className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[var(--amber-dim)]" />
-                    <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-[var(--curtain)] ring-1 ring-[var(--amber)]/35">
-                      <svg viewBox="0 0 12 12" className="h-3 w-3 text-[var(--amber)]">
-                        <path d="M1.5 1.5 L10.5 6 L1.5 10.5 Z" fill="currentColor" />
-                      </svg>
-                    </span>
-                  </span>
-                  单向（琥珀箭头）
+                  <LegendMidArrow />
+                  单向（中点琥珀箭头）
                 </li>
                 <li className="inline-flex min-h-8 items-center gap-2">
                   <StayMark label="always" />
@@ -367,7 +385,7 @@ export function MapLabClient() {
                     {map.stayIds.map((id) => (
                       <li
                         key={id}
-                        className="flex min-h-8 items-center gap-2 font-mono text-[13px]"
+                        className="flex min-h-11 items-center gap-2 font-mono text-[13px]"
                       >
                         <StayMark compact className="shrink-0" />
                         <span>
@@ -381,12 +399,12 @@ export function MapLabClient() {
                 </div>
                 <div className="rounded-[3px] border border-ink-faint/40 bg-[var(--stage)]/40 p-4 sm:p-5">
                   <h3 className="font-display text-lg text-[var(--parchment)]">单向边</h3>
-                  <ul className="mt-3 max-h-48 space-y-2 overflow-auto overscroll-contain text-sm text-[var(--ink-muted)]">
-                    {map.directedEdges.length === 0 && <li>无</li>}
+                  <ul className="mt-3 max-h-52 space-y-1 overflow-auto overscroll-contain text-sm text-[var(--ink-muted)]">
+                    {map.directedEdges.length === 0 && <li className="min-h-11 flex items-center">无</li>}
                     {map.directedEdges.map((e) => (
                       <li
                         key={`${e.from}->${e.to}`}
-                        className="flex min-h-8 items-center gap-2 font-mono text-[13px]"
+                        className="flex min-h-11 items-center gap-2 font-mono text-[13px]"
                       >
                         <svg
                           viewBox="0 0 12 12"

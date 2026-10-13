@@ -11,7 +11,11 @@ import {
   generateRandomMap,
   isStayPlace,
   layoutForNodeCount,
+  outwardArcControl,
   polygonVertexPositions,
+  quadBezierPoint,
+  quadBezierTangent,
+  shortenChord,
 } from "./map-generator";
 import {
   enumeratePathsFromMatrix,
@@ -206,5 +210,28 @@ describe("generateRandomMap", () => {
     // Opposite of top ≈ bottom for even n
     assert.ok(Math.abs(eight[4].x) < 1e-9);
     assert.ok(Math.abs(eight[4].y - 1) < 1e-9);
+  });
+
+  it("quadBezier midpoint sits outward of the chord and tangent follows travel", () => {
+    const from = { x: 0, y: 0 };
+    const to = { x: 100, y: 0 };
+    const center = { x: 50, y: 100 };
+    const ctrl = outwardArcControl(from, to, center, 0.2);
+    // Center is below; outward bow should go above (away from center)
+    assert.ok(ctrl.y < 0);
+    const mid = quadBezierPoint(from, ctrl, to, 0.5);
+    assert.ok(mid.y < 0);
+    assert.ok(Math.abs(mid.x - 50) < 1e-6);
+    const tan = quadBezierTangent(from, ctrl, to, 0.5);
+    assert.ok(tan.x > 0);
+    assert.ok(Math.abs(tan.y) < 1e-6);
+  });
+
+  it("shortenChord pulls endpoints inward without flipping", () => {
+    const [a, b] = shortenChord({ x: 0, y: 0 }, { x: 100, y: 0 }, 20);
+    assert.equal(a.x, 20);
+    assert.equal(b.x, 80);
+    assert.equal(a.y, 0);
+    assert.equal(b.y, 0);
   });
 });

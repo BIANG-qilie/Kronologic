@@ -3,22 +3,29 @@
 import { useMemo, useState } from "react";
 import {
   collectMatrixEdges,
+  outwardArcControl,
   polygonVertexPositions,
+  quadBezierPoint,
+  quadBezierTangent,
+  shortenChord,
   type EdgeKind,
   type MatrixEdge,
+  type Pt2,
 } from "@/lib/game/map-generator";
 import type { AdjacencyMatrix } from "@/lib/game/trajectory-kernel";
 import { cn } from "@/lib/utils";
 import { StayMark } from "./map-passage";
-
-type Pt = { x: number; y: number };
 
 /** ViewBox units — square canvas; nodes sit on a circle of this radius. */
 const VB = 1000;
 const CX = VB / 2;
 const CY = VB / 2;
 /** Ring radius as fraction of half-canvas; leave margin for labels. */
-const RING = 0.34;
+const RING = 0.36;
+/** Clear node plaques so mid-edge marks sit on open ink. */
+const END_PAD = 58;
+/** Mid-arrow chevron half-size in viewBox units (reads on 360px). */
+const ARROW_HALF = 24;
 
 function strokeForKind(kind: Exclude<EdgeKind, "none">, lit: boolean): string {
   if (kind === "bidirectional") {
@@ -27,123 +34,164 @@ function strokeForKind(kind: Exclude<EdgeKind, "none">, lit: boolean): string {
   return lit ? "var(--amber)" : "var(--amber-dim)";
 }
 
-/**
- * Slight outward quadratic: control point past the chord midpoint,
- * away from the polygon centre so edges hug the ring rather than the hub.
- */
-function outwardArc(from: Pt, to: Pt, center: Pt, bendFrac = 0.18): string {
-  const mx = (from.x + to.x) / 2;
-  const my = (from.y + to.y) / 2;
-  const ox = mx - center.x;
-  const oy = my - center.y;
-  const olen = Math.hypot(ox, oy) || 1;
-  const chord = Math.hypot(to.x - from.x, to.y - from.y);
-  const bend = chord * bendFrac;
-  const cx = mx + (ox / olen) * bend;
-  const cy = my + (oy / olen) * bend;
-  return `M ${from.x} ${from.y} Q ${cx} ${cy} ${to.x} ${to.y}`;
+function arrowFill(lit: boolean): string {
+  return lit ? "var(--amber)" : "var(--amber)";
 }
 
-function nodeRadiusPx(n: number): number {
-  // Larger touch targets when few nodes; shrink glyphs as n grows.
-  if (n <= 6) return 54;
-  if (n <= 8) return 48;
-  if (n <= 10) return 42;
-  return 38;
+/** Filled chevron at the bezier midpoint, oriented along the tangent. */
+function MidEdgeArrow({
+  p0,
+  ctrl,
+  p2,
+  lit,
+}: {
+  p0: Pt2;
+  ctrl: Pt2;
+  p2: Pt2;
+  lit: boolean;
+}) {
+  const mid = quadBezierPoint(p0, ctrl, p2, 0.5);
+  const tan = quadBezierTangent(p0, ctrl, p2, 0.5);
+  // Round for SSR/client parity (avoid hydration mismatch on float noise).
+  const mx = Math.round(mid.x * 100) / 100;
+  const my = Math.round(mid.y * 100) / 100;
+  const angle = Math.round((Math.atan2(tan.y, tan.x) * 180) / Math.PI * 100) / 100;
+  const fill = arrowFill(lit);
+  const h = ARROW_HALF;
+
+  return (
+    <g
+      transform={`translate(${mx} ${my}) rotate(${angle})`}
+      data-testid="mid-edge-arrow"
+    >
+      {/* Curtain disc + amber ring so the mark punches through crossing chords */}
+      <circle
+        r={h + 5}
+        fill="var(--curtain)"
+        opacity={0.96}
+        stroke="var(--amber)"
+        strokeWidth={2}
+        strokeOpacity={lit ? 0.85 : 0.55}
+      />
+      <path
+        d={`M ${-h * 0.52} ${-h * 0.78} L ${h * 0.82} 0 L ${-h * 0.52} ${h * 0.78} Z`}
+        fill={fill}
+        stroke="rgba(20,16,12,0.55)"
+        strokeWidth={1.4}
+        strokeLinejoin="round"
+      />
+    </g>
+  );
+}
+
+type LaidEdge = {
+  key: string;
+  from: Pt2;
+  to: Pt2;
+  ctrl: Pt2;
+  d: string;
+  lit: boolean;
+  oneWay: boolean;
+  stroke: string;
+  title: string;
+};
+
+function layoutEdges(
+  edges: MatrixEdge[],
+  positions: Record<string, Pt2>,
+  focus: string | null
+): LaidEdge[] {
+  const center = { x: CX, y: CY };
+  const out: LaidEdge[] = [];
+  edges.forEach((edge, index) => {
+    const pa = positions[edge.a];
+    const pb = positions[edge.b];
+    if (!pa || !pb) return;
+    const rawFrom = edge.kind === "backward" ? pb : pa;
+    const rawTo = edge.kind === "backward" ? pa : pb;
+    const [from, to] = shortenChord(rawFrom, rawTo, END_PAD);
+    const lit = !!focus && (focus === edge.a || focus === edge.b);
+    const oneWay = edge.kind !== "bidirectional";
+    const bend = 0.16 + (index % 3) * 0.025;
+    const ctrlRaw = outwardArcControl(from, to, center, bend);
+    const r = (n: number) => Math.round(n * 100) / 100;
+    const a = { x: r(from.x), y: r(from.y) };
+    const b = { x: r(to.x), y: r(to.y) };
+    const ctrl = { x: r(ctrlRaw.x), y: r(ctrlRaw.y) };
+    out.push({
+      key: `${edge.a}|${edge.b}|${edge.kind}`,
+      from: a,
+      to: b,
+      ctrl,
+      d: `M ${a.x} ${a.y} Q ${ctrl.x} ${ctrl.y} ${b.x} ${b.y}`,
+      lit,
+      oneWay,
+      stroke: strokeForKind(edge.kind, lit),
+      title:
+        edge.kind === "bidirectional"
+          ? `双向 ${edge.a} ↔ ${edge.b}`
+          : edge.kind === "forward"
+            ? `单向 ${edge.a} → ${edge.b}`
+            : `单向 ${edge.b} → ${edge.a}`,
+    });
+  });
+  return out;
 }
 
 function PolygonEdges({
   edges,
   positions,
   focus,
-  markerPrefix,
 }: {
   edges: MatrixEdge[];
-  positions: Record<string, Pt>;
+  positions: Record<string, Pt2>;
   focus: string | null;
-  markerPrefix: string;
 }) {
-  const center = { x: CX, y: CY };
+  const laid = layoutEdges(edges, positions, focus);
   return (
     <>
-      {edges.map((edge, index) => {
-        const pa = positions[edge.a];
-        const pb = positions[edge.b];
-        if (!pa || !pb) return null;
-        const from = edge.kind === "backward" ? pb : pa;
-        const to = edge.kind === "backward" ? pa : pb;
-        const lit = !!focus && (focus === edge.a || focus === edge.b);
-        const oneWay = edge.kind !== "bidirectional";
-        const stroke = strokeForKind(edge.kind, lit);
-        const bend = 0.14 + (index % 3) * 0.02;
-        const amberEnd = lit
-          ? `url(#${markerPrefix}-arrow-amber)`
-          : `url(#${markerPrefix}-arrow-amber-dim)`;
-        const inkEnd = lit
-          ? `url(#${markerPrefix}-arrow-amber)`
-          : `url(#${markerPrefix}-arrow-ink)`;
-        const inkStart = lit
-          ? `url(#${markerPrefix}-arrow-amber-start)`
-          : `url(#${markerPrefix}-arrow-ink-start)`;
-
-        return (
-          <path
-            key={`${edge.a}|${edge.b}|${edge.kind}`}
-            d={outwardArc(from, to, center, bend)}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={oneWay ? 3.2 : 2.8}
-            strokeLinecap="round"
-            opacity={lit ? 0.96 : oneWay ? 0.9 : 0.72}
-            markerEnd={oneWay ? amberEnd : inkEnd}
-            markerStart={oneWay ? undefined : inkStart}
-          >
-            <title>
-              {edge.kind === "bidirectional"
-                ? `双向 ${edge.a} ↔ ${edge.b}`
-                : edge.kind === "forward"
-                  ? `单向 ${edge.a} → ${edge.b}`
-                  : `单向 ${edge.b} → ${edge.a}`}
-            </title>
-          </path>
-        );
-      })}
+      {/* Pass 1: all strokes so later chords don't bury mid-arrows */}
+      {laid.map((e) => (
+        <path
+          key={`stroke-${e.key}`}
+          d={e.d}
+          fill="none"
+          stroke={e.stroke}
+          strokeWidth={e.oneWay ? 3.8 : 2.5}
+          strokeLinecap="round"
+          opacity={e.lit ? 0.98 : e.oneWay ? 0.94 : 0.62}
+        >
+          <title>{e.title}</title>
+        </path>
+      ))}
+      {/* Pass 2: unidirectional mid-edge chevrons on top */}
+      {laid.map(
+        (e) =>
+          e.oneWay && (
+            <MidEdgeArrow
+              key={`arrow-${e.key}`}
+              p0={e.from}
+              ctrl={e.ctrl}
+              p2={e.to}
+              lit={e.lit}
+            />
+          )
+      )}
     </>
   );
 }
 
-function EdgeMarkers({ prefix }: { prefix: string }) {
-  const mk = (
-    id: string,
-    fill: string,
-    opts?: { start?: boolean }
-  ) => (
-    <marker
-      id={`${prefix}-${id}`}
-      markerWidth="8"
-      markerHeight="8"
-      refX={opts?.start ? 1.2 : 6.8}
-      refY="4"
-      orient={opts?.start ? "auto-start-reverse" : "auto"}
-      markerUnits="strokeWidth"
-    >
-      <path d="M0 0 L8 4 L0 8 Z" fill={fill} />
-    </marker>
-  );
-  return (
-    <defs>
-      {mk("arrow-amber", "var(--amber)")}
-      {mk("arrow-amber-dim", "var(--amber-dim)")}
-      {mk("arrow-ink", "var(--ink-muted)")}
-      {mk("arrow-amber-start", "var(--amber)", { start: true })}
-      {mk("arrow-ink-start", "var(--ink-muted)", { start: true })}
-    </defs>
-  );
+function nodeRadiusPx(n: number): number {
+  if (n <= 6) return 56;
+  if (n <= 8) return 50;
+  if (n <= 10) return 44;
+  return 40;
 }
 
 /**
  * Graph map: n places on regular n-gon vertices; every matrix edge uses the
  * same chord/outer-arc rendering (no floor-plan door tracks).
+ * One-way edges carry a mid-path amber arrow; bidirectional edges are ink only.
  */
 export function PolygonMap({
   placeIds,
@@ -155,7 +203,7 @@ export function PolygonMap({
   highlight = null,
   isEnabled,
   className,
-  markerPrefix = "poly-map",
+  markerPrefix: _markerPrefix = "poly-map",
 }: {
   placeIds: readonly string[];
   matrix: AdjacencyMatrix;
@@ -166,27 +214,25 @@ export function PolygonMap({
   highlight?: string | null;
   isEnabled?: (id: string) => boolean;
   className?: string;
-  /** Unique SVG marker id prefix when multiple maps mount. */
+  /** Kept for call-site compatibility; mid-arrows no longer use SVG markers. */
   markerPrefix?: string;
 }) {
+  void _markerPrefix;
   const [hovered, setHovered] = useState<string | null>(null);
   const n = placeIds.length;
   const focus = selected ?? hovered;
 
-  const staySet = useMemo(
-    () => new Set(stayIds ?? []),
-    [stayIds]
-  );
-
+  const staySet = useMemo(() => new Set(stayIds ?? []), [stayIds]);
   const unit = useMemo(() => polygonVertexPositions(n), [n]);
 
   const positions = useMemo(() => {
     const r = VB * RING;
-    const out: Record<string, Pt> = {};
+    const round = (n: number) => Math.round(n * 100) / 100;
+    const out: Record<string, Pt2> = {};
     placeIds.forEach((id, i) => {
       out[id] = {
-        x: CX + unit[i].x * r,
-        y: CY + unit[i].y * r,
+        x: round(CX + unit[i].x * r),
+        y: round(CY + unit[i].y * r),
       };
     });
     return out;
@@ -208,16 +254,14 @@ export function PolygonMap({
   }, [edges, focus]);
 
   const rNode = nodeRadiusPx(n);
-  // Percent of viewBox for absolute HTML nodes
   const pct = (v: number) => `${(v / VB) * 100}%`;
-  const nodeW = `${(rNode * 2) / VB * 100}%`;
+  const nodeW = `${((rNode * 2) / VB) * 100}%`;
 
   return (
     <div
       className={cn(
         "relative w-full overflow-hidden rounded-[3px]",
-        // Slightly taller than square so labels breathe on narrow screens
-        "aspect-[1/1.06] min-h-[280px] max-[360px]:min-h-[300px] sm:min-h-0",
+        "aspect-[1/1.04] min-h-[300px] max-[360px]:min-h-[320px] sm:min-h-0",
         className
       )}
       data-testid="polygon-map"
@@ -231,23 +275,17 @@ export function PolygonMap({
         aria-hidden
         data-testid="polygon-map-edges"
       >
-        <EdgeMarkers prefix={markerPrefix} />
-        {/* faint ring hint */}
         <circle
           cx={CX}
           cy={CY}
           r={VB * RING}
           fill="none"
           stroke="var(--ink-faint)"
-          strokeWidth="1.2"
-          opacity="0.35"
+          strokeWidth="1"
+          opacity="0.28"
+          strokeDasharray="3 10"
         />
-        <PolygonEdges
-          edges={edges}
-          positions={positions}
-          focus={focus}
-          markerPrefix={markerPrefix}
-        />
+        <PolygonEdges edges={edges} positions={positions} focus={focus} />
       </svg>
 
       {placeIds.map((id, i) => {
@@ -258,6 +296,7 @@ export function PolygonMap({
         const off = !!isEnabled && !isEnabled(id);
         const canStay = staySet.has(id);
         const label = labelOf(id);
+        const interactive = !!onSelect;
 
         return (
           <button
@@ -265,7 +304,7 @@ export function PolygonMap({
             type="button"
             data-place={id}
             data-tutorial={`place-${id}`}
-            disabled={!onSelect || off}
+            disabled={!interactive || off}
             aria-pressed={isSel}
             aria-label={canStay ? `${label}（可停留）` : label}
             title={canStay ? `${label} · 可停留` : label}
@@ -275,31 +314,36 @@ export function PolygonMap({
             onFocus={() => setHovered(id)}
             onBlur={() => setHovered(null)}
             className={cn(
-              "absolute z-[1] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-[3px] text-center transition-[background-color,box-shadow,transform,opacity] duration-300 motion-reduce:transition-none",
+              "group absolute z-[1] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center gap-0.5 rounded-[3px] text-center",
               "min-h-11 min-w-11 p-1.5 max-[360px]:p-1 sm:p-2",
-              "active:scale-[0.97]",
+              "transition-[background-color,box-shadow,transform,opacity] duration-300 motion-reduce:transition-none",
+              interactive && "active:scale-[0.97] motion-reduce:active:scale-100",
               isSel
                 ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_14px_32px_-14px_rgba(212,161,90,0.95)]"
                 : isNeighbor
                   ? "bg-amber/12 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
                   : canStay
                     ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.14),transparent_42%),var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.38)]"
-                    : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
+                    : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)]",
+              interactive &&
+                !isSel &&
+                !off &&
+                "hover:shadow-[inset_0_0_0_1px_var(--amber-dim),0_10px_28px_-18px_rgba(212,161,90,0.55)]",
               highlight === id && "animate-pulse-soft",
-              !onSelect && "cursor-default",
+              !interactive && "cursor-default",
               off && "cursor-not-allowed opacity-35 active:scale-100"
             )}
             style={{
               left: pct(p.x),
               top: pct(p.y),
               width: nodeW,
-              maxWidth: "28%",
+              maxWidth: "26%",
             }}
           >
             <span className="relative flex w-full items-start justify-between gap-0.5 px-0.5">
               <span
                 className={cn(
-                  "font-display text-[9px] italic leading-none sm:text-[10px]",
+                  "font-display text-[9px] italic leading-none tracking-wide sm:text-[10px]",
                   isSel ? "text-curtain/55" : "text-[var(--ink-faint)]"
                 )}
               >
