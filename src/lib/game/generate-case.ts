@@ -1,6 +1,5 @@
 import {
   bandsFromGreedy,
-  enumeratePaths,
   findConsistentAnswers,
   greedyMinQueries,
   observationsFromSealed,
@@ -14,7 +13,18 @@ import {
   VICTIM_ID,
   assembleNightTeaBundle,
 } from "./night-tea-template";
+import {
+  adjacencyRecordToMatrix,
+  enumeratePathsFromMatrix,
+  type Rng,
+} from "./trajectory-kernel";
 import type { PlaceId, PersonId, ScenarioBundle, Trajectory } from "./types";
+
+/** Authoritative map shape for night-tea generation (matrix in, not adjacency object). */
+export const NIGHT_TEA_MATRIX = adjacencyRecordToMatrix(
+  NIGHT_TEA_ADJACENCY,
+  PLACE_IDS
+);
 
 export type GeneratedCaseMeta = {
   id: string;
@@ -28,7 +38,7 @@ export type GeneratedCase = GeneratedCaseMeta & {
 };
 
 /** Deterministic PRNG (mulberry32). */
-export function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): Rng {
   let a = seed >>> 0;
   return () => {
     a |= 0;
@@ -48,11 +58,11 @@ export function hashSeed(seed: string): number {
   return h >>> 0;
 }
 
-function pick<T>(rng: () => number, arr: T[]): T {
+function pick<T>(rng: Rng, arr: T[]): T {
   return arr[Math.floor(rng() * arr.length)];
 }
 
-function shuffle<T>(rng: () => number, arr: T[]): T[] {
+function shuffle<T>(rng: Rng, arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(rng() * (i + 1));
@@ -102,12 +112,12 @@ function fingerprintOf(
 /**
  * Sample one alone-with-victim world + partial opening (may fail filters).
  */
-export function sampleWorld(rng: () => number): {
+export function sampleWorld(rng: Rng): {
   world: Record<PersonId, PlaceId[]>;
   opening: Partial<Record<PersonId, PlaceId>>;
   answer: { who: PersonId; where: PlaceId; when: number };
 } | null {
-  const allPaths = enumeratePaths(NIGHT_TEA_ADJACENCY);
+  const allPaths = enumeratePathsFromMatrix(NIGHT_TEA_MATRIX, PLACE_IDS);
   const vp = pick(rng, allPaths);
   const crimeTime = 1 + Math.floor(rng() * 5); // 1..5 bias toward mid; allow 1-6:
   const crimeT = Math.min(6, crimeTime + (rng() < 0.25 ? 1 : 0));
