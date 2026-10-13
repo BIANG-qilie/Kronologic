@@ -18,6 +18,7 @@ import { CaseLog } from "@/components/game/case-log";
 import { SubmitDialog } from "@/components/game/submit-dialog";
 import { DeskTimeline } from "@/components/game/desk-timeline";
 import { RulesSheet } from "@/components/game/rules-sheet";
+import { CaseBriefSheet } from "@/components/game/case-brief-sheet";
 import type { SuspectBoard } from "@/lib/game/notes-format";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -238,6 +239,10 @@ export function PlayClient({
               `${turnPlayer?.nickname ?? "—"} 在提问`
             )}
           </span>
+          <CaseBriefSheet
+            scenario={view.scenario}
+            className="-mx-1 tracking-normal"
+          />
           <RulesSheet className="-mx-1 tracking-normal" />
           <SubmitDialog
             view={view}

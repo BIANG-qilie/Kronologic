@@ -12,6 +12,7 @@ import { levelLabel, suggestLevel, type LevelInfo } from "@/lib/game/levels";
 import { loadClearedLevels } from "@/lib/game/progress";
 import { loadPrologueDone } from "@/lib/game/tutorial-progress";
 import { PROLOGUE, PROLOGUE_LEVEL } from "@/lib/game/prologue";
+import { caseBriefEyebrow } from "@/lib/game/case-brief";
 import { RulesSheet } from "@/components/game/rules-sheet";
 import { cn } from "@/lib/utils";
 import { useAccount } from "@/hooks/use-account";
@@ -526,7 +527,9 @@ export function LobbyHome() {
 
             <div className="rise mt-12 border-l border-amber/40 pl-5 md:ml-12" style={{ ["--i" as string]: 5 }}>
               <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]" aria-live="polite">
-                {prologuePicked ? "序幕的案子" : "今晚的案子"}
+                {prologuePicked
+                  ? caseBriefEyebrow(PROLOGUE.public)
+                  : "今晚的案子"}
               </p>
               <h2 className="mt-2 font-display text-3xl text-[var(--ink)]">
                 {prologuePicked ? PROLOGUE.public.title : (family?.title ?? "夜茶的毒")}

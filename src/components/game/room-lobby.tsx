@@ -1,10 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { ArrowRight, Check, Copy } from "lucide-react";
 import type { RoomPublicView } from "@/lib/game/types";
 import { apiJson } from "@/hooks/use-room";
 import { Button } from "@/components/ui/button";
+import { CaseBriefSheet } from "@/components/game/case-brief-sheet";
+import { RulesSheet } from "@/components/game/rules-sheet";
 import { cn } from "@/lib/utils";
 
 const SEATS = 4;
@@ -54,7 +57,30 @@ export function RoomLobby({
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-atmosphere" aria-hidden />
-      <div className="relative mx-auto grid min-h-[100dvh] max-w-5xl content-center gap-12 px-5 pb-32 pt-12 sm:px-8 md:grid-cols-2 md:gap-16 md:py-14">
+      <header className="sticky top-0 z-30 border-b border-ink-faint/60 bg-curtain/85 pt-[env(safe-area-inset-top)] backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2 sm:px-8 md:py-3">
+          <Link
+            href="/"
+            className="-ml-2 flex min-h-11 items-center px-2 font-display text-base tracking-[0.2em] text-[var(--ink)] hover:text-[var(--amber)]"
+            aria-label="灯序 · 回大厅"
+          >
+            灯序
+          </Link>
+          <span className="hidden h-4 w-px bg-[var(--ink-faint)] sm:block" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-display text-sm text-[var(--ink)] sm:text-base">
+              {view.scenario.title}
+            </p>
+            <p className="text-[11px] text-[var(--ink-muted)]">
+              {view.scenario.tier ? `${view.scenario.tier} · ` : ""}
+              <span className="font-mono tracking-[0.12em]">{view.code}</span>
+            </p>
+          </div>
+          <CaseBriefSheet scenario={view.scenario} className="-mx-1 tracking-normal" />
+          <RulesSheet className="-mx-1 tracking-normal" />
+        </div>
+      </header>
+      <div className="relative mx-auto grid min-h-[calc(100dvh-3.5rem)] max-w-5xl content-center gap-12 px-5 pb-32 pt-10 sm:px-8 md:grid-cols-2 md:gap-16 md:py-14">
         <section>
           <p className="rise text-[11px] tracking-[0.42em] text-[var(--amber)]" style={{ ["--i" as string]: 0 }}>
             房间码

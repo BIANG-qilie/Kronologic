@@ -26,6 +26,7 @@ import { DeskTimeline } from "@/components/game/desk-timeline";
 import { QueryPanel } from "@/components/game/query-panel";
 import { CaseLog } from "@/components/game/case-log";
 import { RulesSheet } from "@/components/game/rules-sheet";
+import { CaseBriefSheet } from "@/components/game/case-brief-sheet";
 import { PlaceGlyph } from "@/components/game/place-glyph";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -514,6 +515,7 @@ function TutorialHeader({ queryCount }: { queryCount?: number }) {
             )}
           </p>
         </div>
+        <CaseBriefSheet scenario={scenario} />
         <RulesSheet />
         <Link
           href="/"
