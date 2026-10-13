@@ -10,6 +10,7 @@ import { PlaceGlyph } from "./place-glyph";
 import { FloorPlan, planAspect } from "./floor-plan";
 import { MapPassage, StayMark } from "./map-passage";
 import { MapArcOverlay } from "./map-arc-overlay";
+import { PolygonMap } from "./polygon-map";
 
 export function BoardMap({
   scenario,
@@ -21,6 +22,11 @@ export function BoardMap({
   stayIds,
   /** Optional dense matrix; when omitted, derived from scenario.adjacency (asymmetry = directed). */
   matrix,
+  /**
+   * `floor` = theater grid (night-tea). `polygon` = regular n-gon vertices (random / graph maps).
+   * Default: polygon when an explicit `matrix` is passed; otherwise floor.
+   */
+  layoutMode,
 }: {
   scenario: ScenarioPublic;
   highlight?: PlaceId | null;
@@ -30,12 +36,16 @@ export function BoardMap({
   isEnabled?: (id: PlaceId) => boolean;
   stayIds?: readonly PlaceId[];
   matrix?: ReadonlyArray<ReadonlyArray<number>>;
+  layoutMode?: "floor" | "polygon";
 }) {
   const [hovered, setHovered] = useState<PlaceId | null>(null);
   const [planEl, setPlanEl] = useState<HTMLDivElement | null>(null);
   const byId = useMemo(() => new Map(scenario.places.map((p) => [p.id, p])), [scenario.places]);
   const placeIds = useMemo(() => placeOrder(scenario), [scenario]);
   const layout = useMemo(() => layoutOf(scenario), [scenario]);
+
+  const mode: "floor" | "polygon" =
+    layoutMode ?? (matrix != null ? "polygon" : "floor");
 
   const adjMatrix = useMemo(() => {
     if (matrix) return matrix;
@@ -48,6 +58,8 @@ export function BoardMap({
       placeIds.filter((id) => isStayPlace(adjMatrix, placeIds, id))
     );
   }, [stayIds, placeIds, adjMatrix]);
+
+  const stayList = useMemo(() => [...staySet], [staySet]);
 
   const focus = selected ?? hovered;
   const neighbors = new Set(focus ? scenario.adjacency[focus] ?? [] : []);
@@ -120,11 +132,29 @@ export function BoardMap({
     );
   };
 
+  if (mode === "polygon") {
+    return (
+      <PolygonMap
+        placeIds={placeIds}
+        matrix={adjMatrix}
+        stayIds={stayList}
+        labelOf={(id) => byId.get(id as PlaceId)?.name ?? id}
+        onSelect={onSelect as ((id: string) => void) | undefined}
+        selected={selected}
+        highlight={highlight}
+        isEnabled={isEnabled as ((id: string) => boolean) | undefined}
+        className="border border-ink-faint/30 bg-[var(--curtain)]/40"
+        markerPrefix="board-poly"
+      />
+    );
+  }
+
   return (
     <div
       ref={setPlanEl}
       className="relative w-full overflow-hidden"
       style={{ aspectRatio: planAspect(layout) }}
+      data-layout="floor"
     >
       <FloorPlan layout={layout} gap="22px" className="absolute inset-0 grid" room={room} door={door} />
       <MapArcOverlay

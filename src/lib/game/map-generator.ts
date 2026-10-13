@@ -340,34 +340,63 @@ export function edgeKindBetween(
   return "none";
 }
 
-export type NonAdjacentEdge = {
+export type MatrixEdge = {
   a: string;
   b: string;
   kind: Exclude<EdgeKind, "none">;
 };
 
+/** @deprecated alias — prefer MatrixEdge (polygon layout draws every matrix edge alike). */
+export type NonAdjacentEdge = MatrixEdge;
+
 /**
- * Matrix edges that FloorPlan door tracks cannot show (not grid-adjacent).
- * Each undirected pair appears once; `kind` is relative to `a`→`b`
+ * Every undirected matrix edge (excluding self-loops / stays).
+ * Each pair appears once; `kind` is relative to `a`→`b`
  * (forward = a→b only, backward = b→a only).
  */
-export function collectNonAdjacentEdges(
+export function collectMatrixEdges(
   matrix: AdjacencyMatrix,
-  placeIds: readonly string[],
-  isAdjacent: (a: string, b: string) => boolean
-): NonAdjacentEdge[] {
-  const out: NonAdjacentEdge[] = [];
+  placeIds: readonly string[]
+): MatrixEdge[] {
+  const out: MatrixEdge[] = [];
   for (let i = 0; i < placeIds.length; i++) {
     for (let j = i + 1; j < placeIds.length; j++) {
       const a = placeIds[i];
       const b = placeIds[j];
       const kind = edgeKindBetween(matrix, placeIds, a, b);
       if (kind === "none") continue;
-      if (isAdjacent(a, b)) continue;
       out.push({ a, b, kind });
     }
   }
   return out;
+}
+
+/**
+ * Matrix edges that FloorPlan door tracks cannot show (not grid-adjacent).
+ * Kept for the grid+arc overlay path (night-tea FloorPlan).
+ */
+export function collectNonAdjacentEdges(
+  matrix: AdjacencyMatrix,
+  placeIds: readonly string[],
+  isAdjacent: (a: string, b: string) => boolean
+): MatrixEdge[] {
+  return collectMatrixEdges(matrix, placeIds).filter(
+    (e) => !isAdjacent(e.a, e.b)
+  );
+}
+
+export type PolygonVertex = { x: number; y: number };
+
+/**
+ * Regular n-gon vertices on the unit circle, starting at the top (−π/2)
+ * and going clockwise. Coordinates in [−1, 1].
+ */
+export function polygonVertexPositions(n: number): PolygonVertex[] {
+  if (n < 1) return [];
+  return Array.from({ length: n }, (_, i) => {
+    const angle = -Math.PI / 2 + (2 * Math.PI * i) / n;
+    return { x: Math.cos(angle), y: Math.sin(angle) };
+  });
 }
 
 export function isStayPlace(

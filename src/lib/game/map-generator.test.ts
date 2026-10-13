@@ -5,11 +5,13 @@ import {
   MAP_DEFAULT_NODE_COUNT,
   MAP_NODE_COUNT_MAX,
   MAP_NODE_COUNT_MIN,
+  collectMatrixEdges,
   collectNonAdjacentEdges,
   edgeKindBetween,
   generateRandomMap,
   isStayPlace,
   layoutForNodeCount,
+  polygonVertexPositions,
 } from "./map-generator";
 import {
   enumeratePathsFromMatrix,
@@ -171,5 +173,38 @@ describe("generateRandomMap", () => {
     for (const e of nonAdj) {
       assert.equal(areLayoutAdjacent(layout, e.a, e.b), false);
     }
+  });
+
+  it("collectMatrixEdges lists every undirected off-diagonal edge once", () => {
+    const map = generateRandomMap("map-lab|demo", { nodeCount: 6 });
+    const all = collectMatrixEdges(map.matrix, map.placeIds);
+    assert.ok(all.length >= 5, "connected map has several edges");
+    const keys = new Set(all.map((e) => `${e.a}|${e.b}`));
+    assert.equal(keys.size, all.length);
+    for (const e of all) {
+      assert.equal(edgeKindBetween(map.matrix, map.placeIds, e.a, e.b), e.kind);
+      assert.notEqual(e.a, e.b);
+    }
+    const layout = layoutForNodeCount(map.placeIds);
+    const nonAdj = collectNonAdjacentEdges(map.matrix, map.placeIds, (a, b) =>
+      areLayoutAdjacent(layout, a, b)
+    );
+    assert.ok(all.length >= nonAdj.length);
+  });
+
+  it("polygonVertexPositions places n points on the unit circle from the top", () => {
+    const six = polygonVertexPositions(6);
+    assert.equal(six.length, 6);
+    // First vertex at top
+    assert.ok(Math.abs(six[0].x) < 1e-9);
+    assert.ok(Math.abs(six[0].y - -1) < 1e-9);
+    for (const p of six) {
+      assert.ok(Math.abs(Math.hypot(p.x, p.y) - 1) < 1e-9);
+    }
+    const eight = polygonVertexPositions(8);
+    assert.equal(eight.length, 8);
+    // Opposite of top ≈ bottom for even n
+    assert.ok(Math.abs(eight[4].x) < 1e-9);
+    assert.ok(Math.abs(eight[4].y - 1) < 1e-9);
   });
 });
