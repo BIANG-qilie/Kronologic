@@ -169,6 +169,23 @@
   .animate-pulse-soft {
     animation: pulse-soft 1.4s ease-in-out infinite;
   }
+
+  /* Map-lab / dark theater fields — kill UA white fill & autofill flash */
+  .map-lab-field {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--curtain) !important;
+    color: var(--ink);
+  }
+
+  .map-lab-field:-webkit-autofill,
+  .map-lab-field:-webkit-autofill:hover,
+  .map-lab-field:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--ink);
+    caret-color: var(--ink);
+    box-shadow: 0 0 0 1000px var(--curtain) inset;
+    transition: background-color 99999s ease-out;
+  }
 }
 
 @keyframes reveal-green {

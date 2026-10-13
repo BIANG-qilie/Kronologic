@@ -14,7 +14,7 @@ import {
   placeLabelForGeneratedId,
   type GeneratedMap,
 } from "@/lib/game/map-generator";
-import { FloorPlan, planAspect } from "./floor-plan";
+import { FloorPlan } from "./floor-plan";
 import { MapPassage, StayMark } from "./map-passage";
 import { edgeKindBetween } from "@/lib/game/map-generator";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,72 @@ function buildMap(seed: string, nodeCount: number): { map: GeneratedMap | null; 
   } catch (e) {
     return { map: null, error: e instanceof Error ? e.message : String(e) };
   }
+}
+
+function MatrixTable({ map }: { map: GeneratedMap }) {
+  const labels = map.placeIds.map((id) => placeLabelForGeneratedId(id));
+  return (
+    <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+      <table
+        className="w-full min-w-[280px] border-collapse font-mono text-[11px] sm:text-xs"
+        data-testid="map-lab-matrix"
+      >
+        <caption className="sr-only">邻接矩阵：1 表示有向可达，对角为可停留</caption>
+        <thead>
+          <tr>
+            <th
+              scope="col"
+              className="sticky left-0 z-[1] bg-[var(--stage)] px-2 py-2 text-left font-normal text-[var(--ink-muted)]"
+            >
+              →
+            </th>
+            {labels.map((name, j) => (
+              <th
+                key={map.placeIds[j]}
+                scope="col"
+                className="px-1.5 py-2 text-center font-normal text-[var(--ink-muted)]"
+                title={map.placeIds[j]}
+              >
+                <span className="block max-w-[2.75rem] truncate sm:max-w-none">{name}</span>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {map.matrix.map((row, i) => (
+            <tr key={map.placeIds[i]} className="border-t border-ink-faint/25">
+              <th
+                scope="row"
+                className="sticky left-0 z-[1] bg-[var(--stage)] px-2 py-1.5 text-left font-normal text-[var(--ink-muted)]"
+                title={map.placeIds[i]}
+              >
+                <span className="block max-w-[3.5rem] truncate">{labels[i]}</span>
+              </th>
+              {row.map((cell, j) => {
+                const stay = i === j && cell === 1;
+                const directed = i !== j && cell === 1 && map.matrix[j][i] !== 1;
+                const bi = i !== j && cell === 1 && map.matrix[j][i] === 1;
+                return (
+                  <td
+                    key={`${i}-${j}`}
+                    className={cn(
+                      "px-1.5 py-1.5 text-center tabular-nums transition-colors duration-200 motion-reduce:transition-none",
+                      stay && "bg-amber/18 text-[var(--amber)]",
+                      directed && "bg-amber/10 text-[var(--amber)]",
+                      bi && "bg-ink-faint/25 text-[var(--ink)]",
+                      cell === 0 && "text-ink-faint/55"
+                    )}
+                  >
+                    {cell}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 export function MapLabClient() {
@@ -47,10 +113,7 @@ export function MapLabClient() {
     [appliedSeed, appliedNodes, tick]
   );
 
-  const layout = useMemo(
-    () => (map ? layoutForNodeCount(map.placeIds) : []),
-    [map]
-  );
+  const layout = useMemo(() => (map ? layoutForNodeCount(map.placeIds) : []), [map]);
 
   const apply = (opts?: { newSeed?: boolean }) => {
     if (!nodesValid) return;
@@ -71,134 +134,215 @@ export function MapLabClient() {
   };
 
   return (
-    <div className="grain min-h-dvh bg-[var(--curtain)] text-[var(--ink)]">
-      <header className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-5 sm:px-6">
-        <div>
-          <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">内部验收</p>
-          <h1 className="font-display text-2xl sm:text-3xl">随机地图实验室</h1>
+    <div
+      className="grain bg-atmosphere relative min-h-dvh overflow-x-hidden text-[var(--ink)]"
+      style={{ colorScheme: "dark" }}
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-[42vh] bg-[radial-gradient(ellipse_70%_55%_at_50%_-8%,rgba(212,161,90,0.16),transparent_60%)]"
+      />
+
+      <header className="relative mx-auto flex max-w-5xl items-start justify-between gap-4 px-4 pb-2 pt-6 sm:px-6 sm:pt-8">
+        <div className="min-w-0 rise" style={{ ["--i" as string]: 0 }}>
+          <p className="font-display text-[11px] tracking-[0.38em] text-[var(--amber)] sm:text-xs">
+            灯序 · 内部验收
+          </p>
+          <h1 className="mt-1.5 font-display text-[1.65rem] leading-tight tracking-wide text-[var(--parchment)] sm:text-4xl">
+            随机地图实验室
+          </h1>
+          <p className="mt-2 max-w-md text-[13px] leading-relaxed text-[var(--ink-muted)] sm:text-sm">
+            种子驱动邻接矩阵：单向门洞与可停留锚点。
+          </p>
         </div>
         <Link
           href="/"
-          className="text-sm text-[var(--ink-muted)] underline-offset-4 hover:text-[var(--amber)] hover:underline"
+          className="inline-flex min-h-11 shrink-0 items-center px-1 text-sm text-[var(--ink-muted)] underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
         >
           回大厅
         </Link>
       </header>
 
-      <main className="mx-auto max-w-5xl space-y-8 px-4 pb-16 sm:px-6">
-        <section className="grid gap-4 rounded-[3px] border border-ink-faint/50 bg-[var(--stage)]/60 p-4 sm:grid-cols-[1fr_auto_auto] sm:items-end sm:p-5">
-          <div className="space-y-2">
-            <Label htmlFor="map-seed" className="text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
-              种子
-            </Label>
-            <Input
-              id="map-seed"
-              value={seed}
-              onChange={(e) => setSeed(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && apply()}
-              className="border-ink-faint/60 bg-[var(--curtain)] font-mono text-sm"
-            />
-          </div>
+      <main className="relative mx-auto max-w-5xl space-y-7 px-4 pb-20 pt-4 sm:space-y-9 sm:px-6">
+        <section
+          className="parchment-wash rise rounded-[3px] border border-ink-faint/45 p-4 shadow-[0_24px_60px_-36px_rgba(0,0,0,0.85)] sm:p-5"
+          style={{ ["--i" as string]: 1 }}
+        >
+          <div className="grid gap-4 sm:grid-cols-[1fr_7.5rem_auto] sm:items-end">
+            <div className="space-y-2">
+              <Label
+                htmlFor="map-seed"
+                className="text-[11px] tracking-[0.22em] text-[var(--ink-muted)]"
+              >
+                种子
+              </Label>
+              <Input
+                id="map-seed"
+                value={seed}
+                onChange={(e) => setSeed(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && apply()}
+                autoComplete="off"
+                spellCheck={false}
+                className="map-lab-field h-11 rounded-[3px] border-ink-faint/55 bg-[var(--curtain)] font-mono text-sm text-[var(--ink)] shadow-[inset_0_1px_0_rgba(215,201,168,0.04)] placeholder:text-ink-muted/50"
+              />
+            </div>
 
-          <div className="space-y-2 sm:w-36">
-            <Label htmlFor="map-nodes" className="text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">
-              节点数（{MAP_NODE_COUNT_MIN}–{MAP_NODE_COUNT_MAX}）
-            </Label>
-            <Input
-              id="map-nodes"
-              type="number"
-              min={MAP_NODE_COUNT_MIN}
-              max={MAP_NODE_COUNT_MAX}
-              step={1}
-              value={nodeCountInput}
-              onChange={(e) => {
-                const v = e.target.value;
-                setNodeCountInput(v);
-                const n = Number(v);
-                if (
-                  Number.isInteger(n) &&
-                  n >= MAP_NODE_COUNT_MIN &&
-                  n <= MAP_NODE_COUNT_MAX
-                ) {
-                  setAppliedNodes(n);
-                  setAppliedSeed(seed.trim() || appliedSeed);
-                }
-              }}
-              onBlur={onNodeCountCommit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") onNodeCountCommit();
-              }}
-              aria-invalid={!nodesValid}
-              className={cn(
-                "border-ink-faint/60 bg-[var(--curtain)] font-mono text-sm",
-                !nodesValid && "border-[var(--mark-conflict)]"
+            <div className="space-y-2">
+              <Label
+                htmlFor="map-nodes"
+                className="text-[11px] tracking-[0.22em] text-[var(--ink-muted)]"
+              >
+                节点（{MAP_NODE_COUNT_MIN}–{MAP_NODE_COUNT_MAX}）
+              </Label>
+              <Input
+                id="map-nodes"
+                type="number"
+                min={MAP_NODE_COUNT_MIN}
+                max={MAP_NODE_COUNT_MAX}
+                step={1}
+                inputMode="numeric"
+                value={nodeCountInput}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setNodeCountInput(v);
+                  const n = Number(v);
+                  if (
+                    Number.isInteger(n) &&
+                    n >= MAP_NODE_COUNT_MIN &&
+                    n <= MAP_NODE_COUNT_MAX
+                  ) {
+                    setAppliedNodes(n);
+                    setAppliedSeed(seed.trim() || appliedSeed);
+                  }
+                }}
+                onBlur={onNodeCountCommit}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onNodeCountCommit();
+                }}
+                aria-invalid={!nodesValid}
+                className={cn(
+                  "map-lab-field h-11 rounded-[3px] border-ink-faint/55 bg-[var(--curtain)] font-mono text-sm text-[var(--ink)] shadow-[inset_0_1px_0_rgba(215,201,168,0.04)]",
+                  !nodesValid && "border-[var(--mark-conflict)]"
+                )}
+              />
+              {!nodesValid && (
+                <p className="text-xs text-[var(--mark-conflict)]">
+                  请输入 {MAP_NODE_COUNT_MIN}–{MAP_NODE_COUNT_MAX} 的整数
+                </p>
               )}
-            />
-            {!nodesValid && (
-              <p className="text-xs text-[var(--mark-conflict)]">
-                请输入 {MAP_NODE_COUNT_MIN}–{MAP_NODE_COUNT_MAX} 的整数
-              </p>
-            )}
-          </div>
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={() => apply()} disabled={!nodesValid}>
-              按种子生成
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => apply({ newSeed: true })}
-              disabled={!nodesValid}
-            >
-              换种子
-            </Button>
+            <div className="flex flex-col gap-2 min-[420px]:flex-row sm:flex-col lg:flex-row">
+              <Button
+                type="button"
+                size="lg"
+                className="min-h-11 w-full lg:w-auto"
+                onClick={() => apply()}
+                disabled={!nodesValid}
+              >
+                按种子生成
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="secondary"
+                className="min-h-11 w-full lg:w-auto"
+                onClick={() => apply({ newSeed: true })}
+                disabled={!nodesValid}
+              >
+                换种子
+              </Button>
+            </div>
           </div>
         </section>
 
         {error && (
-          <p className="rounded-[3px] border border-[var(--mark-conflict)]/40 bg-[var(--mark-conflict)]/10 px-4 py-3 text-sm text-[var(--parchment)]">
+          <p
+            role="alert"
+            className="animate-fade-up rounded-[3px] border border-[var(--mark-conflict)]/40 bg-[var(--mark-conflict)]/10 px-4 py-3 text-sm text-[var(--parchment)]"
+          >
             {error}
           </p>
         )}
 
         {map && (
           <>
-            <section className="space-y-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 className="font-display text-xl">平面图</h2>
-                <p className="font-mono text-xs text-[var(--ink-muted)]">
-                  n={map.nodeCount} · 停留 {map.stayIds.length} · 单向 {map.directedEdges.length} · 步数校验{" "}
-                  {map.steps}
-                </p>
+            <section className="space-y-4 rise" style={{ ["--i" as string]: 2 }}>
+              <div className="flex flex-wrap items-end justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-xl text-[var(--parchment)] sm:text-2xl">
+                    平面图
+                  </h2>
+                  <p className="mt-1 text-xs text-[var(--ink-muted)] sm:text-sm">
+                    琥珀色箭头为单向；锚点格可在原位停留。
+                  </p>
+                </div>
+                <dl className="flex flex-wrap gap-2 font-mono text-[11px] text-[var(--ink-muted)] sm:text-xs">
+                  {(
+                    [
+                      ["n", map.nodeCount],
+                      ["停留", map.stayIds.length],
+                      ["单向", map.directedEdges.length],
+                      ["步数", map.steps],
+                    ] as const
+                  ).map(([k, v]) => (
+                    <div
+                      key={k}
+                      className="inline-flex min-h-8 items-center gap-1.5 rounded-[2px] border border-ink-faint/40 bg-[var(--stage)]/70 px-2.5"
+                    >
+                      <dt className="text-ink-muted/80">{k}</dt>
+                      <dd className="tabular text-[var(--amber)]">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
               </div>
 
               <div
-                className="relative w-full rounded-[3px] border border-ink-faint/40 bg-[var(--curtain)] p-3 sm:p-4"
-                style={{ aspectRatio: planAspect(layout) }}
+                key={`${appliedSeed}|${appliedNodes}|${tick}`}
+                className="animate-fade-up relative w-full overflow-hidden rounded-[3px] border border-ink-faint/40 bg-[var(--curtain)]/90 p-2 shadow-[inset_0_1px_0_rgba(215,201,168,0.06)] sm:p-4"
+                style={{
+                  // Slightly taller than raw planAspect so room labels + stay anchors breathe
+                  aspectRatio: (() => {
+                    const cols = Math.max(...layout.map((r) => r.length));
+                    const rows = layout.length;
+                    return rows === 1 ? `${cols} / 1.35` : `${cols} / ${rows * 1.12}`;
+                  })(),
+                }}
                 data-testid="map-lab-plan"
               >
                 <FloorPlan
                   layout={layout}
-                  gap="12px"
-                  className="absolute inset-3 grid sm:inset-4"
+                  gap="22px"
+                  className="absolute inset-2 grid sm:inset-4"
                   room={(id, i) => {
                     const stay = map.stayIds.includes(id);
                     return (
                       <div
-                        className="relative flex flex-col justify-between rounded-[3px] bg-[var(--stage)] p-2.5 shadow-[inset_0_0_0_1px_var(--ink-faint)] sm:p-3.5"
+                        className={cn(
+                          "relative flex min-h-[4.25rem] flex-col justify-between rounded-[3px] p-2 transition-[box-shadow,background-color] duration-300 motion-reduce:transition-none sm:min-h-0 sm:p-3.5",
+                          stay
+                            ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.16),transparent_44%),var(--stage)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.4)]"
+                            : "bg-[var(--stage)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+                        )}
                         data-place={id}
                         data-stay={stay ? "1" : "0"}
                       >
                         <span className="flex items-start justify-between gap-1">
-                          <span className="font-display text-xs italic text-[var(--ink-faint)]">
+                          <span className="font-display text-[10px] italic text-[var(--ink-faint)] sm:text-xs">
                             0{i + 1}
                           </span>
-                          {stay && <StayMark />}
+                          {/* Phone: icon + wash; sm+: full caption */}
+                          {stay && <StayMark label="sm" />}
                         </span>
-                        <span className="font-display text-base leading-none text-[var(--ink)] sm:text-xl">
+                        <span className="font-display text-[0.95rem] leading-none text-[var(--ink)] sm:text-[1.35rem]">
                           {placeLabelForGeneratedId(id)}
                         </span>
+                        {stay && (
+                          <span
+                            aria-hidden
+                            className="pointer-events-none absolute inset-x-3 bottom-1.5 h-px bg-[linear-gradient(90deg,transparent,rgba(212,161,90,0.55),transparent)] sm:inset-x-4"
+                          />
+                        )}
                       </div>
                     );
                   }}
@@ -212,52 +356,94 @@ export function MapLabClient() {
                 />
               </div>
 
-              <div className="flex flex-wrap gap-4 text-[11px] text-[var(--ink-muted)]">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-[3px] w-6 rounded-full bg-[var(--ink-faint)]" />
+              <ul className="flex flex-wrap gap-x-5 gap-y-2.5 text-[11px] text-[var(--ink-muted)] sm:text-xs">
+                <li className="inline-flex min-h-8 items-center gap-2">
+                  <span className="h-[3px] w-7 rounded-full bg-[var(--ink-muted)]" aria-hidden />
                   双向通道
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <svg viewBox="0 0 12 12" className="h-3.5 w-3.5 text-[var(--ink-faint)]" aria-hidden>
-                    <path
-                      d="M2 2 L10 6 L2 10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  单向通道（箭头指向可走方向）
-                </span>
-                <span className="inline-flex items-center gap-2">
-                  <StayMark />
-                </span>
-              </div>
+                </li>
+                <li className="inline-flex min-h-8 items-center gap-2">
+                  <span
+                    className="relative flex h-5 w-7 items-center justify-center"
+                    aria-hidden
+                  >
+                    <span className="absolute inset-x-0 top-1/2 h-[3px] -translate-y-1/2 rounded-full bg-[var(--amber-dim)]" />
+                    <span className="relative flex h-5 w-5 items-center justify-center rounded-full bg-[var(--curtain)] ring-1 ring-[var(--amber)]/35">
+                      <svg viewBox="0 0 12 12" className="h-3 w-3 text-[var(--amber)]">
+                        <path d="M1.5 1.5 L10.5 6 L1.5 10.5 Z" fill="currentColor" />
+                      </svg>
+                    </span>
+                  </span>
+                  单向（箭头指向可走方向）
+                </li>
+                <li className="inline-flex min-h-8 items-center gap-2">
+                  <StayMark label="always" />
+                </li>
+              </ul>
             </section>
 
-            <section className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-[3px] border border-ink-faint/40 bg-[var(--stage)]/40 p-4">
-                <h3 className="font-display text-lg">可停留格</h3>
-                <ul className="mt-2 space-y-1 text-sm text-[var(--ink-muted)]">
-                  {map.stayIds.length === 0 && <li>无</li>}
-                  {map.stayIds.map((id) => (
-                    <li key={id} className="font-mono">
-                      {id} · {placeLabelForGeneratedId(id)}
-                    </li>
-                  ))}
-                </ul>
+            <section
+              className="grid gap-4 rise lg:grid-cols-[1.15fr_0.85fr]"
+              style={{ ["--i" as string]: 3 }}
+            >
+              <div className="rounded-[3px] border border-ink-faint/40 bg-[var(--stage)]/55 p-4 sm:p-5">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="font-display text-lg text-[var(--parchment)] sm:text-xl">
+                    邻接矩阵
+                  </h3>
+                  <p className="font-mono text-[10px] tracking-wider text-[var(--ink-muted)] sm:text-[11px]">
+                    行→列 · 对角=停留
+                  </p>
+                </div>
+                <div className="mt-3 rounded-[2px] border border-ink-faint/30 bg-[var(--curtain)]/40 p-1 sm:p-2">
+                  <MatrixTable map={map} />
+                </div>
               </div>
-              <div className="rounded-[3px] border border-ink-faint/40 bg-[var(--stage)]/40 p-4">
-                <h3 className="font-display text-lg">单向边</h3>
-                <ul className="mt-2 max-h-40 space-y-1 overflow-auto text-sm text-[var(--ink-muted)]">
-                  {map.directedEdges.length === 0 && <li>无</li>}
-                  {map.directedEdges.map((e) => (
-                    <li key={`${e.from}->${e.to}`} className="font-mono">
-                      {placeLabelForGeneratedId(e.from)} → {placeLabelForGeneratedId(e.to)}
-                    </li>
-                  ))}
-                </ul>
+
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                <div className="rounded-[3px] border border-ink-faint/40 bg-[var(--stage)]/40 p-4 sm:p-5">
+                  <h3 className="font-display text-lg text-[var(--parchment)]">可停留格</h3>
+                  <ul className="mt-3 space-y-2 text-sm text-[var(--ink-muted)]">
+                    {map.stayIds.length === 0 && <li>无</li>}
+                    {map.stayIds.map((id) => (
+                      <li
+                        key={id}
+                        className="flex min-h-8 items-center gap-2 font-mono text-[13px]"
+                      >
+                        <StayMark compact className="shrink-0" />
+                        <span>
+                          {id}
+                          <span className="text-ink-faint"> · </span>
+                          {placeLabelForGeneratedId(id)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-[3px] border border-ink-faint/40 bg-[var(--stage)]/40 p-4 sm:p-5">
+                  <h3 className="font-display text-lg text-[var(--parchment)]">单向边</h3>
+                  <ul className="mt-3 max-h-48 space-y-2 overflow-auto overscroll-contain text-sm text-[var(--ink-muted)]">
+                    {map.directedEdges.length === 0 && <li>无</li>}
+                    {map.directedEdges.map((e) => (
+                      <li
+                        key={`${e.from}->${e.to}`}
+                        className="flex min-h-8 items-center gap-2 font-mono text-[13px]"
+                      >
+                        <svg
+                          viewBox="0 0 12 12"
+                          className="h-3.5 w-3.5 shrink-0 text-[var(--amber)]"
+                          aria-hidden
+                        >
+                          <path d="M1.5 1.5 L10.5 6 L1.5 10.5 Z" fill="currentColor" />
+                        </svg>
+                        <span>
+                          {placeLabelForGeneratedId(e.from)}
+                          <span className="mx-1 text-[var(--amber-dim)]">→</span>
+                          {placeLabelForGeneratedId(e.to)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             </section>
           </>

@@ -75,12 +75,14 @@ export function BoardMap({
         onFocus={() => setHovered(id)}
         onBlur={() => setHovered(null)}
         className={cn(
-          "group relative flex flex-col justify-between rounded-[3px] p-2.5 text-left transition-all duration-300 active:scale-[0.98] sm:p-4",
+          "group relative flex min-h-11 flex-col justify-between rounded-[3px] p-2.5 text-left transition-[background-color,box-shadow,transform,opacity] duration-300 motion-reduce:transition-none active:scale-[0.98] sm:min-h-0 sm:p-4",
           isSel
             ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_18px_40px_-16px_rgba(212,161,90,0.9)]"
             : isNeighbor
               ? "bg-amber/10 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
-              : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
+              : canStay
+                ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.12),transparent_40%),var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.32)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+                : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
           highlight === id && "animate-pulse-soft",
           !onSelect && "cursor-default",
           off && "cursor-not-allowed opacity-35 active:scale-100"
@@ -100,7 +102,7 @@ export function BoardMap({
             <PlaceGlyph
               id={id}
               className={cn(
-                "h-5 w-5 transition-colors duration-300 sm:h-6 sm:w-6",
+                "h-5 w-5 transition-colors duration-300 motion-reduce:transition-none sm:h-6 sm:w-6",
                 isSel ? "text-curtain/80" : "text-amber/70 group-hover:text-[var(--amber)]"
               )}
             />
@@ -113,7 +115,7 @@ export function BoardMap({
 
   return (
     <div className="relative w-full" style={{ aspectRatio: planAspect(layoutOf(scenario)) }}>
-      <FloorPlan layout={layoutOf(scenario)} gap="14px" className="absolute inset-0 grid" room={room} door={door} />
+      <FloorPlan layout={layoutOf(scenario)} gap="22px" className="absolute inset-0 grid" room={room} door={door} />
       <span className="sr-only">{placeOrder(scenario).map((id) => byId.get(id)?.name).join("、")}</span>
     </div>
   );

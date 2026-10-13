@@ -122,7 +122,7 @@ function FloorGrid({
   return (
     <FloorPlan
       layout={layout}
-      gap={compact ? "5px" : "16px"}
+      gap={compact ? "6px" : "18px"}
       padding={compact ? "2px" : "6px"}
       room={(place) => room(place)}
       door={door}
