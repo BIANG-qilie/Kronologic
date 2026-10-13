@@ -13,6 +13,8 @@ npm run dev                 # http://127.0.0.1:4317
 npm run build && PORT=43218 HOSTNAME=0.0.0.0 npm run start   # standalone；强制 IPv4；PORT 默认 3000
 ```
 
+随机地图验收：打开 [/map-lab](http://127.0.0.1:4317/map-lab)，可改**种子**与**节点数**（6–12）重新生成；平面图上会标出单向通道箭头与可停留格。API：`generateRandomMap(seed, { nodeCount? })`（`src/lib/game/map-generator.ts`）。
+
 ### 账号、战绩与成就（可选）
 
 不设 `DATABASE_URL` 时，账号入口自动隐藏，游客照常玩，不会报错。要在本地试账号功能，起一个 Postgres 再带上连接串：

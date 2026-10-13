@@ -1,11 +1,11 @@
 import { Fragment, type CSSProperties, type ReactNode } from "react";
-import type { PlaceId } from "@/lib/game/types";
 
 /**
  * Rooms laid out row by row with a door track between neighbours:
  * room / door / room … horizontally, and a door row between room rows.
+ * Place ids are opaque strings (night-tea PlaceId or generated `r0`…).
  */
-export function FloorPlan({
+export function FloorPlan<P extends string = string>({
   layout,
   gap,
   padding,
@@ -13,11 +13,11 @@ export function FloorPlan({
   door,
   className = "absolute inset-0 grid h-full w-full",
 }: {
-  layout: PlaceId[][];
+  layout: P[][];
   gap: string;
   padding?: string;
-  room: (place: PlaceId, index: number) => ReactNode;
-  door: (a: PlaceId, b: PlaceId, dir: "h" | "v") => ReactNode;
+  room: (place: P, index: number) => ReactNode;
+  door: (a: P, b: P, dir: "h" | "v") => ReactNode;
   className?: string;
 }) {
   const cols = Math.max(...layout.map((r) => r.length));
@@ -58,7 +58,7 @@ export function FloorPlan({
 }
 
 /** Width / height for a plan with this layout; single-row plans get a bit more height. */
-export function planAspect(layout: PlaceId[][]): string {
+export function planAspect(layout: string[][]): string {
   const cols = Math.max(...layout.map((r) => r.length));
   return layout.length === 1 ? `${cols} / 1.3` : `${cols} / ${layout.length}`;
 }

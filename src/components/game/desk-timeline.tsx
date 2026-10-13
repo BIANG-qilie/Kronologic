@@ -41,7 +41,10 @@ import { SuspectBoard } from "./suspect-board";
 import { AdaptivePopover } from "./adaptive-popover";
 import { PlaceGlyph, PlaceMark } from "./place-glyph";
 import { FloorPlan, planAspect } from "./floor-plan";
+import { MapPassage } from "./map-passage";
 import { layoutOf, placeOrder, timesOf } from "@/lib/game/board";
+import { adjacencyRecordToMatrix } from "@/lib/game/trajectory-kernel";
+import { edgeKindBetween, type EdgeKind } from "@/lib/game/map-generator";
 
 const LAYER_NAME: Record<MarkSource, string> = {
   public: "绿窗",
@@ -93,42 +96,29 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
   );
 }
 
-function useEdges(view: RoomPublicView) {
+function useEdgeKind(view: RoomPublicView) {
   return useMemo(() => {
-    const seen = new Set<string>();
-    for (const [a, neighbors] of Object.entries(view.scenario.adjacency) as [PlaceId, PlaceId[]][]) {
-      for (const b of neighbors) seen.add([a, b].sort().join("-"));
-    }
-    return (a: PlaceId, b: PlaceId) => seen.has([a, b].sort().join("-"));
-  }, [view.scenario.adjacency]);
+    const placeIds = placeOrder(view.scenario);
+    const matrix = adjacencyRecordToMatrix(view.scenario.adjacency, placeIds);
+    return (a: PlaceId, b: PlaceId) => edgeKindBetween(matrix, placeIds, a, b);
+  }, [view.scenario]);
 }
 
 /** Rooms and doors from the scenario floor plan; rows joined by vertical doors. */
 function FloorGrid({
   layout,
-  linked,
+  edgeKind,
   compact,
   room,
 }: {
   layout: PlaceId[][];
-  linked: (a: PlaceId, b: PlaceId) => boolean;
+  edgeKind: (a: PlaceId, b: PlaceId) => EdgeKind;
   compact?: boolean;
   room: (place: PlaceId) => ReactNode;
 }) {
-  const door = (a: PlaceId, b: PlaceId, dir: "h" | "v") =>
-    linked(a, b) ? (
-      <div className="flex items-center justify-center self-stretch">
-        <div
-          className={cn(
-            "rounded-full",
-            dir === "h" ? (compact ? "h-px w-full" : "h-2 w-full rounded-sm") : compact ? "h-full w-px" : "h-full w-2 rounded-sm"
-          )}
-          style={{ backgroundColor: "var(--ink-deep)", opacity: compact ? 0.5 : 0.65 }}
-        />
-      </div>
-    ) : (
-      <div />
-    );
+  const door = (a: PlaceId, b: PlaceId, dir: "h" | "v") => (
+    <MapPassage kind={edgeKind(a, b)} dir={dir} compact={compact} tone="parchment" />
+  );
   return (
     <FloorPlan
       layout={layout}
@@ -345,7 +335,7 @@ function FilmFrame({
   active,
   verdict,
   layout,
-  linked,
+  edgeKind,
   mergedFor,
   board,
   disabled,
@@ -356,7 +346,7 @@ function FilmFrame({
   layout: PlaceId[][];
   disabled?: boolean;
   verdict?: "target" | "excluded";
-  linked: (a: PlaceId, b: PlaceId) => boolean;
+  edgeKind: (a: PlaceId, b: PlaceId) => EdgeKind;
   mergedFor: (time: TimeId, place: PlaceId) => MergedCell;
   board: Board;
   onSelect: () => void;
@@ -393,7 +383,7 @@ function FilmFrame({
       <div className="relative w-full" style={{ aspectRatio: planAspect(layout) }}>
         <FloorGrid
           layout={layout}
-          linked={linked}
+          edgeKind={edgeKind}
           compact
           room={(place) => (
             <MiniRoom key={place} place={place} merged={mergedFor(time, place)} verdict={board.places[place]} />
@@ -460,7 +450,7 @@ export function DeskTimeline({
   const times = timesOf(view.scenario);
   const layout = layoutOf(view.scenario);
   const order = placeOrder(view.scenario);
-  const linked = useEdges(view);
+  const edgeKind = useEdgeKind(view);
   const restricted = !!allowedTargets;
   const cellAllowed = (time: TimeId, place: PlaceId) =>
     !allowedTargets || allowedTargets.cells.some((c) => c.time === time && c.place === place);
@@ -646,7 +636,7 @@ export function DeskTimeline({
                 verdict={payload.board.times[String(t)]}
                 layout={layout}
                 disabled={restricted}
-                linked={linked}
+                edgeKind={edgeKind}
                 mergedFor={mergedFor}
                 board={payload.board}
                 onSelect={() => {
@@ -660,7 +650,7 @@ export function DeskTimeline({
           <div data-tutorial="floor" className="relative max-h-[440px] w-full" style={{ aspectRatio: planAspect(layout) }}>
             <FloorGrid
               layout={layout}
-              linked={linked}
+              edgeKind={edgeKind}
               room={(place) => (
                 <RoomCell
                   key={place}

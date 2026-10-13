@@ -600,6 +600,12 @@ export function LobbyHome() {
               1–4 人 · 凭房间码入座 · 无需注册
               {account.status === "ready" && account.enabled && "，登录可记战绩"}
             </span>
+            <Link
+              href="/map-lab"
+              className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+            >
+              随机地图实验室
+            </Link>
             <span className="font-display italic text-ink-muted/70">灯序 · 时间推理</span>
           </div>
         </footer>

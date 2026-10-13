@@ -4,8 +4,11 @@ import { useMemo, useState } from "react";
 import type { PlaceId, ScenarioPublic } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 import { layoutOf, placeOrder } from "@/lib/game/board";
+import { adjacencyRecordToMatrix } from "@/lib/game/trajectory-kernel";
+import { edgeKindBetween, isStayPlace } from "@/lib/game/map-generator";
 import { PlaceGlyph } from "./place-glyph";
 import { FloorPlan, planAspect } from "./floor-plan";
+import { MapPassage, StayMark } from "./map-passage";
 
 export function BoardMap({
   scenario,
@@ -13,6 +16,10 @@ export function BoardMap({
   onSelect,
   selected,
   isEnabled,
+  /** Optional stay places (diagonal). Night-tea has none. */
+  stayIds,
+  /** Optional dense matrix; when omitted, derived from scenario.adjacency (asymmetry = directed). */
+  matrix,
 }: {
   scenario: ScenarioPublic;
   highlight?: PlaceId | null;
@@ -20,29 +27,33 @@ export function BoardMap({
   selected?: PlaceId | null;
   /** Rooms outside this predicate are shown but cannot be picked. */
   isEnabled?: (id: PlaceId) => boolean;
+  stayIds?: readonly PlaceId[];
+  matrix?: ReadonlyArray<ReadonlyArray<number>>;
 }) {
   const [hovered, setHovered] = useState<PlaceId | null>(null);
   const byId = useMemo(() => new Map(scenario.places.map((p) => [p.id, p])), [scenario.places]);
-  const linked = (a: PlaceId, b: PlaceId) =>
-    (scenario.adjacency[a] ?? []).includes(b) || (scenario.adjacency[b] ?? []).includes(a);
+  const placeIds = useMemo(() => placeOrder(scenario), [scenario]);
+
+  const adjMatrix = useMemo(() => {
+    if (matrix) return matrix;
+    return adjacencyRecordToMatrix(scenario.adjacency, placeIds);
+  }, [matrix, scenario.adjacency, placeIds]);
+
+  const staySet = useMemo(() => {
+    if (stayIds?.length) return new Set(stayIds);
+    return new Set(
+      placeIds.filter((id) => isStayPlace(adjMatrix, placeIds, id))
+    );
+  }, [stayIds, placeIds, adjMatrix]);
 
   const focus = selected ?? hovered;
   const neighbors = new Set(focus ? scenario.adjacency[focus] ?? [] : []);
 
   const door = (a: PlaceId, b: PlaceId, dir: "h" | "v") => {
-    if (!linked(a, b)) return <div />;
+    const kind = edgeKindBetween(adjMatrix, placeIds, a, b);
+    if (kind === "none") return <div />;
     const lit = !!focus && (a === focus || b === focus);
-    return (
-      <div className="flex items-center justify-center">
-        <div
-          className={cn(
-            "rounded-full transition-all duration-300",
-            dir === "h" ? "h-[3px] w-full" : "h-full w-[3px]",
-            lit ? "bg-[var(--amber)] shadow-[0_0_10px_rgba(212,161,90,0.8)]" : "bg-[var(--ink-faint)]"
-          )}
-        />
-      </div>
-    );
+    return <MapPassage kind={kind} dir={dir} lit={lit} tone="stage" />;
   };
 
   const room = (id: PlaceId, i: number) => {
@@ -50,6 +61,7 @@ export function BoardMap({
     const isSel = selected === id;
     const isNeighbor = !!focus && neighbors.has(id) && id !== focus;
     const off = !!isEnabled && !isEnabled(id);
+    const canStay = staySet.has(id);
     return (
       <button
         key={id}
@@ -74,7 +86,7 @@ export function BoardMap({
           off && "cursor-not-allowed opacity-35 active:scale-100"
         )}
       >
-        <span className="flex w-full items-start justify-between">
+        <span className="flex w-full items-start justify-between gap-1">
           <span
             className={cn(
               "font-display text-xs italic",
@@ -83,13 +95,16 @@ export function BoardMap({
           >
             0{i + 1}
           </span>
-          <PlaceGlyph
-            id={id}
-            className={cn(
-              "h-5 w-5 transition-colors duration-300 sm:h-6 sm:w-6",
-              isSel ? "text-curtain/80" : "text-amber/70 group-hover:text-[var(--amber)]"
-            )}
-          />
+          <span className="flex items-center gap-1">
+            {canStay && <StayMark selected={isSel} />}
+            <PlaceGlyph
+              id={id}
+              className={cn(
+                "h-5 w-5 transition-colors duration-300 sm:h-6 sm:w-6",
+                isSel ? "text-curtain/80" : "text-amber/70 group-hover:text-[var(--amber)]"
+              )}
+            />
+          </span>
         </span>
         <span className="font-display text-lg leading-none sm:text-2xl">{place.name}</span>
       </button>
