@@ -340,6 +340,36 @@ export function edgeKindBetween(
   return "none";
 }
 
+export type NonAdjacentEdge = {
+  a: string;
+  b: string;
+  kind: Exclude<EdgeKind, "none">;
+};
+
+/**
+ * Matrix edges that FloorPlan door tracks cannot show (not grid-adjacent).
+ * Each undirected pair appears once; `kind` is relative to `a`→`b`
+ * (forward = a→b only, backward = b→a only).
+ */
+export function collectNonAdjacentEdges(
+  matrix: AdjacencyMatrix,
+  placeIds: readonly string[],
+  isAdjacent: (a: string, b: string) => boolean
+): NonAdjacentEdge[] {
+  const out: NonAdjacentEdge[] = [];
+  for (let i = 0; i < placeIds.length; i++) {
+    for (let j = i + 1; j < placeIds.length; j++) {
+      const a = placeIds[i];
+      const b = placeIds[j];
+      const kind = edgeKindBetween(matrix, placeIds, a, b);
+      if (kind === "none") continue;
+      if (isAdjacent(a, b)) continue;
+      out.push({ a, b, kind });
+    }
+  }
+  return out;
+}
+
 export function isStayPlace(
   matrix: AdjacencyMatrix,
   placeIds: readonly string[],

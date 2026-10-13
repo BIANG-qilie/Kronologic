@@ -9,6 +9,7 @@ import { edgeKindBetween, isStayPlace } from "@/lib/game/map-generator";
 import { PlaceGlyph } from "./place-glyph";
 import { FloorPlan, planAspect } from "./floor-plan";
 import { MapPassage, StayMark } from "./map-passage";
+import { MapArcOverlay } from "./map-arc-overlay";
 
 export function BoardMap({
   scenario,
@@ -31,8 +32,10 @@ export function BoardMap({
   matrix?: ReadonlyArray<ReadonlyArray<number>>;
 }) {
   const [hovered, setHovered] = useState<PlaceId | null>(null);
+  const [planEl, setPlanEl] = useState<HTMLDivElement | null>(null);
   const byId = useMemo(() => new Map(scenario.places.map((p) => [p.id, p])), [scenario.places]);
   const placeIds = useMemo(() => placeOrder(scenario), [scenario]);
+  const layout = useMemo(() => layoutOf(scenario), [scenario]);
 
   const adjMatrix = useMemo(() => {
     if (matrix) return matrix;
@@ -66,6 +69,7 @@ export function BoardMap({
       <button
         key={id}
         type="button"
+        data-place={id}
         data-tutorial={`place-${id}`}
         disabled={!onSelect || off}
         aria-pressed={isSel}
@@ -75,7 +79,7 @@ export function BoardMap({
         onFocus={() => setHovered(id)}
         onBlur={() => setHovered(null)}
         className={cn(
-          "group relative flex min-h-11 flex-col justify-between rounded-[3px] p-2.5 text-left transition-[background-color,box-shadow,transform,opacity] duration-300 motion-reduce:transition-none active:scale-[0.98] sm:min-h-0 sm:p-4",
+          "group relative flex min-h-11 flex-col justify-between rounded-[3px] p-2 text-left transition-[background-color,box-shadow,transform,opacity] duration-300 motion-reduce:transition-none active:scale-[0.98] max-[360px]:p-1.5 sm:min-h-0 sm:p-4",
           isSel
             ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_18px_40px_-16px_rgba(212,161,90,0.9)]"
             : isNeighbor
@@ -88,7 +92,7 @@ export function BoardMap({
           off && "cursor-not-allowed opacity-35 active:scale-100"
         )}
       >
-        <span className="flex w-full items-start justify-between gap-1">
+        <span className="flex w-full items-start justify-between gap-0.5 max-[360px]:gap-0">
           <span
             className={cn(
               "font-display text-xs italic",
@@ -97,25 +101,39 @@ export function BoardMap({
           >
             0{i + 1}
           </span>
-          <span className="flex items-center gap-1">
-            {canStay && <StayMark selected={isSel} />}
+          <span className="flex items-center gap-1 max-[360px]:gap-0">
+            {/* ≤360: stay → corner pin; glyph keeps the header slot */}
+            {canStay && <StayMark selected={isSel} density="corner" label="sm" />}
             <PlaceGlyph
               id={id}
               className={cn(
-                "h-5 w-5 transition-colors duration-300 motion-reduce:transition-none sm:h-6 sm:w-6",
+                "h-5 w-5 shrink-0 transition-colors duration-300 motion-reduce:transition-none sm:h-6 sm:w-6",
                 isSel ? "text-curtain/80" : "text-amber/70 group-hover:text-[var(--amber)]"
               )}
             />
           </span>
         </span>
-        <span className="font-display text-lg leading-none sm:text-2xl">{place.name}</span>
+        <span className="truncate font-display text-base leading-none max-[360px]:text-[0.95rem] sm:text-2xl">
+          {place.name}
+        </span>
       </button>
     );
   };
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: planAspect(layoutOf(scenario)) }}>
-      <FloorPlan layout={layoutOf(scenario)} gap="22px" className="absolute inset-0 grid" room={room} door={door} />
+    <div
+      ref={setPlanEl}
+      className="relative w-full overflow-hidden"
+      style={{ aspectRatio: planAspect(layout) }}
+    >
+      <FloorPlan layout={layout} gap="22px" className="absolute inset-0 grid" room={room} door={door} />
+      <MapArcOverlay
+        container={planEl}
+        layout={layout}
+        placeIds={placeIds}
+        matrix={adjMatrix}
+        focus={focus}
+      />
       <span className="sr-only">{placeOrder(scenario).map((id) => byId.get(id)?.name).join("、")}</span>
     </div>
   );

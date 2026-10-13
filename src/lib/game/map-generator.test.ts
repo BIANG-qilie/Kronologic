@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { areLayoutAdjacent } from "./board";
 import {
   MAP_DEFAULT_NODE_COUNT,
   MAP_NODE_COUNT_MAX,
   MAP_NODE_COUNT_MIN,
+  collectNonAdjacentEdges,
   edgeKindBetween,
   generateRandomMap,
   isStayPlace,
+  layoutForNodeCount,
 } from "./map-generator";
 import {
   enumeratePathsFromMatrix,
@@ -138,5 +141,35 @@ describe("generateRandomMap", () => {
     );
     assert.ok(traj);
     assert.equal(traj!.length, 6);
+  });
+
+  it("layout adjacency matches FloorPlan door tracks only", () => {
+    const layout = [
+      ["r0", "r1", "r2"],
+      ["r3", "r4", "r5"],
+    ];
+    assert.equal(areLayoutAdjacent(layout, "r0", "r1"), true);
+    assert.equal(areLayoutAdjacent(layout, "r0", "r3"), true);
+    assert.equal(areLayoutAdjacent(layout, "r0", "r2"), false);
+    assert.equal(areLayoutAdjacent(layout, "r0", "r4"), false);
+    assert.equal(areLayoutAdjacent(layout, "r1", "r5"), false);
+  });
+
+  it("collectNonAdjacentEdges lists matrix edges outside the floor plan", () => {
+    const map = generateRandomMap("map-lab|demo", { nodeCount: 6 });
+    const layout = layoutForNodeCount(map.placeIds);
+    const nonAdj = collectNonAdjacentEdges(map.matrix, map.placeIds, (a, b) =>
+      areLayoutAdjacent(layout, a, b)
+    );
+    assert.ok(nonAdj.length >= 1, "demo seed should expose skip edges");
+    for (const e of nonAdj) {
+      assert.notEqual(e.kind, "none");
+      assert.equal(areLayoutAdjacent(layout, e.a, e.b), false);
+      assert.equal(edgeKindBetween(map.matrix, map.placeIds, e.a, e.b), e.kind);
+    }
+    // Door-neighbour edges must not appear in the overlay list
+    for (const e of nonAdj) {
+      assert.equal(areLayoutAdjacent(layout, e.a, e.b), false);
+    }
   });
 });

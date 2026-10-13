@@ -16,6 +16,7 @@ import {
 } from "@/lib/game/map-generator";
 import { FloorPlan } from "./floor-plan";
 import { MapPassage, StayMark } from "./map-passage";
+import { MapArcOverlay } from "./map-arc-overlay";
 import { edgeKindBetween } from "@/lib/game/map-generator";
 import { cn } from "@/lib/utils";
 
@@ -89,6 +90,83 @@ function MatrixTable({ map }: { map: GeneratedMap }) {
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+function MapLabPlan({
+  map,
+  layout,
+}: {
+  map: GeneratedMap;
+  layout: string[][];
+}) {
+  const [planEl, setPlanEl] = useState<HTMLDivElement | null>(null);
+
+  return (
+    <div
+      ref={setPlanEl}
+      className="animate-fade-up relative w-full overflow-hidden rounded-[3px] border border-ink-faint/40 bg-[var(--curtain)]/90 p-2 shadow-[inset_0_1px_0_rgba(215,201,168,0.06)] sm:p-4"
+      style={{
+        // Slightly taller than raw planAspect so room labels + stay anchors breathe
+        aspectRatio: (() => {
+          const cols = Math.max(...layout.map((r) => r.length));
+          const rows = layout.length;
+          return rows === 1 ? `${cols} / 1.35` : `${cols} / ${rows * 1.12}`;
+        })(),
+      }}
+      data-testid="map-lab-plan"
+    >
+      <FloorPlan
+        layout={layout}
+        gap="22px"
+        className="absolute inset-2 grid sm:inset-4"
+        room={(id, i) => {
+          const stay = map.stayIds.includes(id);
+          return (
+            <div
+              className={cn(
+                "relative flex min-h-11 flex-col justify-between rounded-[3px] p-2 transition-[box-shadow,background-color] duration-300 motion-reduce:transition-none max-[360px]:min-h-11 max-[360px]:p-1.5 sm:min-h-0 sm:p-3.5",
+                stay
+                  ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.16),transparent_44%),var(--stage)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.4)]"
+                  : "bg-[var(--stage)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+              )}
+              data-place={id}
+              data-stay={stay ? "1" : "0"}
+            >
+              <span className="flex items-start justify-between gap-1">
+                <span className="font-display text-[10px] italic text-[var(--ink-faint)] sm:text-xs">
+                  0{i + 1}
+                </span>
+                {/* ≤360: corner pin frees the header; wider: badge + optional caption */}
+                {stay && <StayMark label="sm" density="corner" />}
+              </span>
+              <span className="truncate font-display text-[0.95rem] leading-none text-[var(--ink)] max-[360px]:text-[0.9rem] sm:text-[1.35rem]">
+                {placeLabelForGeneratedId(id)}
+              </span>
+              {stay && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute inset-x-3 bottom-1.5 h-px bg-[linear-gradient(90deg,transparent,rgba(212,161,90,0.55),transparent)] max-[360px]:inset-x-2 sm:inset-x-4"
+                />
+              )}
+            </div>
+          );
+        }}
+        door={(a, b, dir) => (
+          <MapPassage
+            kind={edgeKindBetween(map.matrix, map.placeIds, a, b)}
+            dir={dir}
+            tone="stage"
+          />
+        )}
+      />
+      <MapArcOverlay
+        container={planEl}
+        layout={layout}
+        placeIds={map.placeIds}
+        matrix={map.matrix}
+      />
     </div>
   );
 }
@@ -274,7 +352,7 @@ export function MapLabClient() {
                     平面图
                   </h2>
                   <p className="mt-1 text-xs text-[var(--ink-muted)] sm:text-sm">
-                    琥珀色箭头为单向；锚点格可在原位停留。
+                    琥珀色箭头为单向；虚线弧为跨区通道；锚点格可在原位停留。
                   </p>
                 </div>
                 <dl className="flex flex-wrap gap-2 font-mono text-[11px] text-[var(--ink-muted)] sm:text-xs">
@@ -297,64 +375,11 @@ export function MapLabClient() {
                 </dl>
               </div>
 
-              <div
+              <MapLabPlan
                 key={`${appliedSeed}|${appliedNodes}|${tick}`}
-                className="animate-fade-up relative w-full overflow-hidden rounded-[3px] border border-ink-faint/40 bg-[var(--curtain)]/90 p-2 shadow-[inset_0_1px_0_rgba(215,201,168,0.06)] sm:p-4"
-                style={{
-                  // Slightly taller than raw planAspect so room labels + stay anchors breathe
-                  aspectRatio: (() => {
-                    const cols = Math.max(...layout.map((r) => r.length));
-                    const rows = layout.length;
-                    return rows === 1 ? `${cols} / 1.35` : `${cols} / ${rows * 1.12}`;
-                  })(),
-                }}
-                data-testid="map-lab-plan"
-              >
-                <FloorPlan
-                  layout={layout}
-                  gap="22px"
-                  className="absolute inset-2 grid sm:inset-4"
-                  room={(id, i) => {
-                    const stay = map.stayIds.includes(id);
-                    return (
-                      <div
-                        className={cn(
-                          "relative flex min-h-[4.25rem] flex-col justify-between rounded-[3px] p-2 transition-[box-shadow,background-color] duration-300 motion-reduce:transition-none sm:min-h-0 sm:p-3.5",
-                          stay
-                            ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.16),transparent_44%),var(--stage)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.4)]"
-                            : "bg-[var(--stage)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
-                        )}
-                        data-place={id}
-                        data-stay={stay ? "1" : "0"}
-                      >
-                        <span className="flex items-start justify-between gap-1">
-                          <span className="font-display text-[10px] italic text-[var(--ink-faint)] sm:text-xs">
-                            0{i + 1}
-                          </span>
-                          {/* Phone: icon + wash; sm+: full caption */}
-                          {stay && <StayMark label="sm" />}
-                        </span>
-                        <span className="font-display text-[0.95rem] leading-none text-[var(--ink)] sm:text-[1.35rem]">
-                          {placeLabelForGeneratedId(id)}
-                        </span>
-                        {stay && (
-                          <span
-                            aria-hidden
-                            className="pointer-events-none absolute inset-x-3 bottom-1.5 h-px bg-[linear-gradient(90deg,transparent,rgba(212,161,90,0.55),transparent)] sm:inset-x-4"
-                          />
-                        )}
-                      </div>
-                    );
-                  }}
-                  door={(a, b, dir) => (
-                    <MapPassage
-                      kind={edgeKindBetween(map.matrix, map.placeIds, a, b)}
-                      dir={dir}
-                      tone="stage"
-                    />
-                  )}
-                />
-              </div>
+                map={map}
+                layout={layout}
+              />
 
               <ul className="flex flex-wrap gap-x-5 gap-y-2.5 text-[11px] text-[var(--ink-muted)] sm:text-xs">
                 <li className="inline-flex min-h-8 items-center gap-2">
@@ -374,6 +399,22 @@ export function MapLabClient() {
                     </span>
                   </span>
                   单向（箭头指向可走方向）
+                </li>
+                <li className="inline-flex min-h-8 items-center gap-2">
+                  <span className="relative flex h-5 w-8 items-center" aria-hidden>
+                    <svg viewBox="0 0 32 12" className="h-3 w-8 overflow-visible">
+                      <path
+                        d="M2 10 Q16 0 30 10"
+                        fill="none"
+                        stroke="var(--amber-dim)"
+                        strokeWidth="1.6"
+                        strokeDasharray="3 2.5"
+                        strokeLinecap="round"
+                      />
+                      <path d="M26 6.5 L30 10 L25 11.5 Z" fill="var(--amber)" />
+                    </svg>
+                  </span>
+                  跨区通道（非邻接）
                 </li>
                 <li className="inline-flex min-h-8 items-center gap-2">
                   <StayMark label="always" />

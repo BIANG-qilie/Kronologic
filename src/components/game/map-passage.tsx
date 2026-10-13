@@ -137,14 +137,98 @@ export function StayMark({
   compact = false,
   /** always = map-lab; sm = game board (glyph already crowded); never = icon only */
   label = "sm",
+  /**
+   * badge = pill (default).
+   * corner = absolute corner pin on ≤360px (glyph wins the header row);
+   *         ≥361px keeps the badge. Pair with `absolute` positioning from parent when needed.
+   */
+  density = "badge",
 }: {
   selected?: boolean;
   className?: string;
   /** Icon-only for tight desk cells */
   compact?: boolean;
   label?: "always" | "sm" | "never";
+  density?: "badge" | "corner";
 }) {
   const showLabel = label !== "never" && !compact;
+  const corner = density === "corner";
+
+  if (corner) {
+    // ≤360: tiny corner pin (title/aria carry the copy). ≥361: normal badge.
+    return (
+      <>
+        <span
+          className={cn(
+            "pointer-events-none absolute right-1.5 top-1.5 z-[1] inline-flex h-2.5 w-2.5 items-center justify-center max-[360px]:inline-flex min-[361px]:hidden",
+            selected ? "text-curtain/90" : "text-[var(--amber)]",
+            className
+          )}
+          title="可停留"
+          aria-label="可停留"
+        >
+          <span
+            className={cn(
+              "h-2 w-2 rounded-full shadow-[0_0_0_1.5px_rgba(212,161,90,0.45)]",
+              selected ? "bg-curtain/80" : "bg-[var(--amber)]"
+            )}
+            aria-hidden
+          />
+        </span>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-[2px] tracking-[0.14em] max-[360px]:hidden",
+            compact
+              ? "px-0.5 py-0.5"
+              : "min-h-7 px-1.5 py-1 sm:min-h-0 sm:px-1.5 sm:py-0.5",
+            selected
+              ? "bg-curtain/20 text-curtain/85"
+              : "bg-amber/18 text-[var(--amber)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.28)]",
+            className
+          )}
+          title="可停留"
+          aria-label="可停留"
+        >
+          <svg
+            viewBox="0 0 14 14"
+            className={cn("shrink-0", compact ? "h-3 w-3" : "h-3.5 w-3.5")}
+            aria-hidden
+          >
+            <circle cx="7" cy="7" r="2.4" fill="currentColor" />
+            <circle
+              cx="7"
+              cy="7"
+              r="5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.15"
+              opacity="0.75"
+            />
+            <circle
+              cx="7"
+              cy="7"
+              r="6.4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.7"
+              opacity="0.35"
+            />
+          </svg>
+          {showLabel && (
+            <span
+              className={cn(
+                "font-display text-[10px] italic leading-none sm:text-[11px]",
+                label === "sm" && "hidden sm:inline"
+              )}
+            >
+              可停留
+            </span>
+          )}
+        </span>
+      </>
+    );
+  }
+
   return (
     <span
       className={cn(
