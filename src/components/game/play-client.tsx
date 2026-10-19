@@ -102,7 +102,6 @@ export function PlayClient({
   const now = useNow(view?.phase === "submit_window");
 
   if (!bootstrapped || (session && !view)) {
-    const code = session?.code ?? initialCode?.toUpperCase();
     return (
       <StatusScreen>
         <Lamp
