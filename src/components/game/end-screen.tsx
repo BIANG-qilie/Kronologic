@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import { ArrowRight, Home, Search } from "lucide-react";
 import type { PersonId, PlaceId, RoomPublicView, Trajectory } from "@/lib/game/types";
 import { clearSession } from "@/hooks/use-room";
 import { Button } from "@/components/ui/button";
@@ -264,6 +264,20 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             全场共问 {view.queryCountTotal} 次
           </p>
           <div className="flex flex-wrap items-center gap-2">
+            {!(!custom && isWin && !nextLevel) && (
+              <Button
+                variant="ghost"
+                size="lg"
+                className="group min-h-12 text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                onClick={() => {
+                  clearSession();
+                  window.location.href = "/";
+                }}
+              >
+                <Home className="h-4 w-4 transition-transform group-hover:-translate-y-px" />
+                回首页
+              </Button>
+            )}
             {youWon && level != null && isLeaderboardLevel(level) && (
               <Button asChild variant="secondary" size="lg" className="min-h-12">
                 <a href={`/leaderboard?level=${level}&players=${view.players.length}`}>看排行榜</a>
