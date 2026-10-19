@@ -34,8 +34,8 @@ export function SlotReel({
   onStopped?: () => void;
 }) {
   const [phase, setPhase] = useState<Phase>("idle");
+  const stopMs = Math.round(1100 + stopDelay * 0.4);
   const [offset, setOffset] = useState(0);
-  const stripRef = useRef<HTMLDivElement>(null);
   const stoppedRef = useRef(onStopped);
   useLayoutEffect(() => {
     stoppedRef.current = onStopped;
@@ -47,13 +47,14 @@ export function SlotReel({
   if (final) strip.push(final);
   strip.push(...items.slice(0, 2));
 
+  const hasFinal = !!final;
   useEffect(() => {
     if (spinning) {
       setPhase(reduced ? "idle" : "spin");
       setOffset(0);
       return;
     }
-    if (!final) {
+    if (!hasFinal) {
       setPhase("idle");
       return;
     }
@@ -72,8 +73,16 @@ export function SlotReel({
         })
       );
     }, stopDelay);
-    return () => window.clearTimeout(t);
-  }, [spinning, final, reduced, stopDelay, target]);
+    const done = window.setTimeout(() => {
+      setPhase("stopped");
+      setOffset(target);
+      stoppedRef.current?.();
+    }, stopDelay + stopMs + 80);
+    return () => {
+      window.clearTimeout(t);
+      window.clearTimeout(done);
+    };
+  }, [spinning, hasFinal, reduced, stopDelay, target, stopMs]);
 
   const cycle = items.length * ITEM_H;
   const showPlaceholder = phase === "idle" && !final;
@@ -88,18 +97,11 @@ export function SlotReel({
           </div>
         ) : (
           <div
-            ref={stripRef}
-            onTransitionEnd={() => {
-              if (phase === "settling") {
-                setPhase("stopped");
-                stoppedRef.current?.();
-              }
-            }}
             className={cn(phase === "spin" && "reel-strip-spin", phase === "settling" && "reel-strip-stop")}
             style={{
               ["--reel-cycle" as string]: cycle,
               ["--reel-speed" as string]: `${speed}s`,
-              ["--reel-stop" as string]: `${1100 + stopDelay * 0.4}ms`,
+              ["--reel-stop" as string]: `${stopMs}ms`,
               transform: phase === "spin" ? undefined : `translateY(${-offset * ITEM_H}px)`,
               transition: phase === "settling" && offset === 0 ? "none" : undefined,
             }}
@@ -109,7 +111,7 @@ export function SlotReel({
                 key={i}
                 className={cn(
                   "flex h-16 flex-col items-center justify-center px-1 text-center text-[#2a1d0e]",
-                  phase === "stopped" && i === target && "animate-fade-up"
+                  phase === "stopped" && i === target && "[text-shadow:0_0_10px_rgba(255,226,163,0.9)]"
                 )}
               >
                 <span className="block w-full truncate font-display text-[clamp(1rem,4.6vw,1.45rem)] leading-tight">

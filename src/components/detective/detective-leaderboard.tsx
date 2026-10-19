@@ -78,7 +78,7 @@ function Row({ s, rank, mine }: { s: DetectiveStats; rank: number | null; mine: 
       <span className="min-w-0">
         <span className="block truncate text-[var(--ink)]">{s.username}</span>
         <span className="block font-mono text-[11px] text-[var(--ink-muted)] tabular">
-          {s.wins}/{s.games} 胜<span className="hidden sm:inline"> · {s.games} 局</span>
+          {s.wins}/{s.games} 胜
         </span>
       </span>
       <span className="hidden text-right font-mono text-sm text-[var(--ink-muted)] tabular sm:block">{s.games}</span>

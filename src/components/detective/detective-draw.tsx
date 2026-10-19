@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ArrowRight, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -147,7 +148,7 @@ export function DetectiveDrawStage({
   const spinning = stage.kind === "drawing";
   const live = spinning || (landed && !allStopped);
 
-  return (
+  return createPortal(
     <div
       ref={dialogRef}
       role="dialog"
@@ -202,7 +203,7 @@ export function DetectiveDrawStage({
                         onClick={() => draw(d.id)}
                         className="ticket-stub group relative flex min-h-[5.5rem] flex-col items-center justify-center px-3 py-2.5 text-center transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe2a3]"
                       >
-                        <span className="font-mono text-[9px] tracking-[0.3em] text-[#8f5418]">ADMIT ONE · No.{i + 1}</span>
+                        <span className="font-mono text-[9px] tracking-[0.3em] text-[#8f5418]">ADMIT · {String(i + 1).padStart(2, "0")}</span>
                         <span className="mt-0.5 font-display text-2xl leading-tight">{d.label}</span>
                         <span className="mt-0.5 text-[11px] text-[#6b5332]">
                           最少 {d.min}–{d.max} 问 · {d.compare}
@@ -308,6 +309,7 @@ export function DetectiveDrawStage({
           随机地图：{DETECTIVE_NODE_MIN}–{DETECTIVE_NODE_MAX} 个地点，单向通道与可停留地点随机出现。同房好友也须登录才能入座。
         </p>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
