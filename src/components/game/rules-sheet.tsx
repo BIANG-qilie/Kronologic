@@ -77,12 +77,12 @@ export function RulesSheet({ className }: { className?: string }) {
         <button
           type="button"
           className={cn(
-            "flex min-h-11 items-center gap-1.5 px-2 text-xs tracking-[0.2em] text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]",
+            "flex min-h-11 shrink-0 items-center gap-1.5 px-2 text-xs tracking-[0.2em] text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)]",
             className
           )}
         >
           <BookOpen className="h-4 w-4" aria-hidden />
-          规则
+          <span className="max-[400px]:sr-only">规则</span>
         </button>
       </DialogTrigger>
       <DialogContent

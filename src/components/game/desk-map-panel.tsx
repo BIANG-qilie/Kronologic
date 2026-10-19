@@ -52,8 +52,8 @@ export function DeskMapPanel({
       <section aria-label="连通图" className="mb-8">
         <p className="mb-3 flex items-baseline justify-between">{heading}</p>
         <DeskMap scenario={scenario} markerPrefix="desk-side" />
-        <MapLegend className="mt-3 gap-x-3 text-[10px]" />
-        <p className="mt-2 text-[10px] text-ink-muted/70">点一个地点，只亮它能走出去的路。</p>
+        <MapLegend className="mt-3 gap-x-3 text-[11px]" />
+        <p className="mt-2 text-[11px] text-ink-muted/70">点一个地点，只亮它能走出去的路。</p>
       </section>
     );
   }
@@ -93,7 +93,7 @@ export function DeskMapPanel({
             <div className="mx-auto max-w-[26rem]">
               <DeskMap scenario={scenario} markerPrefix="desk-inline" />
             </div>
-            <MapLegend className="mt-3 gap-x-4 text-[10px]" />
+            <MapLegend className="mt-3 gap-x-4 text-[11px]" />
           </div>
         </div>
       </div>

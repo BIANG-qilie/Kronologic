@@ -353,7 +353,7 @@ export function PlayClient({
 
           <TabsContent
             value="desk"
-            className="grid gap-10 pt-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-10"
+            className="grid gap-10 pt-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10"
           >
             <div className="min-w-0">
               <div className="lg:hidden">

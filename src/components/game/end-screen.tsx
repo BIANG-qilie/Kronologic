@@ -263,7 +263,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             <span className="mx-2 text-[var(--ink-faint)]">/</span>
             全场共问 {view.queryCountTotal} 次
           </p>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 max-sm:grid max-sm:w-full max-sm:grid-cols-2 max-sm:[&>*:last-child]:order-first max-sm:[&>*:last-child]:col-span-2 max-sm:[&>*:only-child]:col-span-2">
             {!(!custom && isWin && !nextLevel) && (
               <Button
                 variant="ghost"
