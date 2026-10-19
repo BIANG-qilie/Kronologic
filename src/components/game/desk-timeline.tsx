@@ -415,7 +415,7 @@ function LayerToggle({
         disabled={disabled}
         onClick={onToggle}
         className={cn(
-          "flex h-10 items-center gap-1 rounded-sm border border-ink-deep/15 px-2 text-xs text-[var(--ink-deep)] transition-opacity sm:h-7 sm:px-1.5 sm:text-[11px] coarse:h-10 coarse:px-2.5",
+          "flex h-11 items-center gap-1 rounded-sm border border-ink-deep/15 px-2 text-xs text-[var(--ink-deep)] transition-opacity sm:h-7 sm:px-1.5 sm:text-[11px] coarse:h-11 coarse:px-2.5",
           on ? "opacity-100" : "opacity-35"
         )}
       >

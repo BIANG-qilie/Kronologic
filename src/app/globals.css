@@ -282,9 +282,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .custom-progress {
-    animation: none;
-    width: 100% !important;
-    transform: none;
-    opacity: 0.6;
+    display: none;
   }
 }

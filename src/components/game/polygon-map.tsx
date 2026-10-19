@@ -44,11 +44,13 @@ function MidEdgeArrow({
   ctrl,
   p2,
   lit,
+  size = ARROW_HALF,
 }: {
   p0: Pt2;
   ctrl: Pt2;
   p2: Pt2;
   lit: boolean;
+  size?: number;
 }) {
   const mid = quadBezierPoint(p0, ctrl, p2, 0.5);
   const tan = quadBezierTangent(p0, ctrl, p2, 0.5);
@@ -57,7 +59,7 @@ function MidEdgeArrow({
   const my = Math.round(mid.y * 100) / 100;
   const angle = Math.round((Math.atan2(tan.y, tan.x) * 180) / Math.PI * 100) / 100;
   const fill = arrowFill(lit);
-  const h = ARROW_HALF;
+  const h = size;
 
   return (
     <g
@@ -113,8 +115,12 @@ function layoutEdges(
     const [from, to] = shortenChord(rawFrom, rawTo, END_PAD);
     const lit = !!focus && (focus === edge.a || focus === edge.b);
     const oneWay = edge.kind !== "bidirectional";
-    const bend = 0.16 + (index % 3) * 0.025;
-    const ctrlRaw = outwardArcControl(from, to, center, bend);
+    const rawLen = Math.hypot(rawTo.x - rawFrom.x, rawTo.y - rawFrom.y);
+    // Neighbours on a dense ring sit a plaque apart: swing the arc outside the
+    // ring so its mid-arrow lands in open space instead of under a room.
+    const short = rawLen < VB * RING * 0.95;
+    const bend = short ? 0.62 : 0.16 + (index % 3) * 0.025;
+    const ctrlRaw = outwardArcControl(rawFrom, rawTo, center, bend);
     const r = (n: number) => Math.round(n * 100) / 100;
     const a = { x: r(from.x), y: r(from.y) };
     const b = { x: r(to.x), y: r(to.y) };
@@ -140,17 +146,10 @@ function layoutEdges(
 }
 
 function PolygonEdges({
-  edges,
-  positions,
-  focus,
-  labelOf,
+  laid,
 }: {
-  edges: MatrixEdge[];
-  positions: Record<string, Pt2>;
-  focus: string | null;
-  labelOf?: (id: string) => string;
+  laid: LaidEdge[];
 }) {
-  const laid = layoutEdges(edges, positions, focus, labelOf);
   return (
     <>
       {/* Pass 1: all strokes so later chords don't bury mid-arrows */}
@@ -167,7 +166,14 @@ function PolygonEdges({
           <title>{e.title}</title>
         </path>
       ))}
-      {/* Pass 2: unidirectional mid-edge chevrons on top */}
+    </>
+  );
+}
+
+/** Mid-edge chevrons, drawn above the room plaques so none is ever buried. */
+function PolygonArrows({ laid, size }: { laid: LaidEdge[]; size: number }) {
+  return (
+    <>
       {laid.map(
         (e) =>
           e.oneWay && (
@@ -177,6 +183,7 @@ function PolygonEdges({
               ctrl={e.ctrl}
               p2={e.to}
               lit={e.lit}
+              size={size}
             />
           )
       )}
@@ -258,6 +265,13 @@ export function PolygonMap({
     return set;
   }, [edges, focus]);
 
+  const laid = useMemo(
+    () => layoutEdges(edges, positions, focus, labelOf),
+    [edges, positions, focus, labelOf]
+  );
+  const arrowSize = n >= 10 ? 19 : n >= 8 ? 21 : ARROW_HALF;
+  const dense = n >= 9;
+
   const rNode = nodeRadiusPx(n);
   const pct = (v: number) => `${(v / VB) * 100}%`;
   const nodeW = `${((rNode * 2) / VB) * 100}%`;
@@ -290,12 +304,16 @@ export function PolygonMap({
           opacity="0.28"
           strokeDasharray="3 10"
         />
-        <PolygonEdges
-          edges={edges}
-          positions={positions}
-          focus={focus}
-          labelOf={labelOf}
-        />
+        <PolygonEdges laid={laid} />
+      </svg>
+      <svg
+        className="pointer-events-none absolute inset-0 z-[2] h-full w-full"
+        viewBox={`0 0 ${VB} ${VB}`}
+        preserveAspectRatio="xMidYMid meet"
+        aria-hidden
+        data-testid="polygon-map-arrows"
+      >
+        <PolygonArrows laid={laid} size={arrowSize} />
       </svg>
 
       {placeIds.map((id, i) => {
@@ -346,10 +364,22 @@ export function PolygonMap({
             style={{
               left: pct(p.x),
               top: pct(p.y),
-              minWidth: nodeW,
+              minWidth: `max(2.75rem, ${nodeW})`,
               maxWidth: "26%",
             }}
           >
+            {canStay && dense && (
+              <span
+                aria-hidden
+                data-testid="stay-pip"
+                className={cn(
+                  "pointer-events-none absolute -right-1.5 -top-1.5 z-[3] flex h-3.5 w-3.5 items-center justify-center rounded-full ring-2 ring-[var(--curtain)]",
+                  isSel ? "bg-[var(--curtain)]" : "bg-[var(--amber)]"
+                )}
+              >
+                <span className={cn("h-1.5 w-1.5 rounded-full", isSel ? "bg-[var(--amber)]" : "bg-[var(--curtain)]")} />
+              </span>
+            )}
             <span className="relative flex w-full items-start justify-between gap-0.5 px-0.5">
               <span
                 className={cn(
@@ -359,8 +389,8 @@ export function PolygonMap({
               >
                 {String(i + 1).padStart(2, "0")}
               </span>
-              {canStay && (
-                <StayMark selected={isSel} density="corner" label={n >= 9 ? "never" : "sm"} />
+              {canStay && !dense && (
+                <StayMark selected={isSel} density="corner" label="sm" />
               )}
             </span>
             {glyphOf && (

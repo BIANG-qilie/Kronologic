@@ -30,6 +30,7 @@ import {
 import type { CustomDifficultyId, CustomLevelRequest } from "@/lib/game/types";
 import { cn } from "@/lib/utils";
 import { CustomMapPreview, MapLegend } from "./custom-map-preview";
+import { GeneratingStage, type GeneratingStatus } from "./generating-stage";
 
 type Form = {
   caseId: string;
@@ -52,14 +53,6 @@ const DEFAULT_FORM: Form = {
   difficulty: "normal",
   seed: "",
 };
-
-const GENERATING_LINES = [
-  "搭布景，铺通道…",
-  "给六个人排一整晚的行程…",
-  "让推理机把每一种可能都走一遍…",
-  "数一数最少要问几次…",
-  "确认答案只有一个…",
-];
 
 const NICK_MISSING = "先填一个称呼";
 
@@ -222,7 +215,7 @@ function CountField({
           aria-label={`减少${unit}`}
           onClick={() => step(-1)}
           disabled={n !== null && n <= 1}
-          className="flex h-11 w-10 items-center justify-center text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)] disabled:opacity-30"
+          className="flex h-11 w-11 items-center justify-center text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)] disabled:opacity-30"
         >
           <Minus className="h-4 w-4" />
         </button>
@@ -240,7 +233,7 @@ function CountField({
           aria-label={`增加${unit}`}
           onClick={() => step(1)}
           disabled={n !== null && n >= max}
-          className="flex h-11 w-10 items-center justify-center text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)] disabled:opacity-30"
+          className="flex h-11 w-11 items-center justify-center text-[var(--ink-muted)] transition-colors hover:text-[var(--amber)] disabled:opacity-30"
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -260,7 +253,7 @@ function CountField({
             <button
               type="button"
               onClick={() => onChange("")}
-              className="ml-3 inline-flex min-h-8 items-center gap-1 text-[var(--amber)] underline-offset-4 hover:underline"
+              className="ml-2 inline-flex min-h-11 items-center gap-1 px-1 text-[var(--amber)] underline-offset-4 hover:underline"
             >
               <RotateCcw className="h-3 w-3" aria-hidden />
               改回随机
@@ -279,8 +272,11 @@ export function CustomLevelClient() {
   const [form, setForm] = useState<Form>(DEFAULT_FORM);
   const [ready, setReady] = useState(false);
   const [nickname, setNickname] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [gen, setGen] = useState<{ req: CustomLevelRequest; status: GeneratingStatus } | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const abortRef = useRef<AbortController | null>(null);
+  const busy = !!gen && gen.status.kind !== "error";
+  const running = gen?.status.kind === "running";
   const [failure, setFailure] = useState<Failure | null>(null);
   const [resume, setResume] = useState<ReturnType<typeof loadSession>>(null);
   const nicknameTouched = useRef(false);
@@ -309,12 +305,14 @@ export function CustomLevelClient() {
   }, [ready, preview.req]);
 
   useEffect(() => {
-    if (!busy) return;
+    if (!running) return;
     const started = Date.now();
     setElapsed(0);
-    const t = window.setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 500);
+    const t = window.setInterval(() => setElapsed((Date.now() - started) / 1000), 250);
     return () => window.clearInterval(t);
-  }, [busy]);
+  }, [running, gen?.req]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const caseDef = getCustomCase(form.caseId) ?? CUSTOM_CASES[0];
   const band = CUSTOM_DIFFICULTIES.find((d) => d.id === form.difficulty) ?? CUSTOM_DIFFICULTIES[1];
@@ -339,31 +337,46 @@ export function CustomLevelClient() {
       setFailure(error ?? { message: "设置有误", field: null, retryable: true });
       return;
     }
-    setBusy(true);
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setGen({ req, status: { kind: "running" } });
     setFailure(null);
+    const fail = (f: Failure) => {
+      setFailure(f);
+      setGen({ req, status: { kind: "error", message: f.message, retryable: f.retryable } });
+    };
     try {
       const res = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ nickname, custom: req }),
+        signal: ac.signal,
       });
       const data = await res.json().catch(() => ({}));
+      if (ac.signal.aborted) return;
       if (!res.ok) {
-        setFailure({
+        fail({
           message: data.error ?? "排演出了岔子，再试一次",
           field: data.field ?? null,
           retryable: data.retryable ?? true,
         });
-        setBusy(false);
         return;
       }
       if (resume) clearSession();
       saveSession({ code: data.code, token: data.token, playerId: data.playerId });
+      setGen({ req, status: { kind: "done" } });
       router.push(`/play/${data.code}`);
     } catch {
-      setFailure({ message: "网络断了一下，再试一次", field: null, retryable: true });
-      setBusy(false);
+      if (ac.signal.aborted) return;
+      fail({ message: "网络断了一下，再试一次", field: null, retryable: true });
     }
+  }
+
+  function cancel() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setGen(null);
   }
 
   function reroll() {
@@ -377,7 +390,6 @@ export function CustomLevelClient() {
     { length: CUSTOM_NODE_MAX - CUSTOM_NODE_MIN + 1 },
     (_, i) => CUSTOM_NODE_MIN + i
   );
-  const line = GENERATING_LINES[Math.floor(elapsed / 3) % GENERATING_LINES.length];
   const ctaBlocked = busy || !ready || !preview.map;
 
   return (
@@ -388,7 +400,7 @@ export function CustomLevelClient() {
         aria-hidden
       />
 
-      <div className="relative mx-auto max-w-6xl px-5 pb-48 sm:px-8 md:pb-24">
+      <div className="relative mx-auto max-w-6xl px-5 pb-48 max-[380px]:px-4 sm:px-8 md:pb-24">
         <nav className="flex items-center justify-between py-3.5 text-[11px] tracking-[0.32em] text-[var(--ink-muted)]">
           <Link
             href="/"
@@ -468,7 +480,7 @@ export function CustomLevelClient() {
           >
             <fieldset>
               <legend className="mb-3 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]">地点数</legend>
-              <div className="grid grid-cols-7 gap-1.5" role="radiogroup" aria-label="地点数">
+              <div className="grid grid-cols-7 gap-1.5 max-[380px]:gap-0.5" role="radiogroup" aria-label="地点数">
                 {nodeOptions.map((n) => {
                   const on = n === form.nodeCount;
                   return (
@@ -729,7 +741,7 @@ export function CustomLevelClient() {
                   <button
                     type="button"
                     onClick={() => submit(reroll())}
-                    className="inline-flex min-h-9 shrink-0 items-center gap-1.5 text-sm text-[var(--amber)] underline-offset-4 hover:underline"
+                    className="-my-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm text-[var(--amber)] underline-offset-4 hover:underline"
                   >
                     <Dices className="h-4 w-4" aria-hidden />
                     换个种子再排
@@ -745,13 +757,7 @@ export function CustomLevelClient() {
               aria-busy={busy}
             >
               {busy ? (
-                <>
-                  <span className="truncate" aria-live="polite">{line}</span>
-                  <span className="font-mono text-xs opacity-70 tabular">{elapsed}s</span>
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 overflow-hidden bg-curtain/15" aria-hidden>
-                    <span className="custom-progress block h-full w-1/3 bg-[var(--curtain)]/60" />
-                  </span>
-                </>
+                <span>排演中…</span>
               ) : (
                 <>
                   <span className="truncate">排演并开房 · {caseDef.title} · {band.label}</span>
@@ -760,15 +766,27 @@ export function CustomLevelClient() {
               )}
             </Button>
             <p className="mt-2 text-center text-xs text-[var(--ink-muted)] md:text-left">
-              {busy
-                ? "复杂的设置可能要排二三十秒"
-                : resume
+              {resume
                   ? `开房会放弃房间 ${resume.code}`
                   : "不计排行榜与战绩"}
             </p>
           </div>
         </div>
       </div>
+      {gen && (
+        <GeneratingStage
+          caseTitle={getCustomCase(gen.req.caseId)?.title ?? caseDef.title}
+          bandLabel={CUSTOM_DIFFICULTIES.find((d) => d.id === gen.req.difficulty)?.label ?? band.label}
+          difficulty={gen.req.difficulty}
+          nodeCount={gen.req.nodeCount}
+          seed={gen.req.seed}
+          elapsed={elapsed}
+          status={gen.status}
+          onCancel={cancel}
+          onRetry={() => submit(reroll())}
+          onEdit={() => setGen(null)}
+        />
+      )}
     </main>
   );
 }

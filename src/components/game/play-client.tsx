@@ -338,7 +338,7 @@ export function PlayClient({
               <TabsTrigger
                 key={value}
                 value={value!}
-                className="relative -mb-px min-h-11 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 pt-1 font-display text-lg text-[var(--ink-muted)] shadow-none transition-colors hover:text-[var(--ink)] data-[state=active]:border-[var(--amber)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-none"
+                className="relative -mb-px min-h-11 min-w-11 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 pt-1 font-display text-lg text-[var(--ink-muted)] shadow-none transition-colors hover:text-[var(--ink)] data-[state=active]:border-[var(--amber)] data-[state=active]:bg-transparent data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-none"
               >
                 {label}
                 {badge && (

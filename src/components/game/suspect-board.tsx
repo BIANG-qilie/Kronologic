@@ -43,7 +43,7 @@ function Chip({
       onClick={onClick}
       aria-label={`${title}：${verdict === "target" ? "目标" : verdict === "excluded" ? "排除" : "未标"}`}
       className={cn(
-        "inline-flex h-10 min-w-0 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-sm border px-1.5 text-xs transition-colors sm:px-2 sm:h-7 sm:min-w-0 coarse:h-10 coarse:px-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
+        "inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 whitespace-nowrap rounded-sm border px-1.5 text-xs transition-colors sm:px-2 sm:h-7 sm:min-w-0 coarse:h-11 coarse:min-w-11 coarse:px-2.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--amber)]",
         verdict === "target" &&
           "border-[var(--amber-dim)] bg-amber/30 font-semibold text-[var(--ink-deep)]",
         verdict === "excluded" &&

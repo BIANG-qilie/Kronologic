@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { Check, Link2 } from "lucide-react";
 import type { ScenarioPublic } from "@/lib/game/types";
 import { customRequestToQuery, getCustomDifficulty } from "@/lib/game/custom-level";
@@ -12,9 +12,11 @@ import { CustomMapPreview, MapLegend } from "./custom-map-preview";
 export function CustomLevelCard({
   scenario,
   className,
+  style,
 }: {
   scenario: ScenarioPublic;
   className?: string;
+  style?: CSSProperties;
 }) {
   const [copied, setCopied] = useState(false);
   const custom = scenario.custom;
@@ -46,7 +48,7 @@ export function CustomLevelCard({
   }
 
   return (
-    <div className={cn("border-l border-amber/40 pl-5", className)}>
+    <div className={cn("border-l border-amber/40 pl-5", className)} style={style}>
       <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">自定义关卡</p>
       <dl className="mt-4 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
         {facts.map(([k, v]) => (

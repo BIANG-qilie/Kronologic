@@ -123,7 +123,6 @@ export function RoomLobby({
             <h1 className="mt-2 font-display text-4xl text-[var(--ink)] sm:text-5xl">{view.scenario.title}</h1>
             <p className="mt-4 max-w-sm whitespace-pre-line text-sm leading-[1.9] text-[var(--ink-muted)]">{view.scenario.synopsis}</p>
           </div>
-          {view.scenario.custom && <CustomLevelCard scenario={view.scenario} className="rise mt-10" />}
         </section>
 
         <section className="md:pt-8">
@@ -191,6 +190,9 @@ export function RoomLobby({
               </p>
             )}
           </div>
+          {view.scenario.custom && (
+            <CustomLevelCard scenario={view.scenario} className="rise mt-12" style={{ ["--i" as string]: 8 }} />
+          )}
         </section>
       </div>
     </main>
