@@ -110,7 +110,7 @@ export function PlayClient({
           aria-hidden
         />
         <p className="mt-4 text-sm tracking-[0.2em] text-[var(--ink-muted)]">
-          正在点灯{code ? ` · ${code}` : ""}
+          正在点灯
         </p>
       </StatusScreen>
     );
