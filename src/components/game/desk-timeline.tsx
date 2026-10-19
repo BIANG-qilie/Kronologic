@@ -98,6 +98,13 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
   );
 }
 
+type DeskGraph = {
+  placeIds: PlaceId[];
+  matrix: ReadonlyArray<ReadonlyArray<number>>;
+  stayIds: readonly PlaceId[];
+  staySet: Set<string>;
+};
+
 function useEdgeKind(view: RoomPublicView) {
   return useMemo(() => {
     if (view.scenario.custom) return (): EdgeKind => "none";
@@ -291,10 +298,12 @@ function MiniRoom({
   place,
   merged,
   verdict,
+  square,
 }: {
   place: PlaceId;
   merged: MergedCell;
   verdict?: "target" | "excluded";
+  square?: boolean;
 }) {
   const hasPublic =
     merged.count?.sources.includes("public") || merged.people.some((p) => p.sources.includes("public"));
@@ -305,6 +314,7 @@ function MiniRoom({
     <div
       className={cn(
         "relative z-10 flex min-h-0 flex-col items-center justify-center gap-px rounded-[2px] border",
+        square && "aspect-square w-full overflow-hidden",
         hasPublic
           ? "border-ink-deep/35 bg-[#c5b38c]"
           : hasAny
@@ -362,6 +372,7 @@ function FilmFrame({
   board,
   disabled,
   onSelect,
+  graph,
 }: {
   time: TimeId;
   active: boolean;
@@ -372,6 +383,8 @@ function FilmFrame({
   mergedFor: (time: TimeId, place: PlaceId) => MergedCell;
   board: Board;
   onSelect: () => void;
+  /** Custom / detective maps: rooms on the same polygon as the desk graph. */
+  graph?: DeskGraph | null;
 }) {
   return (
     <button
@@ -402,6 +415,32 @@ function FilmFrame({
         </span>
         {verdict === "target" && <Crosshair className="h-3 w-3 text-[var(--amber-dim)]" aria-hidden />}
       </div>
+      {graph ? (
+        <PolygonMap
+          placeIds={graph.placeIds}
+          matrix={graph.matrix}
+          stayIds={graph.stayIds}
+          labelOf={(id) => id}
+          className="aspect-square min-h-0 bg-transparent max-[360px]:min-h-0 sm:min-h-0 [--curtain:var(--parchment)] [--ink-faint:rgba(26,36,32,0.3)] [--ink-muted:rgba(26,36,32,0.5)]"
+          nodeWidth={graph.placeIds.length >= 8 ? "21%" : "25%"}
+          renderNode={(id) => (
+            <div className="relative">
+              <MiniRoom
+                place={id as PlaceId}
+                merged={mergedFor(time, id as PlaceId)}
+                verdict={board.places[id as PlaceId]}
+                square
+              />
+              {graph.staySet.has(id) && (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -right-0.5 -top-0.5 z-20 h-1.5 w-1.5 rounded-full bg-[var(--amber)] ring-1 ring-[var(--parchment)]"
+                />
+              )}
+            </div>
+          )}
+        />
+      ) : (
       <div className="relative w-full" style={{ aspectRatio: planAspect(layout) }}>
         <FloorGrid
           layout={layout}
@@ -412,6 +451,7 @@ function FilmFrame({
           )}
         />
       </div>
+      )}
     </button>
   );
 }
@@ -473,7 +513,7 @@ export function DeskTimeline({
   const layout = layoutOf(view.scenario);
   const order = placeOrder(view.scenario);
   const edgeKind = useEdgeKind(view);
-  const graph = useMemo(() => {
+  const graph = useMemo((): DeskGraph => {
     const custom = view.scenario.custom;
     const placeIds = custom ? (view.scenario.places.map((p) => p.id) as PlaceId[]) : placeOrder(view.scenario);
     const matrix = custom ? custom.matrix : adjacencyRecordToMatrix(view.scenario.adjacency, placeIds);
@@ -668,6 +708,7 @@ export function DeskTimeline({
                 edgeKind={edgeKind}
                 mergedFor={mergedFor}
                 board={payload.board}
+                graph={view.scenario.custom ? graph : null}
                 onSelect={() => {
                   setActiveTime(t);
                   setEditing(null);

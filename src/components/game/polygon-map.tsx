@@ -251,6 +251,7 @@ export function PolygonMap({
   markerPrefix: _markerPrefix = "poly-map",
   renderNode,
   nodeClassName,
+  nodeWidth,
 }: {
   placeIds: readonly string[];
   matrix: AdjacencyMatrix;
@@ -270,6 +271,8 @@ export function PolygonMap({
    */
   renderNode?: (id: string, state: { index: number; reachable: boolean; focused: boolean }) => ReactNode;
   nodeClassName?: string;
+  /** CSS width of custom nodes; defaults to a size readable at desk scale. */
+  nodeWidth?: string;
 }) {
   void _markerPrefix;
   const [hovered, setHovered] = useState<string | null>(null);
@@ -418,7 +421,7 @@ export function PolygonMap({
               onFocus={() => setHovered(id)}
               onBlur={() => setHovered(null)}
               className={cn("group/node absolute z-[1] -translate-x-1/2 -translate-y-1/2", nodeClassName)}
-              style={{ left: pct(p.x), top: pct(p.y), width: n >= 8 ? "clamp(4.25rem, 15%, 6.5rem)" : "clamp(4.5rem, 17%, 7.5rem)" }}
+              style={{ left: pct(p.x), top: pct(p.y), width: nodeWidth ?? (n >= 8 ? "clamp(4.25rem, 15%, 6.5rem)" : "clamp(4.5rem, 17%, 7.5rem)") }}
             >
               {renderNode(id, { index: i, reachable: isNeighbor, focused: focus === id })}
             </div>
