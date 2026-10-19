@@ -10,9 +10,7 @@ import type { CustomLevelRequest, ScenarioBundle } from "@/lib/game/types";
 const CACHE_LIMIT = 64;
 
 declare global {
-  // eslint-disable-next-line no-var
   var __lampCustomLevels: Map<string, ScenarioBundle> | undefined;
-  // eslint-disable-next-line no-var
   var __lampCustomInflight: Map<string, Promise<CustomLevelResult>> | undefined;
 }
 
