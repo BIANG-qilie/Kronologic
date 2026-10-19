@@ -15,6 +15,13 @@
       "when": 1791652800000,
       "tag": "0001_leaderboard_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792432800000,
+      "tag": "0002_detective_records",
+      "breakpoints": true
     }
   ]
 }

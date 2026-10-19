@@ -86,3 +86,28 @@ export const achievements = pgTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.code] })]
 );
+
+/** One row per signed-in seat in a finished detective-mode (random case + random map) game. */
+export const detectiveRecords = pgTable(
+  "detective_records",
+  {
+    id: serial("id").primaryKey(),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    caseId: text("case_id").notNull(),
+    difficulty: text("difficulty", { enum: ["easy", "normal", "hard", "expert"] }).notNull(),
+    /** Seed of the generated level, so a game can be replayed or audited. */
+    levelId: text("level_id").notNull(),
+    playerCount: integer("player_count").notNull(),
+    result: text("result", { enum: ["win", "lose", "eliminated"] }).notNull(),
+    greenCount: integer("green_count").notNull(),
+    whiteCount: integer("white_count").notNull(),
+    queries: integer("queries").notNull(),
+    playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("detective_records_board_idx").on(t.caseId, t.difficulty, t.userId),
+    index("detective_records_user_idx").on(t.userId, t.playedAt),
+  ]
+);

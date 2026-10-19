@@ -24,6 +24,7 @@ import type {
 } from "@/lib/game/types";
 import type { SeatRecord } from "@/lib/account/types";
 import { recordRoomResults } from "@/lib/server/room-records";
+import { DetectiveAuthError, type DetectiveRoomMeta } from "@/lib/server/detective";
 
 export interface NotesState {
   text: string;
@@ -57,6 +58,8 @@ export interface InternalRoom {
   scenario: ScenarioPublic;
   /** Player-built level; bank levels resolve through `scenarioId` instead. */
   customBundle: ScenarioBundle | null;
+  /** Set for detective-mode rooms: seats must be signed in and results go to the detective board. */
+  detective: DetectiveRoomMeta | null;
   sealed: ScenarioCase | null;
   players: InternalPlayer[];
   currentTurnSeat: number;
@@ -112,7 +115,8 @@ export function createRoom(
   nickname: string,
   scenarioId?: string,
   userId: number | null = null,
-  customBundle: ScenarioBundle | null = null
+  customBundle: ScenarioBundle | null = null,
+  detective: DetectiveRoomMeta | null = null
 ) {
   const resolved = customBundle ?? getBundleOrThrow(scenarioId || getDefaultScenarioId());
 
@@ -142,6 +146,7 @@ export function createRoom(
     scenarioId: resolved.public.id,
     scenario: resolved.public,
     customBundle,
+    detective,
     sealed: null,
     players: [player],
     currentTurnSeat: 0,
@@ -210,6 +215,7 @@ export function joinRoom(code: string, nickname: string, userId: number | null =
   if (!room) throw new Error("没找到这个房间，核对一下房间码");
   if (room.phase !== "lobby") throw new Error("这一局已经开始，没法再入座");
   if (room.players.length >= 4) throw new Error("房间已满，最多 4 人");
+  if (room.detective && userId == null) throw new DetectiveAuthError();
 
   const player: InternalPlayer = {
     id: genId("p"),
@@ -563,6 +569,7 @@ export function setScenario(code: string, token: string, scenarioId: string) {
   const player = findPlayerByToken(room, token);
   if (!player?.isHost) throw new Error("只有房主能换关卡");
   if (room.phase !== "lobby") throw new Error("已经开局了");
+  if (room.detective) throw new Error("探案模式的案件是抽出来的，不能换");
   const bundle = getBundleOrThrow(scenarioId);
   room.scenarioId = bundle.public.id;
   room.scenario = bundle.public;

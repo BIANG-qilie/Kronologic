@@ -2,6 +2,7 @@ import { getDb } from "@/lib/server/db";
 import { recordGameResult, type GameRecordInput } from "@/lib/server/records";
 import type { InternalPlayer, InternalRoom } from "@/lib/server/rooms";
 import { countOwnWhite, leaderboardScore } from "@/lib/game/leaderboard";
+import { recordDetectiveResult, type DetectiveRecordInput } from "@/lib/server/detective";
 
 export function seatOutcome(room: InternalRoom, p: InternalPlayer, userId: number): GameRecordInput {
   const first = room.firstSubmitterId === p.id;
@@ -32,10 +33,26 @@ export function seatOutcome(room: InternalRoom, p: InternalPlayer, userId: numbe
   };
 }
 
+export function detectiveOutcome(room: InternalRoom, p: InternalPlayer, userId: number): DetectiveRecordInput {
+  const o = seatOutcome(room, p, userId);
+  return {
+    userId,
+    caseId: room.detective!.caseId,
+    difficulty: room.detective!.difficulty,
+    levelId: room.detective!.levelId,
+    playerCount: o.playerCount ?? room.players.length,
+    result: o.result,
+    greenCount: o.greenCount ?? 0,
+    whiteCount: o.ownWhiteCount ?? 0,
+    queries: o.ownQueries ?? o.queriesUsed,
+  };
+}
+
 /** Write failures are logged and shown as nothing; they never block the results screen. */
 export async function recordRoomResults(room: InternalRoom, onChange: () => void): Promise<void> {
   // Custom levels are practice: no records, first clears or leaderboard rows.
-  if (room.scenario.custom) return;
+  // Detective rooms are custom levels too, but feed their own board.
+  if (room.scenario.custom && !room.detective) return;
   const seats = room.players.filter((p): p is InternalPlayer & { userId: number } => p.userId != null);
   if (!seats.length) return;
   for (const p of seats) p.record = { status: "pending" };
@@ -55,7 +72,12 @@ export async function recordRoomResults(room: InternalRoom, onChange: () => void
   await Promise.all(
     seats.map(async (p) => {
       try {
-        p.record = await recordGameResult(db, seatOutcome(room, p, p.userId));
+        if (room.detective) {
+          await recordDetectiveResult(db, detectiveOutcome(room, p, p.userId));
+          p.record = null;
+        } else {
+          p.record = await recordGameResult(db, seatOutcome(room, p, p.userId));
+        }
       } catch (e) {
         console.error(`records: write failed for user ${p.userId}`, e);
         p.record = { status: "failed" };
