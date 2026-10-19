@@ -61,8 +61,8 @@ export function enumeratePaths(
       return;
     }
     const prev = path[path.length - 1];
+    // A room listed as its own neighbour allows staying put (custom maps only).
     for (const next of adjacency[prev] ?? []) {
-      if (next === prev) continue;
       path.push(next);
       dfs(path);
       path.pop();

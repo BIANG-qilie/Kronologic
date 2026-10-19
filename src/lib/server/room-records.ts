@@ -34,6 +34,8 @@ export function seatOutcome(room: InternalRoom, p: InternalPlayer, userId: numbe
 
 /** Write failures are logged and shown as nothing; they never block the results screen. */
 export async function recordRoomResults(room: InternalRoom, onChange: () => void): Promise<void> {
+  // Custom levels are practice: no records, first clears or leaderboard rows.
+  if (room.scenario.custom) return;
   const seats = room.players.filter((p): p is InternalPlayer & { userId: number } => p.userId != null);
   if (!seats.length) return;
   for (const p of seats) p.record = { status: "pending" };

@@ -6,7 +6,14 @@ export type PlaceId =
   | "stage"
   | "dress"
   | "gallery"
-  | "prop";
+  | "prop"
+  /** Custom-level rooms beyond the night-tea six. */
+  | "wing"
+  | "bridge"
+  | "pit"
+  | "aisle"
+  | "attic"
+  | "backstage";
 
 /** P only appears in the prologue (第 0 关); the case bank uses the other six. */
 export type PersonId = "A" | "R" | "M" | "E" | "T" | "K" | "P";
@@ -81,6 +88,36 @@ export interface ScenarioPublic {
   seed?: string;
   /** Greedy min-query difficulty rung */
   greedyMin?: number;
+  /**
+   * Present only on player-built levels. `adjacency` may then be one-way and
+   * list a room as its own neighbour (staying put is allowed there).
+   */
+  custom?: CustomLevelMeta;
+}
+
+export type CustomDifficultyId = "easy" | "normal" | "hard" | "expert";
+
+/** Everything needed to rebuild a custom level from scratch. */
+export interface CustomLevelRequest {
+  caseId: string;
+  nodeCount: number;
+  oneWay: boolean;
+  /** null = random */
+  oneWayCount: number | null;
+  stay: boolean;
+  /** null = random */
+  stayCount: number | null;
+  difficulty: CustomDifficultyId;
+  seed: string;
+}
+
+export interface CustomLevelMeta {
+  request: CustomLevelRequest;
+  /** Counts actually rolled (resolves the random ones). */
+  oneWayCount: number;
+  stayCount: number;
+  matrix: number[][];
+  stayIds: PlaceId[];
 }
 
 /** position[person][time] = place ; times keyed as "1"…"6". Only the case's cast appears. */

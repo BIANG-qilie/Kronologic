@@ -30,6 +30,11 @@ export type GenerateRandomMapOptions = {
   stayCount?: number;
   /** Target fraction of undirected pairs that become one-way. Default 0.22. */
   directedFraction?: number;
+  /**
+   * Exact number of one-way passages. Overrides `directedFraction`
+   * (0 = every passage two-way).
+   */
+  oneWayCount?: number;
   /** Extra edges beyond a spanning tree. Default ~n. */
   extraEdges?: number;
 };
@@ -194,6 +199,25 @@ function carveDirected(
   }
 }
 
+/** Turn exactly `k` two-way passages into one-way ones; false when there are too few. */
+function carveExactly(rng: Rng, matrix: number[][], k: number): boolean {
+  const n = matrix.length;
+  const bi: Array<[number, number]> = [];
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      if (matrix[i][j] === 1 && matrix[j][i] === 1) bi.push([i, j]);
+    }
+  }
+  if (bi.length < k) return false;
+  for (let t = 0; t < k; t++) {
+    const idx = Math.floor(rng() * bi.length);
+    const [i, j] = bi.splice(idx, 1)[0];
+    if (rng() < 0.5) matrix[j][i] = 0;
+    else matrix[i][j] = 0;
+  }
+  return true;
+}
+
 function applyStays(rng: Rng, matrix: number[][], stayCount: number): number[] {
   const n = matrix.length;
   const idx = Array.from({ length: n }, (_, i) => i);
@@ -228,13 +252,19 @@ function attemptMap(
     stayCount?: number;
     directedFraction: number;
     extraEdges: number;
+    oneWayCount?: number;
   }
 ): GeneratedMap | null {
   const n = placeIds.length;
   const matrix = emptyMatrix(n);
   buildSpanningTree(rng, n, matrix);
-  addExtraEdges(rng, matrix, opts.extraEdges, opts.directedFraction);
-  carveDirected(rng, matrix, opts.directedFraction);
+  if (opts.oneWayCount !== undefined) {
+    addExtraEdges(rng, matrix, opts.extraEdges, 0);
+    if (!carveExactly(rng, matrix, opts.oneWayCount)) return null;
+  } else {
+    addExtraEdges(rng, matrix, opts.extraEdges, opts.directedFraction);
+    carveDirected(rng, matrix, opts.directedFraction);
+  }
 
   const stayIdx = applyStays(rng, matrix, pickStayCount(rng, n, opts.stayCount));
 
@@ -271,6 +301,13 @@ export function generateRandomMap(
 
   const directedFraction = opts?.directedFraction ?? 0.22;
   const extraEdges = opts?.extraEdges ?? Math.max(nodeCount, Math.ceil(nodeCount * 1.1));
+  const oneWayCount = opts?.oneWayCount;
+  if (oneWayCount !== undefined && (!Number.isInteger(oneWayCount) || oneWayCount < 0)) {
+    throw new Error(`oneWayCount 须为非负整数，收到 ${oneWayCount}`);
+  }
+  if (oneWayCount !== undefined && oneWayCount > nodeCount - 1 + extraEdges) {
+    throw new Error(`oneWayCount 超过通道总数（最多 ${nodeCount - 1 + extraEdges}），收到 ${oneWayCount}`);
+  }
 
   const placeIds = PLACE_NAME_POOL.slice(0, nodeCount).map((_, i) => `r${i}`);
   const placeLabels = PLACE_NAME_POOL.slice(0, nodeCount);
@@ -285,7 +322,9 @@ export function generateRandomMap(
       steps,
       stayCount: opts?.stayCount,
       directedFraction,
-      extraEdges: extraEdges + attempt, // loosen connectivity on retries
+      oneWayCount,
+      // Loosen connectivity on retries; an exact one-way count keeps the edge budget.
+      extraEdges: oneWayCount === undefined ? extraEdges + attempt : extraEdges,
     });
     if (built) {
       return { ...built, seed };

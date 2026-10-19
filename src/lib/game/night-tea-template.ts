@@ -30,7 +30,7 @@ export const NIGHT_TEA_PEOPLE: ScenarioPublic["people"] = [
   { id: "K", name: "柯闻", letter: "K" },
 ];
 
-export const NIGHT_TEA_ADJACENCY: Record<PlaceId, PlaceId[]> = {
+export const NIGHT_TEA_ADJACENCY: Partial<Record<PlaceId, PlaceId[]>> = {
   porch: ["hall", "dress"],
   hall: ["porch", "stage", "gallery"],
   stage: ["hall", "prop"],

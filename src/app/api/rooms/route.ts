@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createRoom, projectRoom } from "@/lib/server/rooms";
 import { currentUser } from "@/lib/server/auth/current";
+import { parseCustomRequest } from "@/lib/game/custom-level";
+import { customLevelErrorResponse, ensureCustomLevel } from "@/lib/server/custom-levels";
 import {
   listCaseBankMeta,
   listScenariosPublic,
@@ -10,6 +12,7 @@ import {
 } from "@/lib/game/scenarios";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function GET() {
   return NextResponse.json({
@@ -23,6 +26,22 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     const nickname = String(body.nickname ?? "");
+    if (body.custom) {
+      let bundle;
+      try {
+        bundle = await ensureCustomLevel(parseCustomRequest(body.custom));
+      } catch (e) {
+        return customLevelErrorResponse(e);
+      }
+      const user = await currentUser();
+      const { room, player, token } = createRoom(nickname, undefined, user?.id ?? null, bundle);
+      return NextResponse.json({
+        code: room.code,
+        token,
+        playerId: player.id,
+        view: projectRoom(room, token),
+      });
+    }
     let scenarioId = body.scenarioId ? String(body.scenarioId) : undefined;
     if (!scenarioId && body.level != null) {
       scenarioId = pickScenarioIdForLevel(Number(body.level));

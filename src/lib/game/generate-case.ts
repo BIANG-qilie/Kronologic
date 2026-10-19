@@ -79,16 +79,34 @@ function pathToTraj(path: PlaceId[]): Record<string, PlaceId> {
   return o;
 }
 
+/** Map + cast a world is sampled on. Night-tea is the default; custom levels pass their own. */
+export type WorldContext = {
+  paths: PlaceId[][];
+  people: readonly PersonId[];
+  victimId: PersonId;
+};
+
+let nightTeaCtx: WorldContext | null = null;
+function nightTeaContext(): WorldContext {
+  nightTeaCtx ??= {
+    paths: enumeratePathsFromMatrix(NIGHT_TEA_MATRIX, PLACE_IDS),
+    people: PERSON_IDS,
+    victimId: VICTIM_ID,
+  };
+  return nightTeaCtx;
+}
+
 function aloneWithHits(
-  world: Record<PersonId, PlaceId[]>
+  world: Record<PersonId, PlaceId[]>,
+  ctx: WorldContext
 ): { who: PersonId; where: PlaceId; when: number }[] {
-  const vp = world[VICTIM_ID];
+  const vp = world[ctx.victimId];
   const hits: { who: PersonId; where: PlaceId; when: number }[] = [];
   for (let t = 0; t < 6; t++) {
     const place = vp[t];
     const others: PersonId[] = [];
-    for (const pid of PERSON_IDS) {
-      if (pid === VICTIM_ID) continue;
+    for (const pid of ctx.people) {
+      if (pid === ctx.victimId) continue;
       if (world[pid][t] === place) others.push(pid);
     }
     if (others.length === 1) {
@@ -98,12 +116,13 @@ function aloneWithHits(
   return hits;
 }
 
-function fingerprintOf(
+export function fingerprintOf(
   opening: Partial<Record<PersonId, PlaceId>>,
-  trajectory: Record<PersonId, Record<string, PlaceId>>
+  trajectory: Record<PersonId, Record<string, PlaceId>>,
+  people: readonly PersonId[] = PERSON_IDS
 ): string {
-  const open = PERSON_IDS.map((p) => `${p}:${opening[p] ?? "-"}`).join(",");
-  const traj = PERSON_IDS.map((p) =>
+  const open = people.map((p) => `${p}:${opening[p] ?? "-"}`).join(",");
+  const traj = people.map((p) =>
     [1, 2, 3, 4, 5, 6].map((t) => trajectory[p][String(t)]).join(">")
   ).join("|");
   return `${open}#${traj}`;
@@ -112,12 +131,18 @@ function fingerprintOf(
 /**
  * Sample one alone-with-victim world + partial opening (may fail filters).
  */
-export function sampleWorld(rng: Rng): {
+export function sampleWorld(
+  rng: Rng,
+  ctx: WorldContext = nightTeaContext(),
+  openRange: readonly [number, number] = [2, 4]
+): {
   world: Record<PersonId, PlaceId[]>;
   opening: Partial<Record<PersonId, PlaceId>>;
   answer: { who: PersonId; where: PlaceId; when: number };
 } | null {
-  const allPaths = enumeratePathsFromMatrix(NIGHT_TEA_MATRIX, PLACE_IDS);
+  const allPaths = ctx.paths;
+  const PERSON_IDS = ctx.people;
+  const VICTIM_ID = ctx.victimId;
   const vp = pick(rng, allPaths);
   const crimeTime = 1 + Math.floor(rng() * 5); // 1..5 bias toward mid; allow 1-6:
   const crimeT = Math.min(6, crimeTime + (rng() < 0.25 ? 1 : 0));
@@ -149,13 +174,14 @@ export function sampleWorld(rng: Rng): {
     world[pid] = pick(rng, candidates);
   }
 
-  const hits = aloneWithHits(world);
+  const hits = aloneWithHits(world, ctx);
   if (hits.length !== 1) return null;
   const answer = hits[0];
   if (answer.who !== killer) return null;
 
-  // Partial opening: 2–4 people
-  const openCount = 2 + Math.floor(rng() * 3);
+  // Partial opening: 2–4 people on night-tea
+  const [openLo, openHi] = openRange;
+  const openCount = openLo + Math.floor(rng() * (openHi - openLo + 1));
   const openPeople = shuffle(rng, [...PERSON_IDS]).slice(0, openCount);
   const opening: Partial<Record<PersonId, PlaceId>> = {};
   for (const p of openPeople) opening[p] = world[p][0];
@@ -188,6 +214,70 @@ function bundleFromSample(
     seed,
     greedyMin: greedySteps,
   });
+}
+
+/**
+ * The solver gauntlet every generated case passes: several answers at curtain-up,
+ * exactly the sealed answer under full information, no single-ask lock, a greedy
+ * min-query count the caller accepts, and a clean `validateWithSolver` report.
+ * Returns the greedy step count, or null when the draft fails any gate.
+ */
+export function screenDraft(
+  draft: ScenarioBundle,
+  acceptSteps: (steps: number) => boolean,
+  withBands: (steps: number) => ScenarioBundle,
+  stats?: ScreenStats
+): number | null {
+  const fail = (gate: keyof ScreenStats) => {
+    if (stats) stats[gate]++;
+    return null;
+  };
+  const openingAnswers = findConsistentAnswers(draft, [], {
+    limitAnswers: 8,
+  });
+  if (openingAnswers.length <= 1) return fail("opening");
+
+  const full = findConsistentAnswers(draft, observationsFromSealed(draft), {
+    limitAnswers: 4,
+  });
+  if (full.length !== 1) return fail("fullInfo");
+  if (
+    full[0].who !== draft.sealed.answers.who ||
+    full[0].where !== draft.sealed.answers.where ||
+    full[0].when !== String(draft.sealed.answers.when)
+  ) {
+    return fail("fullInfo");
+  }
+
+  for (const obs of observationsFromSealed(draft).filter(
+    (o) => o.kind === "place_time"
+  )) {
+    const left = findConsistentAnswers(draft, [obs], {
+      limitAnswers: 4,
+      samples: 2500,
+    });
+    if (left.length <= 1) return fail("singleLock");
+  }
+
+  const { steps } = greedyMinQueries(draft);
+  if (!acceptSteps(steps)) return fail("steps");
+
+  const report = validateWithSolver(withBands(steps));
+  if (!report.ok) return fail("report");
+  return steps;
+}
+
+/** Per-gate rejection counts from {@link screenDraft}. */
+export type ScreenStats = {
+  opening: number;
+  fullInfo: number;
+  singleLock: number;
+  steps: number;
+  report: number;
+};
+
+export function emptyScreenStats(): ScreenStats {
+  return { opening: 0, fullInfo: 0, singleLock: 0, steps: 0, report: 0 };
 }
 
 export type GenerateOptions = {
@@ -223,47 +313,12 @@ export function generateCaseForSeed(
     const draftId = `${NIGHT_TEA_FAMILY}-g${opts.targetGreedy}-draft`;
     const draft = bundleFromSample(seed, draftId, sample, opts.targetGreedy);
 
-    // Fast filters
-    const openingAnswers = findConsistentAnswers(draft, [], {
-      limitAnswers: 8,
-    });
-    if (openingAnswers.length <= 1) continue;
-
-    const full = findConsistentAnswers(draft, observationsFromSealed(draft), {
-      limitAnswers: 4,
-    });
-    if (full.length !== 1) continue;
-    if (
-      full[0].who !== draft.sealed.answers.who ||
-      full[0].where !== draft.sealed.answers.where ||
-      full[0].when !== String(draft.sealed.answers.when)
-    ) {
-      continue;
-    }
-
-    // Single-query lock (sample place_time)
-    let locked = false;
-    for (const obs of observationsFromSealed(draft).filter(
-      (o) => o.kind === "place_time"
-    )) {
-      const left = findConsistentAnswers(draft, [obs], {
-        limitAnswers: 4,
-        samples: 2500,
-      });
-      if (left.length <= 1) {
-        locked = true;
-        break;
-      }
-    }
-    if (locked) continue;
-
-    const { steps } = greedyMinQueries(draft);
-    if (steps !== opts.targetGreedy) continue;
-
-    // Full validate
-    const withBands = bundleFromSample(seed, draftId, sample, steps);
-    const report = validateWithSolver(withBands);
-    if (!report.ok) continue;
+    const steps = screenDraft(
+      draft,
+      (s) => s === opts.targetGreedy,
+      (s) => bundleFromSample(seed, draftId, sample, s)
+    );
+    if (steps === null) continue;
 
     const id = `${NIGHT_TEA_FAMILY}-g${steps}-${hashSeed(fp).toString(16).slice(0, 6)}`;
     const finalBundle = bundleFromSample(seed, id, sample, steps);

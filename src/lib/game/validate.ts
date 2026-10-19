@@ -49,7 +49,7 @@ export function validateTrajectory(
         }
       } else {
         const prev = path[String(t - 1)] as PlaceId;
-        if (prev === place) {
+        if (prev === place && !areAdjacent(scenario.adjacency, prev, place)) {
           errors.push(`${person} 时间 ${t - 1}→${t} 连续停留在 ${place}`);
         } else if (!areAdjacent(scenario.adjacency, prev, place)) {
           errors.push(
@@ -62,7 +62,9 @@ export function validateTrajectory(
     if (extra.length) errors.push(`${person} 有时间线以外的时间 ${extra.join("、")}`);
   }
 
+  const oneWayAllowed = !!scenario.custom;
   for (const [a, neighbors] of Object.entries(scenario.adjacency) as [PlaceId, PlaceId[]][]) {
+    if (oneWayAllowed) break;
     for (const b of neighbors) {
       if (!areAdjacent(scenario.adjacency, b, a)) errors.push(`相邻关系不对称：${a}→${b}`);
     }

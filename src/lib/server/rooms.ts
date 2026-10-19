@@ -16,6 +16,7 @@ import type {
   QueryLogEntry,
   RoomPhase,
   RoomPublicView,
+  ScenarioBundle,
   ScenarioCase,
   ScenarioPublic,
   SubmitAnswer,
@@ -54,6 +55,8 @@ export interface InternalRoom {
   phase: RoomPhase;
   scenarioId: string;
   scenario: ScenarioPublic;
+  /** Player-built level; bank levels resolve through `scenarioId` instead. */
+  customBundle: ScenarioBundle | null;
   sealed: ScenarioCase | null;
   players: InternalPlayer[];
   currentTurnSeat: number;
@@ -105,9 +108,13 @@ function getBundleOrThrow(id: string) {
   return b;
 }
 
-export function createRoom(nickname: string, scenarioId?: string, userId: number | null = null) {
-  const id = scenarioId || getDefaultScenarioId();
-  const resolved = getBundleOrThrow(id);
+export function createRoom(
+  nickname: string,
+  scenarioId?: string,
+  userId: number | null = null,
+  customBundle: ScenarioBundle | null = null
+) {
+  const resolved = customBundle ?? getBundleOrThrow(scenarioId || getDefaultScenarioId());
 
   let code = genCode();
   while (rooms().has(code)) code = genCode();
@@ -134,6 +141,7 @@ export function createRoom(nickname: string, scenarioId?: string, userId: number
     phase: "lobby",
     scenarioId: resolved.public.id,
     scenario: resolved.public,
+    customBundle,
     sealed: null,
     players: [player],
     currentTurnSeat: 0,
@@ -242,7 +250,7 @@ export function startGame(code: string, token: string) {
   if (room.phase !== "lobby") throw new Error("已经开局了");
   if (room.players.length < 1) throw new Error("至少要 1 人才能开局");
 
-  const bundle = getBundleOrThrow(room.scenarioId);
+  const bundle = room.customBundle ?? getBundleOrThrow(room.scenarioId);
   room.sealed = structuredClone(bundle.sealed);
   room.phase = "playing";
   room.currentTurnSeat = 0;
@@ -558,6 +566,7 @@ export function setScenario(code: string, token: string, scenarioId: string) {
   const bundle = getBundleOrThrow(scenarioId);
   room.scenarioId = bundle.public.id;
   room.scenario = bundle.public;
+  room.customBundle = null;
   notify(room);
   return room;
 }
