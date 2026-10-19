@@ -35,7 +35,7 @@ function progressAt(elapsed: number, estimate: number, done: boolean): number {
 export type GeneratingStatus =
   | { kind: "running" }
   | { kind: "done" }
-  | { kind: "error"; message: string; retryable: boolean };
+  | { kind: "error"; message: string; retryable: boolean; stage?: number };
 
 export function GeneratingStage({
   caseTitle,
@@ -64,8 +64,10 @@ export function GeneratingStage({
   const estimate = estimateSeconds(difficulty, nodeCount);
   const done = status.kind === "done";
   const failed = status.kind === "error";
-  const p = progressAt(elapsed, estimate, done);
-  const current = done ? STAGES.length : Math.min(STAGES.length - 1, Math.floor((p / 0.94) * STAGES.length));
+  const failedAt = status.kind === "error" ? status.stage : undefined;
+  const p = failedAt != null ? (failedAt + 0.5) / STAGES.length : progressAt(elapsed, estimate, done);
+  const running = Math.min(STAGES.length - 1, Math.floor((p / 0.94) * STAGES.length));
+  const current = done ? STAGES.length : failedAt ?? running;
   const primaryRef = useRef<HTMLButtonElement>(null);
   const cancelRef = useRef(onCancel);
   useEffect(() => {
@@ -90,7 +92,7 @@ export function GeneratingStage({
   }, []);
 
   const secs = Math.floor(elapsed);
-  const slow = elapsed > estimate * 2.2 && !done && !failed;
+  const slow = elapsed > Math.min(28, estimate * 2.2) && !done && !failed;
 
   return (
     <div
@@ -180,7 +182,7 @@ export function GeneratingStage({
             </>
           ) : (
             <>
-              已用 <span className="font-mono tabular text-[var(--ink)]">{secs}</span> 秒 · 这组设置通常 {Math.max(1, Math.round(estimate * 0.6))}–{Math.ceil(estimate * 2)} 秒。排出来的案子保证落在所选难度里。
+              已用 <span className="font-mono tabular text-[var(--ink)]">{secs}</span> 秒 · 这组设置通常 {Math.max(1, Math.round(estimate * 0.6))}–{Math.min(30, Math.ceil(estimate * 2))} 秒。排出来的案子保证落在所选难度里。
             </>
           )}
         </p>

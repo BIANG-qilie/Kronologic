@@ -103,7 +103,7 @@ export function BoardMap({
             : isNeighbor
               ? "bg-amber/10 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
               : canStay
-                ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.12),transparent_40%),var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.32)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+                ? "bg-[var(--stage)] bg-[image:linear-gradient(145deg,rgba(212,161,90,0.12),transparent_40%)] text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.32)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
                 : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]",
           highlight === id && "animate-pulse-soft",
           !onSelect && "cursor-default",

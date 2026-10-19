@@ -344,7 +344,8 @@ export function CustomLevelClient() {
     setFailure(null);
     const fail = (f: Failure) => {
       setFailure(f);
-      setGen({ req, status: { kind: "error", message: f.message, retryable: f.retryable } });
+      const stage = f.field === "difficulty" ? 3 : f.field ? 0 : undefined;
+      setGen({ req, status: { kind: "error", message: f.message, retryable: f.retryable, stage } });
     };
     try {
       const res = await fetch("/api/rooms", {

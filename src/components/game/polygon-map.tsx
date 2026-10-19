@@ -14,7 +14,6 @@ import {
 } from "@/lib/game/map-generator";
 import type { AdjacencyMatrix } from "@/lib/game/trajectory-kernel";
 import { cn } from "@/lib/utils";
-import { StayMark } from "./map-passage";
 
 /** ViewBox units — square canvas; nodes sit on a circle of this radius. */
 const VB = 1000;
@@ -43,17 +42,19 @@ function MidEdgeArrow({
   p0,
   ctrl,
   p2,
+  t = 0.5,
   lit,
   size = ARROW_HALF,
 }: {
   p0: Pt2;
   ctrl: Pt2;
   p2: Pt2;
+  t?: number;
   lit: boolean;
   size?: number;
 }) {
-  const mid = quadBezierPoint(p0, ctrl, p2, 0.5);
-  const tan = quadBezierTangent(p0, ctrl, p2, 0.5);
+  const mid = quadBezierPoint(p0, ctrl, p2, t);
+  const tan = quadBezierTangent(p0, ctrl, p2, t);
   // Round for SSR/client parity (avoid hydration mismatch on float noise).
   const mx = Math.round(mid.x * 100) / 100;
   const my = Math.round(mid.y * 100) / 100;
@@ -86,11 +87,36 @@ function MidEdgeArrow({
   );
 }
 
+/**
+ * Point along the curve farthest from every room plaque, so the chevron reads
+ * on open ink. Plaques are taller than wide, hence the squashed distance;
+ * a small pull toward the middle keeps arrows centred when space is even.
+ */
+function openestT(p0: Pt2, ctrl: Pt2, p2: Pt2, nodes: Pt2[]): number {
+  let best = 0.5;
+  let bestScore = -Infinity;
+  for (let t = 0.14; t <= 0.861; t += 0.04) {
+    const p = quadBezierPoint(p0, ctrl, p2, t);
+    let clear = Infinity;
+    for (const c of nodes) clear = Math.min(clear, Math.hypot(p.x - c.x, (p.y - c.y) / 1.35));
+    // Diagonals all cross at the hub; a chevron there could belong to any of them.
+    const hub = Math.hypot(p.x - CX, p.y - CY);
+    const score = Math.min(clear, 170) - Math.abs(t - 0.5) * 36 - Math.max(0, 130 - hub) * 0.9;
+    if (score > bestScore) {
+      bestScore = score;
+      best = t;
+    }
+  }
+  return Math.round(best * 100) / 100;
+}
+
 type LaidEdge = {
   key: string;
   from: Pt2;
   to: Pt2;
   ctrl: Pt2;
+  /** Where on the curve the one-way chevron sits. */
+  arrowT: number;
   d: string;
   lit: boolean;
   oneWay: boolean;
@@ -105,6 +131,7 @@ function layoutEdges(
   labelOf: (id: string) => string = (id) => id
 ): LaidEdge[] {
   const center = { x: CX, y: CY };
+  const nodes = Object.values(positions);
   const out: LaidEdge[] = [];
   edges.forEach((edge, index) => {
     const pa = positions[edge.a];
@@ -122,14 +149,17 @@ function layoutEdges(
     const bend = short ? 0.62 : 0.16 + (index % 3) * 0.025;
     const ctrlRaw = outwardArcControl(rawFrom, rawTo, center, bend);
     const r = (n: number) => Math.round(n * 100) / 100;
-    const a = { x: r(from.x), y: r(from.y) };
-    const b = { x: r(to.x), y: r(to.y) };
+    // Short arcs start under the plaques so they leave them cleanly, no hook.
+    const a = short ? { x: r(rawFrom.x), y: r(rawFrom.y) } : { x: r(from.x), y: r(from.y) };
+    const b = short ? { x: r(rawTo.x), y: r(rawTo.y) } : { x: r(to.x), y: r(to.y) };
     const ctrl = { x: r(ctrlRaw.x), y: r(ctrlRaw.y) };
+    const arrowT = oneWay ? openestT(a, ctrl, b, nodes) : 0.5;
     out.push({
       key: `${edge.a}|${edge.b}|${edge.kind}`,
       from: a,
       to: b,
       ctrl,
+      arrowT,
       d: `M ${a.x} ${a.y} Q ${ctrl.x} ${ctrl.y} ${b.x} ${b.y}`,
       lit,
       oneWay,
@@ -182,6 +212,7 @@ function PolygonArrows({ laid, size }: { laid: LaidEdge[]; size: number }) {
               p0={e.from}
               ctrl={e.ctrl}
               p2={e.to}
+              t={e.arrowT}
               lit={e.lit}
               size={size}
             />
@@ -270,7 +301,6 @@ export function PolygonMap({
     [edges, positions, focus, labelOf]
   );
   const arrowSize = n >= 10 ? 19 : n >= 8 ? 21 : ARROW_HALF;
-  const dense = n >= 9;
 
   const rNode = nodeRadiusPx(n);
   const pct = (v: number) => `${(v / VB) * 100}%`;
@@ -351,7 +381,7 @@ export function PolygonMap({
                 : isNeighbor
                   ? "bg-amber/12 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
                   : canStay
-                    ? "bg-[linear-gradient(145deg,rgba(212,161,90,0.14),transparent_42%),var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.38)]"
+                    ? "bg-[var(--stage)] bg-[image:linear-gradient(145deg,rgba(212,161,90,0.14),transparent_42%)] text-[var(--ink)] shadow-[inset_0_0_0_1px_rgba(212,161,90,0.38)]"
                     : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)]",
               interactive &&
                 !isSel &&
@@ -368,7 +398,7 @@ export function PolygonMap({
               maxWidth: "26%",
             }}
           >
-            {canStay && dense && (
+            {canStay && (
               <span
                 aria-hidden
                 data-testid="stay-pip"
@@ -389,9 +419,6 @@ export function PolygonMap({
               >
                 {String(i + 1).padStart(2, "0")}
               </span>
-              {canStay && !dense && (
-                <StayMark selected={isSel} density="corner" label="sm" />
-              )}
             </span>
             {glyphOf && (
               <span
