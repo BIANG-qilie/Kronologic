@@ -272,3 +272,19 @@
     scroll-behavior: auto !important;
   }
 }
+
+@keyframes custom-progress {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(300%); }
+}
+.custom-progress {
+  animation: custom-progress 1.6s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .custom-progress {
+    animation: none;
+    width: 100% !important;
+    transform: none;
+    opacity: 0.6;
+  }
+}

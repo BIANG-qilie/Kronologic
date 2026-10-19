@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { levelLabel } from "@/lib/game/levels";
 import { isLeaderboardLevel } from "@/lib/game/leaderboard";
 import { markLevelCleared } from "@/lib/game/progress";
+import { customRequestToQuery } from "@/lib/game/custom-level";
 import { placeOrder, timesOf } from "@/lib/game/board";
 import { PlaceGlyph } from "./place-glyph";
 import { SeatRecordLine } from "@/components/account/seat-record";
@@ -115,6 +116,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
   }, [isSolo, isWin]);
 
   const level = view.scenario.level ?? null;
+  const custom = view.scenario.custom ?? null;
   useEffect(() => {
     if (youWon && level != null) markLevelCleared(level);
   }, [youWon, level]);
@@ -150,6 +152,9 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
           style={{ ["--i" as string]: 4 }}
         >
           {level != null && <span className="mr-3 text-[var(--ink-muted)]">{levelLabel(level)}</span>}
+          {custom && view.scenario.tier && (
+            <span className="mr-3 text-[var(--ink-muted)]">{view.scenario.tier}</span>
+          )}
           {kicker}
         </p>
         <div className="mt-4 flex flex-wrap items-end justify-between gap-8">
@@ -179,6 +184,14 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             </div>
           )}
         </div>
+
+        {custom && (
+          <p className="rise mt-6 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]" style={{ ["--i" as string]: 7 }}>
+            自定义关卡 · 不计排行榜与战绩
+            <span className="mx-2 text-[var(--ink-faint)]">/</span>
+            种子 <span className="font-mono tracking-[0.14em] text-[var(--ink)]">{custom.request.seed}</span>
+          </p>
+        )}
 
         {view.you?.record && (
           <div className="rise mt-6" style={{ ["--i" as string]: 7 }}>
@@ -256,18 +269,45 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
                 <a href={`/leaderboard?level=${level}&players=${view.players.length}`}>看排行榜</a>
               </Button>
             )}
-            <Button
-              size="lg"
-              className="group min-h-12"
-              onClick={() => {
-                clearSession();
-                const target = isWin ? nextLevel : level;
-                window.location.href = target ? `/?level=${target}` : "/";
-              }}
-            >
-              {isWin ? (nextLevel ? `下一关 · ${levelLabel(nextLevel)}` : "回大厅") : "再试一次"}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Button>
+            {custom ? (
+              <>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  className="min-h-12"
+                  onClick={() => {
+                    clearSession();
+                    window.location.href = `/custom?${customRequestToQuery(custom.request)}`;
+                  }}
+                >
+                  同一局再来
+                </Button>
+                <Button
+                  size="lg"
+                  className="group min-h-12"
+                  onClick={() => {
+                    clearSession();
+                    window.location.href = `/custom?${customRequestToQuery(custom.request, false)}`;
+                  }}
+                >
+                  换个种子再排
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="lg"
+                className="group min-h-12"
+                onClick={() => {
+                  clearSession();
+                  const target = isWin ? nextLevel : level;
+                  window.location.href = target ? `/?level=${target}` : "/";
+                }}
+              >
+                {isWin ? (nextLevel ? `下一关 · ${levelLabel(nextLevel)}` : "回大厅") : "再试一次"}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
+            )}
           </div>
         </div>
       </div>

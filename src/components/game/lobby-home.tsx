@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Link from "next/link";
-import { ArrowRight, Check, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Shuffle, Sparkles } from "lucide-react";
 import { LampMatrix } from "@/components/game/lamp-matrix";
 import { levelLabel, suggestLevel, type LevelInfo } from "@/lib/game/levels";
 import { loadClearedLevels } from "@/lib/game/progress";
@@ -455,6 +455,17 @@ export function LobbyHome() {
                           </span>
                         )}
                       </p>
+                      <Link
+                        href="/custom"
+                        className="group mt-4 flex items-center gap-3 rounded-[3px] border border-dashed border-amber/35 px-3.5 py-2.5 transition-colors hover:border-amber/70 hover:bg-amber/[0.06]"
+                      >
+                        <Shuffle className="h-4 w-4 shrink-0 text-[var(--amber)]" aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm text-[var(--ink)]">自定义关卡</span>
+                          <span className="block text-[11px] text-[var(--ink-muted)]">随机地图，自选案件与难度，不计战绩</span>
+                        </span>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-[var(--amber)] transition-transform group-hover:translate-x-1" aria-hidden />
+                      </Link>
                     </fieldset>
                   ) : (
                     <div className="space-y-1">
@@ -600,6 +611,12 @@ export function LobbyHome() {
               1–4 人 · 凭房间码入座 · 无需注册
               {account.status === "ready" && account.enabled && "，登录可记战绩"}
             </span>
+            <Link
+              href="/custom"
+              className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+            >
+              自定义关卡
+            </Link>
             <Link
               href="/map-lab"
               className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
