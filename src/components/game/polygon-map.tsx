@@ -12,6 +12,7 @@ import {
 } from "@/lib/game/map-generator";
 import type { AdjacencyMatrix } from "@/lib/game/trajectory-kernel";
 import { estimatedBoxes, layoutPolygonEdges, type Box } from "@/lib/game/map-arrows";
+import { edgeKey, focusFrom } from "@/lib/game/map-focus";
 import { cn } from "@/lib/utils";
 
 /** ViewBox units — square canvas; nodes sit on a circle of this radius. */
@@ -109,7 +110,7 @@ type LaidEdge = {
 function layoutEdges(
   edges: MatrixEdge[],
   positions: Record<string, Pt2>,
-  focus: string | null,
+  litEdges: ReadonlySet<string>,
   labelOf: (id: string) => string,
   boxes: readonly Box[],
   arrowSize: number
@@ -124,9 +125,9 @@ function layoutEdges(
     ringRadius: VB * RING,
     endPad: END_PAD,
   }).map(({ edge, from, to, ctrl, oneWay, arrow }) => {
-    const lit = !!focus && (focus === edge.a || focus === edge.b);
+    const lit = litEdges.has(edgeKey(edge));
     return {
-      key: `${edge.a}|${edge.b}|${edge.kind}`,
+      key: edgeKey(edge),
       from,
       to,
       ctrl,
@@ -288,15 +289,7 @@ export function PolygonMap({
     [matrix, placeIds]
   );
 
-  const neighbors = useMemo(() => {
-    if (!focus) return new Set<string>();
-    const set = new Set<string>();
-    for (const e of edges) {
-      if (e.a === focus) set.add(e.b);
-      if (e.b === focus) set.add(e.a);
-    }
-    return set;
-  }, [edges, focus]);
+  const lit = useMemo(() => focusFrom(edges, focus, staySet), [edges, focus, staySet]);
 
   const arrowSize = n >= 10 ? 19 : n >= 8 ? 21 : ARROW_HALF;
   const [measured, setMeasured] = useState<Record<string, Box> | null>(null);
@@ -306,8 +299,8 @@ export function PolygonMap({
     return placeIds.map((id, i) => measured?.[id] ?? guess[i]);
   }, [placeIds, positions, n, measured]);
   const laid = useMemo(
-    () => layoutEdges(edges, positions, focus, labelOf, boxList, arrowSize),
-    [edges, positions, focus, labelOf, boxList, arrowSize]
+    () => layoutEdges(edges, positions, lit.edges, labelOf, boxList, arrowSize),
+    [edges, positions, lit.edges, labelOf, boxList, arrowSize]
   );
 
   const stageRef = useRef<HTMLDivElement>(null);
@@ -397,9 +390,11 @@ export function PolygonMap({
         const p = positions[id];
         if (!p) return null;
         const isSel = selected === id;
-        const isNeighbor = !!focus && neighbors.has(id) && id !== focus;
+        const isNeighbor = lit.reachable.has(id);
         const off = !!isEnabled && !isEnabled(id);
         const canStay = staySet.has(id);
+        // Focused stay room: it is also a move (stay put), shown with its own inner ring.
+        const stayLit = canStay && focus === id && lit.canStay;
         const label = labelOf(id);
         const interactive = !!onSelect;
 
@@ -409,6 +404,8 @@ export function PolygonMap({
             ref={nodeRef(id)}
             type="button"
             data-place={id}
+            data-reachable={isNeighbor ? "" : undefined}
+            data-stay-lit={stayLit ? "" : undefined}
             data-tutorial={`place-${id}`}
             disabled={!interactive || off}
             aria-pressed={isSel}
@@ -425,7 +422,11 @@ export function PolygonMap({
               "transition-[background-color,box-shadow,transform,opacity] duration-300 motion-reduce:transition-none",
               interactive && "active:scale-[0.97] motion-reduce:active:scale-100",
               isSel
-                ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_14px_32px_-14px_rgba(212,161,90,0.95)]"
+                ? stayLit
+                  ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[inset_0_0_0_3px_var(--amber),inset_0_0_0_4.5px_var(--curtain),0_14px_32px_-14px_rgba(212,161,90,0.95)]"
+                  : "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_14px_32px_-14px_rgba(212,161,90,0.95)]"
+                : stayLit
+                  ? "bg-[var(--stage)] bg-[image:linear-gradient(145deg,rgba(212,161,90,0.26),rgba(212,161,90,0.08)_60%)] text-[var(--ink)] shadow-[inset_0_0_0_1.5px_var(--amber),inset_0_0_0_4px_var(--stage),inset_0_0_0_5px_rgba(212,161,90,0.55),0_10px_28px_-16px_rgba(212,161,90,0.7)]"
                 : isNeighbor
                   ? "bg-amber/12 text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--amber-dim)]"
                   : canStay
@@ -433,6 +434,7 @@ export function PolygonMap({
                     : "bg-[var(--stage)] text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--ink-faint)]",
               interactive &&
                 !isSel &&
+                !stayLit &&
                 !off &&
                 "hover:shadow-[inset_0_0_0_1px_var(--amber-dim),0_10px_28px_-18px_rgba(212,161,90,0.55)]",
               highlight === id && "animate-pulse-soft",
@@ -452,7 +454,9 @@ export function PolygonMap({
                 data-testid="stay-pip"
                 className={cn(
                   "pointer-events-none absolute -right-1.5 -top-1.5 z-[3] flex h-3.5 w-3.5 items-center justify-center rounded-full ring-2 ring-[var(--curtain)]",
-                  isSel ? "bg-[var(--curtain)]" : "bg-[var(--amber)]"
+                  "transition-[transform,box-shadow] duration-300 motion-reduce:transition-none",
+                  isSel ? "bg-[var(--curtain)]" : "bg-[var(--amber)]",
+                  stayLit && "scale-125 shadow-[0_0_0_5px_rgba(212,161,90,0.32),0_0_14px_2px_rgba(212,161,90,0.55)]"
                 )}
               >
                 <span className={cn("h-1.5 w-1.5 rounded-full", isSel ? "bg-[var(--amber)]" : "bg-[var(--curtain)]")} />
