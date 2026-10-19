@@ -734,7 +734,7 @@ export function CustomLevelClient() {
               />
             </div>
             <p className="mt-4 border-l-2 border-amber/40 pl-3 text-xs leading-relaxed text-[var(--ink-muted)]">
-              自定义关卡是练习场：不计入排行榜、首通与战绩。开房后照常凭房间码邀人入座，单人、多人都能玩。
+              自定义关卡是练习场：记入个人战绩，不计排行榜与首通。开房后照常凭房间码邀人入座，单人、多人都能玩。
             </p>
           </Section>
 
@@ -780,7 +780,7 @@ export function CustomLevelClient() {
                 <span className="animate-fade-up inline-block text-[var(--amber)]">{notice}</span>
               ) : resume
                   ? `开房会放弃房间 ${resume.code}`
-                  : "不计排行榜与战绩"}
+                  : "不计排行榜"}
             </p>
           </div>
         </div>

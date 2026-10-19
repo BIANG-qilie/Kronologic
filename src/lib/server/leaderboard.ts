@@ -47,6 +47,7 @@ export interface SummaryBoard {
 }
 
 const eligible = and(
+  eq(gameRecords.kind, "level"),
   eq(gameRecords.result, "win"),
   eq(gameRecords.isFirstClear, true),
   sql`${gameRecords.level} between 1 and ${LEADERBOARD_LEVELS}`

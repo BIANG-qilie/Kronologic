@@ -14,7 +14,7 @@ describe("custom-level rooms", () => {
     assert.equal(a, b);
   });
 
-  it("plays a custom level end to end without touching records", async () => {
+  it("plays a custom level end to end; without a database nothing is saved", async () => {
     const bundle = await ensureCustomLevel(req);
     const { room, token } = createRoom("房主", undefined, 1, bundle);
     joinRoom(room.code, "同伴", 2);
@@ -34,7 +34,7 @@ describe("custom-level rooms", () => {
     assert.ok(room.winners.includes(room.players[0].id));
 
     await recordRoomResults(room, () => {});
-    for (const p of room.players) assert.equal(p.record, null);
+    for (const p of room.players) assert.notEqual(p.record?.status, "saved");
   });
 });
 

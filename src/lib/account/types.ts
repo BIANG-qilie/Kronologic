@@ -39,6 +39,8 @@ export interface ProfileRecord {
   queriesUsed: number;
   minQueries: number;
   isFirstClear: boolean;
+  kind: "level" | "custom";
+  customLabel: string | null;
   playedAt: string;
 }
 

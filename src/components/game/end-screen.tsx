@@ -187,7 +187,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
 
         {custom && (
           <p className="rise mt-6 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]" style={{ ["--i" as string]: 7 }}>
-            自定义关卡 · 不计排行榜与战绩
+            自定义关卡 · 不计排行榜
             <span className="mx-2 text-[var(--ink-faint)]">/</span>
             种子 <span className="font-mono tracking-[0.14em] text-[var(--ink)]">{custom.request.seed}</span>
           </p>

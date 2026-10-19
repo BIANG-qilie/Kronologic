@@ -23,6 +23,8 @@ export interface GameRecordInput extends GameOutcome {
   ownWhiteCount?: number;
   /** Precomputed board score; derived when omitted. */
   score?: number;
+  /** Set for custom levels: kept in history, skipped for boards, first clears and achievements. */
+  customLabel?: string;
 }
 
 export type SavedRecord = Extract<SeatRecord, { status: "saved" }>;
@@ -31,7 +33,7 @@ async function wonLevels(db: Pick<Db, "selectDistinct">, userId: number): Promis
   const rows = await db
     .selectDistinct({ level: gameRecords.level })
     .from(gameRecords)
-    .where(and(eq(gameRecords.userId, userId), eq(gameRecords.result, "win")));
+    .where(and(eq(gameRecords.userId, userId), eq(gameRecords.result, "win"), eq(gameRecords.kind, "level")));
   return new Set(rows.map((r) => r.level));
 }
 
@@ -49,7 +51,8 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
       .where(eq(achievements.userId, input.userId));
     const unlocked = new Set(unlockedRows.map((r) => r.code));
 
-    const firstClear = isFirstClear(input, cleared);
+    const custom = input.customLabel != null;
+    const firstClear = !custom && isFirstClear(input, cleared);
     const playerCount = input.playerCount ?? (input.mode === "solo" ? 1 : 2);
     const ownQueries = input.ownQueries ?? input.queriesUsed;
     const greenCount = input.greenCount ?? 0;
@@ -71,10 +74,12 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
       greenCount,
       ownWhiteCount,
       score,
+      kind: custom ? "custom" : "level",
+      customLabel: input.customLabel ?? null,
       ...(input.playedAt ? { playedAt: input.playedAt } : {}),
     });
 
-    const earned = evaluateAchievements(input, { clearedLevels: cleared, unlocked });
+    const earned = custom ? [] : evaluateAchievements(input, { clearedLevels: cleared, unlocked });
     let newAchievements: AchievementCode[] = [];
     if (earned.length) {
       const inserted = await tx
@@ -93,7 +98,8 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
         and(
           eq(gameRecords.userId, input.userId),
           eq(gameRecords.level, input.level),
-          eq(gameRecords.result, "win")
+          eq(gameRecords.result, "win"),
+          eq(gameRecords.kind, custom ? "custom" : "level")
         )
       );
 
@@ -102,7 +108,7 @@ export async function recordGameResult(db: Db, input: GameRecordInput): Promise<
       result: input.result,
       queriesUsed: input.queriesUsed,
       isFirstClear: firstClear,
-      bestQueries: best?.best ?? null,
+      bestQueries: custom ? null : (best?.best ?? null),
       newAchievements,
     };
   });
@@ -140,7 +146,7 @@ export async function getProfile(db: Db, userId: number, levels: readonly LevelI
       firstClearAt: min(gameRecords.playedAt),
     })
     .from(gameRecords)
-    .where(and(eq(gameRecords.userId, userId), eq(gameRecords.result, "win")))
+    .where(and(eq(gameRecords.userId, userId), eq(gameRecords.result, "win"), eq(gameRecords.kind, "level")))
     .groupBy(gameRecords.level);
   const byLevel = new Map(perLevel.map((r) => [r.level, r]));
 
@@ -185,6 +191,8 @@ export async function getProfile(db: Db, userId: number, levels: readonly LevelI
       queriesUsed: r.queriesUsed,
       minQueries: r.minQueries,
       isFirstClear: r.isFirstClear,
+      kind: r.kind,
+      customLabel: r.customLabel,
       playedAt: r.playedAt.toISOString(),
     })),
   };

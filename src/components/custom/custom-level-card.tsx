@@ -86,7 +86,7 @@ export function CustomLevelCard({
           {copied ? <Check className="h-4 w-4" aria-hidden /> : <Link2 className="h-4 w-4" aria-hidden />}
           {copied ? "已复制" : "复制关卡链接"}
         </button>
-        <p className="text-[11px] text-ink-muted/80">自定义关卡不计入排行榜、首通与战绩。</p>
+        <p className="text-[11px] text-ink-muted/80">自定义关卡记入个人战绩，不计排行榜与首通。</p>
       </div>
     </div>
   );
