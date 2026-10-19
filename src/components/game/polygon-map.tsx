@@ -1,18 +1,17 @@
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   collectMatrixEdges,
-  outwardArcControl,
   polygonVertexPositions,
   quadBezierPoint,
   quadBezierTangent,
-  shortenChord,
   type EdgeKind,
   type MatrixEdge,
   type Pt2,
 } from "@/lib/game/map-generator";
 import type { AdjacencyMatrix } from "@/lib/game/trajectory-kernel";
+import { estimatedBoxes, layoutPolygonEdges, type Box } from "@/lib/game/map-arrows";
 import { cn } from "@/lib/utils";
 
 /** ViewBox units — square canvas; nodes sit on a circle of this radius. */
@@ -45,6 +44,7 @@ function MidEdgeArrow({
   t = 0.5,
   lit,
   size = ARROW_HALF,
+  clear = true,
 }: {
   p0: Pt2;
   ctrl: Pt2;
@@ -52,6 +52,7 @@ function MidEdgeArrow({
   t?: number;
   lit: boolean;
   size?: number;
+  clear?: boolean;
 }) {
   const mid = quadBezierPoint(p0, ctrl, p2, t);
   const tan = quadBezierTangent(p0, ctrl, p2, t);
@@ -66,6 +67,7 @@ function MidEdgeArrow({
     <g
       transform={`translate(${mx} ${my}) rotate(${angle})`}
       data-testid="mid-edge-arrow"
+      data-clear={clear ? undefined : "false"}
     >
       {/* Curtain disc + amber ring so the mark punches through crossing chords */}
       <circle
@@ -87,29 +89,6 @@ function MidEdgeArrow({
   );
 }
 
-/**
- * Point along the curve farthest from every room plaque, so the chevron reads
- * on open ink. Plaques are taller than wide, hence the squashed distance;
- * a small pull toward the middle keeps arrows centred when space is even.
- */
-function openestT(p0: Pt2, ctrl: Pt2, p2: Pt2, nodes: Pt2[]): number {
-  let best = 0.5;
-  let bestScore = -Infinity;
-  for (let t = 0.14; t <= 0.861; t += 0.04) {
-    const p = quadBezierPoint(p0, ctrl, p2, t);
-    let clear = Infinity;
-    for (const c of nodes) clear = Math.min(clear, Math.hypot(p.x - c.x, (p.y - c.y) / 1.35));
-    // Diagonals all cross at the hub; a chevron there could belong to any of them.
-    const hub = Math.hypot(p.x - CX, p.y - CY);
-    const score = Math.min(clear, 170) - Math.abs(t - 0.5) * 36 - Math.max(0, 130 - hub) * 0.9;
-    if (score > bestScore) {
-      bestScore = score;
-      best = t;
-    }
-  }
-  return Math.round(best * 100) / 100;
-}
-
 type LaidEdge = {
   key: string;
   from: Pt2;
@@ -117,6 +96,9 @@ type LaidEdge = {
   ctrl: Pt2;
   /** Where on the curve the one-way chevron sits. */
   arrowT: number;
+  /** Chevron size multiplier, below 1 only where space is tight. */
+  arrowScale: number;
+  arrowClear: boolean;
   d: string;
   lit: boolean;
   oneWay: boolean;
@@ -128,39 +110,30 @@ function layoutEdges(
   edges: MatrixEdge[],
   positions: Record<string, Pt2>,
   focus: string | null,
-  labelOf: (id: string) => string = (id) => id
+  labelOf: (id: string) => string,
+  boxes: readonly Box[],
+  arrowSize: number
 ): LaidEdge[] {
-  const center = { x: CX, y: CY };
-  const nodes = Object.values(positions);
-  const out: LaidEdge[] = [];
-  edges.forEach((edge, index) => {
-    const pa = positions[edge.a];
-    const pb = positions[edge.b];
-    if (!pa || !pb) return;
-    const rawFrom = edge.kind === "backward" ? pb : pa;
-    const rawTo = edge.kind === "backward" ? pa : pb;
-    const [from, to] = shortenChord(rawFrom, rawTo, END_PAD);
+  return layoutPolygonEdges({
+    edges,
+    positions,
+    boxes,
+    arrowRadius: arrowSize,
+    arrowRing: ARROW_RING,
+    canvas: VB,
+    ringRadius: VB * RING,
+    endPad: END_PAD,
+  }).map(({ edge, from, to, ctrl, oneWay, arrow }) => {
     const lit = !!focus && (focus === edge.a || focus === edge.b);
-    const oneWay = edge.kind !== "bidirectional";
-    const rawLen = Math.hypot(rawTo.x - rawFrom.x, rawTo.y - rawFrom.y);
-    // Neighbours on a dense ring sit a plaque apart: swing the arc outside the
-    // ring so its mid-arrow lands in open space instead of under a room.
-    const short = rawLen < VB * RING * 0.95;
-    const bend = short ? 0.62 : 0.16 + (index % 3) * 0.025;
-    const ctrlRaw = outwardArcControl(rawFrom, rawTo, center, bend);
-    const r = (n: number) => Math.round(n * 100) / 100;
-    // Short arcs start under the plaques so they leave them cleanly, no hook.
-    const a = short ? { x: r(rawFrom.x), y: r(rawFrom.y) } : { x: r(from.x), y: r(from.y) };
-    const b = short ? { x: r(rawTo.x), y: r(rawTo.y) } : { x: r(to.x), y: r(to.y) };
-    const ctrl = { x: r(ctrlRaw.x), y: r(ctrlRaw.y) };
-    const arrowT = oneWay ? openestT(a, ctrl, b, nodes) : 0.5;
-    out.push({
+    return {
       key: `${edge.a}|${edge.b}|${edge.kind}`,
-      from: a,
-      to: b,
+      from,
+      to,
       ctrl,
-      arrowT,
-      d: `M ${a.x} ${a.y} Q ${ctrl.x} ${ctrl.y} ${b.x} ${b.y}`,
+      arrowT: arrow?.t ?? 0.5,
+      arrowScale: arrow?.scale ?? 1,
+      arrowClear: arrow?.clear ?? true,
+      d: `M ${from.x} ${from.y} Q ${ctrl.x} ${ctrl.y} ${to.x} ${to.y}`,
       lit,
       oneWay,
       stroke: strokeForKind(edge.kind, lit),
@@ -170,9 +143,8 @@ function layoutEdges(
           : edge.kind === "forward"
             ? `单向 ${labelOf(edge.a)} → ${labelOf(edge.b)}`
             : `单向 ${labelOf(edge.b)} → ${labelOf(edge.a)}`,
-    });
+    };
   });
-  return out;
 }
 
 function PolygonEdges({
@@ -214,12 +186,42 @@ function PolygonArrows({ laid, size }: { laid: LaidEdge[]; size: number }) {
               p2={e.to}
               t={e.arrowT}
               lit={e.lit}
-              size={size}
+              size={Math.round(size * e.arrowScale * 100) / 100}
+              clear={e.arrowClear}
             />
           )
       )}
     </>
   );
+}
+
+/** Map width assumed before the plaques are measured: the narrowest phone. */
+const ESTIMATE_PX = 320;
+
+/** Chevron disk beyond its half-size: circle r = size + 5, plus half its stroke. */
+const ARROW_RING = 6;
+
+/** Plaque plus its stay pip, which hangs off the corner. */
+function unionRect(el: HTMLElement) {
+  const b = el.getBoundingClientRect();
+  const pip = el.querySelector("[data-testid=stay-pip]")?.getBoundingClientRect();
+  if (!pip) return b;
+  const left = Math.min(b.left, pip.left);
+  const right = Math.max(b.right, pip.right);
+  const top = Math.min(b.top, pip.top);
+  const bottom = Math.max(b.bottom, pip.bottom);
+  return { left, right, top, bottom, width: right - left, height: bottom - top };
+}
+
+function sameBoxes(a: Record<string, Box> | null, b: Record<string, Box>): boolean {
+  if (!a) return false;
+  const ka = Object.keys(a);
+  if (ka.length !== Object.keys(b).length) return false;
+  return ka.every((id) => {
+    const x = a[id];
+    const y = b[id];
+    return !!y && x.cx === y.cx && x.cy === y.cy && x.hw === y.hw && x.hh === y.hh;
+  });
 }
 
 function nodeRadiusPx(n: number): number {
@@ -296,11 +298,54 @@ export function PolygonMap({
     return set;
   }, [edges, focus]);
 
-  const laid = useMemo(
-    () => layoutEdges(edges, positions, focus, labelOf),
-    [edges, positions, focus, labelOf]
-  );
   const arrowSize = n >= 10 ? 19 : n >= 8 ? 21 : ARROW_HALF;
+  const [measured, setMeasured] = useState<Record<string, Box> | null>(null);
+  const boxList = useMemo(() => {
+    const centers = placeIds.map((id) => positions[id]);
+    const guess = estimatedBoxes(centers, n, ESTIMATE_PX, VB);
+    return placeIds.map((id, i) => measured?.[id] ?? guess[i]);
+  }, [placeIds, positions, n, measured]);
+  const laid = useMemo(
+    () => layoutEdges(edges, positions, focus, labelOf, boxList, arrowSize),
+    [edges, positions, focus, labelOf, boxList, arrowSize]
+  );
+
+  const stageRef = useRef<HTMLDivElement>(null);
+  const nodeEls = useRef(new Map<string, HTMLElement>());
+  const nodeRef = useCallback(
+    (id: string) => (el: HTMLElement | null) => {
+      if (el) nodeEls.current.set(id, el);
+      else nodeEls.current.delete(id);
+    },
+    []
+  );
+
+  useLayoutEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const measure = () => {
+      const frame = stage.getBoundingClientRect();
+      if (!frame.width) return;
+      const k = VB / frame.width;
+      const next: Record<string, Box> = {};
+      for (const [id, el] of nodeEls.current) {
+        const b = unionRect(el);
+        next[id] = {
+          cx: Math.round(((b.left + b.right) / 2 - frame.left) * k),
+          cy: Math.round(((b.top + b.bottom) / 2 - frame.top) * k),
+          hw: Math.ceil((b.width / 2) * k),
+          hh: Math.ceil((b.height / 2) * k),
+        };
+      }
+      setMeasured((prev) => (sameBoxes(prev, next) ? prev : next));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(stage);
+    for (const el of nodeEls.current.values()) ro.observe(el);
+    document.fonts?.ready.then(measure).catch(() => {});
+    return () => ro.disconnect();
+  }, [placeIds]);
 
   const rNode = nodeRadiusPx(n);
   const pct = (v: number) => `${(v / VB) * 100}%`;
@@ -317,6 +362,8 @@ export function PolygonMap({
       data-layout="polygon"
       data-node-count={n}
     >
+      {/* One square frame for strokes and plaques, so both share coordinates. */}
+      <div ref={stageRef} className="absolute inset-x-0 top-1/2 aspect-square -translate-y-1/2">
       <svg
         className="pointer-events-none absolute inset-0 z-0 h-full w-full"
         viewBox={`0 0 ${VB} ${VB}`}
@@ -359,6 +406,7 @@ export function PolygonMap({
         return (
           <button
             key={id}
+            ref={nodeRef(id)}
             type="button"
             data-place={id}
             data-tutorial={`place-${id}`}
@@ -448,6 +496,7 @@ export function PolygonMap({
           </button>
         );
       })}
+      </div>
     </div>
   );
 }
