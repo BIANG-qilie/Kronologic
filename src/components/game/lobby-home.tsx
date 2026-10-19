@@ -17,6 +17,7 @@ import { RulesSheet } from "@/components/game/rules-sheet";
 import { cn } from "@/lib/utils";
 import { useAccount } from "@/hooks/use-account";
 import { AccountMenu } from "@/components/account/account-menu";
+import { DetectivePanel } from "@/components/detective/detective-panel";
 import {
   apiJson,
   loadSession,
@@ -45,6 +46,7 @@ export function LobbyHome() {
   const [family, setFamily] = useState<FamilyMeta | null>(null);
   const [level, setLevel] = useState<number>(1);
   const [mode, setMode] = useState<"create" | "join">("create");
+  const [playMode, setPlayMode] = useState<"level" | "detective">("level");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [loadErr, setLoadErr] = useState(false);
@@ -63,6 +65,7 @@ export function LobbyHome() {
 
   useEffect(() => {
     setResume(loadSession());
+    if (new URLSearchParams(window.location.search).get("mode") === "detective") setPlayMode("detective");
     setPrologueDone(loadPrologueDone());
     fetch("/api/rooms")
       .then((r) => r.json())
@@ -298,7 +301,56 @@ export function LobbyHome() {
             </Link>
 
             <div
-              className="rise ticket-edge parchment-wash relative mt-4 max-w-md px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
+              className="rise mt-4 flex max-w-md rounded-[3px] p-1 shadow-[inset_0_0_0_1px_var(--ink-faint)]"
+              role="tablist"
+              aria-label="玩法"
+              style={{ ["--i" as string]: 4 }}
+            >
+              {(
+                [
+                  ["level", "关卡模式", "十五关 · 递进"],
+                  ["detective", "探案模式", "随机案件与地图"],
+                ] as const
+              ).map(([value, label, hint]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={playMode === value}
+                  onClick={() => {
+                    setPlayMode(value);
+                    setErr(null);
+                    const url = new URL(window.location.href);
+                    if (value === "detective") url.searchParams.set("mode", "detective");
+                    else url.searchParams.delete("mode");
+                    window.history.replaceState(null, "", url);
+                  }}
+                  className={cn(
+                    "flex min-h-12 flex-1 flex-col items-center justify-center rounded-[2px] px-2 py-1.5 transition-[background-color,color,box-shadow] duration-200",
+                    playMode === value
+                      ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_8px_24px_-12px_rgba(212,161,90,0.8)]"
+                      : "text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                  )}
+                >
+                  <span className="font-display text-base leading-tight">{label}</span>
+                  <span className={cn("text-[10px] tracking-[0.12em]", playMode === value ? "text-curtain/70" : "text-ink-muted/70")}>
+                    {hint}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {playMode === "detective" ? (
+              <div
+                className="rise ticket-edge parchment-wash relative mt-3 max-w-md px-5 pb-6 pt-5 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
+                style={{ ["--i" as string]: 4 }}
+              >
+                <div className="pointer-events-none absolute inset-y-2 left-0 right-0 border-y border-dashed border-ink-faint/70" aria-hidden />
+                <DetectivePanel />
+              </div>
+            ) : (
+            <div
+              className="rise ticket-edge parchment-wash relative mt-3 max-w-md px-5 pb-6 pt-3 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.9)] backdrop-blur-sm sm:px-7 sm:pb-7"
               style={{ ["--i" as string]: 4 }}
             >
               <div className="pointer-events-none absolute inset-y-4 left-0 right-0 border-y border-dashed border-ink-faint/70" aria-hidden />
@@ -519,6 +571,7 @@ export function LobbyHome() {
                 </div>
               </div>
             </div>
+            )}
           </div>
 
           <aside className="md:col-span-5 md:pt-24">

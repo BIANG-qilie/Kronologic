@@ -441,6 +441,13 @@ export function LeaderboardPage({
         <div className="rise flex items-center gap-3" style={{ ["--i" as string]: 0 }}>
           <p className="text-[11px] tracking-[0.42em] text-[var(--amber)]">星河榜</p>
           <LampRow />
+          <Link
+            href="/leaderboard/detective"
+            className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-[3px] px-3 text-sm text-[var(--ink-muted)] shadow-[inset_0_0_0_1px_var(--ink-faint)] transition-colors hover:text-[var(--ink)] hover:shadow-[inset_0_0_0_1px_var(--amber-dim)]"
+          >
+            探案榜
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
         </div>
         <h1
           className="rise mt-3 font-display text-[clamp(2.75rem,10vw,4.75rem)] font-black leading-[0.92] text-[var(--ink)]"
