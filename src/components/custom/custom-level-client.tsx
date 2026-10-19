@@ -24,6 +24,7 @@ import {
   oneWayCountMax,
   parseCustomRequest,
   randomSeed,
+  type CustomLevelInput,
   type CustomMap,
 } from "@/lib/game/custom-level";
 import type { CustomDifficultyId, CustomLevelRequest } from "@/lib/game/types";
@@ -74,6 +75,22 @@ function formFromRequest(req: CustomLevelRequest): Form {
     stayCount: req.stayCount == null ? "" : String(req.stayCount),
     difficulty: req.difficulty,
     seed: req.seed,
+  };
+}
+
+/** A broken shared link keeps what it can, so the form can point at the bad field. */
+function looseForm(input: CustomLevelInput): Form {
+  const n = Number(input.nodeCount);
+  const difficulty = CUSTOM_DIFFICULTIES.find((d) => d.id === input.difficulty)?.id;
+  return {
+    caseId: getCustomCase(String(input.caseId)) ? String(input.caseId) : DEFAULT_FORM.caseId,
+    nodeCount: Number.isInteger(n) ? Math.min(CUSTOM_NODE_MAX, Math.max(CUSTOM_NODE_MIN, n)) : CUSTOM_NODE_DEFAULT,
+    oneWay: input.oneWay === true,
+    oneWayCount: input.oneWayCount == null ? "" : String(input.oneWayCount).replace(/[^0-9]/g, "").slice(0, 2),
+    stay: input.stay === true,
+    stayCount: input.stayCount == null ? "" : String(input.stayCount).replace(/[^0-9]/g, "").slice(0, 2),
+    difficulty: difficulty ?? DEFAULT_FORM.difficulty,
+    seed: typeof input.seed === "string" && input.seed.trim() ? input.seed.trim().slice(0, 32) : randomSeed(),
   };
 }
 
@@ -275,7 +292,7 @@ export function CustomLevelClient() {
       const req = parseCustomRequest(input);
       setForm(window.location.search ? formFromRequest(req) : { ...DEFAULT_FORM, seed: randomSeed() });
     } catch {
-      setForm({ ...DEFAULT_FORM, seed: randomSeed() });
+      setForm(looseForm(input));
     }
     setReady(true);
   }, []);
@@ -589,7 +606,9 @@ export function CustomLevelClient() {
                     <span className="animate-pulse-soft text-sm text-[var(--ink-muted)]">摆布景…</span>
                   ) : (
                     <>
-                      <p className="font-display text-xl text-[var(--ink)]">这张图排不出来</p>
+                      <p className="font-display text-xl text-[var(--ink)]">
+                        {preview.req ? "这张图排不出来" : "设置还差一点"}
+                      </p>
                       <p className="mt-2 max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
                         {preview.error?.message ?? "先填一个种子"}
                       </p>
@@ -719,7 +738,7 @@ export function CustomLevelClient() {
               </div>
             )}
             <Button
-              className="group relative w-full overflow-hidden"
+              className={cn("group relative w-full overflow-hidden", busy && "disabled:opacity-100")}
               size="lg"
               disabled={ctaBlocked}
               onClick={() => submit()}

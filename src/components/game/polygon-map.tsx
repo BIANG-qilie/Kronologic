@@ -360,7 +360,7 @@ export function PolygonMap({
                 {String(i + 1).padStart(2, "0")}
               </span>
               {canStay && (
-                <StayMark selected={isSel} density="corner" label="sm" />
+                <StayMark selected={isSel} density="corner" label={n >= 9 ? "never" : "sm"} />
               )}
             </span>
             {glyphOf && (
