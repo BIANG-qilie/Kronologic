@@ -58,6 +58,65 @@ const PATHS: Record<PlaceId, ReactNode> = {
       <path d="M9 11.5h2" />
     </>
   ),
+  // 厢房 · box seat: drapes tied back over a balustrade
+  wing: (
+    <>
+      <path d="M3 3h14" />
+      <path d="M4 3c0 4 1.5 6 4 7M16 3c0 4-1.5 6-4 7" />
+      <path d="M3 12h14v2H3z" />
+      <path d="M5.5 14v3.5M10 14v3.5M14.5 14v3.5" />
+    </>
+  ),
+  // 天桥 · fly-gallery catwalk with hanging lines and a sandbag
+  bridge: (
+    <>
+      <path d="M2.5 5h15M2.5 8h15" />
+      <path d="M5 5l2.5 3M10 5l-2.5 3M10 5l2.5 3M15 5l-2.5 3" />
+      <path d="M6 8v6M14 8v4" />
+      <circle cx="6" cy="15.2" r="1.2" />
+      <rect x="12.8" y="12" width="2.4" height="3.6" rx=".5" />
+    </>
+  ),
+  // 乐池 · curved pit rail, a music stand and a note
+  pit: (
+    <>
+      <path d="M2.5 11q7.5 4 15 0" />
+      <path d="M2.5 11v5.5h15V11" />
+      <path d="M6 9.5 8.5 4.5h-5zM6 9.5v3" />
+      <path d="M13.5 9V3.5l3 1" />
+      <circle cx="12.4" cy="9" r="1.1" />
+    </>
+  ),
+  // 侧廊 · converging walls toward a far door, with a wall sconce
+  aisle: (
+    <>
+      <path d="M2.5 2.5 8 7v6l-5.5 4.5M17.5 2.5 12 7v6l5.5 4.5" />
+      <path d="M8 7h4M8 13h4" />
+      <path d="M9.2 13V9.6a.8.8 0 0 1 1.6 0V13" />
+      <path d="M4.5 8v2.5M4.5 8l-.8-1.2h1.6z" />
+    </>
+  ),
+  // 阁楼 · gable roof with a round window above a small door
+  attic: (
+    <>
+      <path d="M2 10 10 3l8 7" />
+      <path d="M4 8.5v9h12v-9" />
+      <circle cx="10" cy="9" r="1.8" />
+      <path d="M8.2 17.5v-3.5h3.6v3.5" />
+    </>
+  ),
+  // 后场 · rigging pulley, rope and counterweight
+  backstage: (
+    <>
+      <path d="M3 2.5h14" />
+      <path d="M10 2.5v2" />
+      <circle cx="10" cy="6.5" r="2" />
+      <path d="M8 6.5v8M12 6.5v4" />
+      <rect x="10.6" y="10.5" width="2.8" height="4" rx=".5" />
+      <path d="M5.5 17.5h5" />
+      <path d="M8 14.5v3" />
+    </>
+  ),
 };
 
 export function PlaceGlyph({

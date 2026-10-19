@@ -98,6 +98,7 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
 
 function useEdgeKind(view: RoomPublicView) {
   return useMemo(() => {
+    if (view.scenario.custom) return (): EdgeKind => "none";
     const placeIds = placeOrder(view.scenario);
     const matrix = adjacencyRecordToMatrix(view.scenario.adjacency, placeIds);
     return (a: PlaceId, b: PlaceId) => edgeKindBetween(matrix, placeIds, a, b);

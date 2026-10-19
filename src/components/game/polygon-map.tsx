@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   collectMatrixEdges,
   outwardArcControl,
@@ -99,7 +99,8 @@ type LaidEdge = {
 function layoutEdges(
   edges: MatrixEdge[],
   positions: Record<string, Pt2>,
-  focus: string | null
+  focus: string | null,
+  labelOf: (id: string) => string = (id) => id
 ): LaidEdge[] {
   const center = { x: CX, y: CY };
   const out: LaidEdge[] = [];
@@ -129,10 +130,10 @@ function layoutEdges(
       stroke: strokeForKind(edge.kind, lit),
       title:
         edge.kind === "bidirectional"
-          ? `双向 ${edge.a} ↔ ${edge.b}`
+          ? `双向 ${labelOf(edge.a)} ↔ ${labelOf(edge.b)}`
           : edge.kind === "forward"
-            ? `单向 ${edge.a} → ${edge.b}`
-            : `单向 ${edge.b} → ${edge.a}`,
+            ? `单向 ${labelOf(edge.a)} → ${labelOf(edge.b)}`
+            : `单向 ${labelOf(edge.b)} → ${labelOf(edge.a)}`,
     });
   });
   return out;
@@ -142,12 +143,14 @@ function PolygonEdges({
   edges,
   positions,
   focus,
+  labelOf,
 }: {
   edges: MatrixEdge[];
   positions: Record<string, Pt2>;
   focus: string | null;
+  labelOf?: (id: string) => string;
 }) {
-  const laid = layoutEdges(edges, positions, focus);
+  const laid = layoutEdges(edges, positions, focus, labelOf);
   return (
     <>
       {/* Pass 1: all strokes so later chords don't bury mid-arrows */}
@@ -198,6 +201,7 @@ export function PolygonMap({
   matrix,
   stayIds,
   labelOf,
+  glyphOf,
   onSelect,
   selected = null,
   highlight = null,
@@ -209,6 +213,7 @@ export function PolygonMap({
   matrix: AdjacencyMatrix;
   stayIds?: readonly string[];
   labelOf: (id: string) => string;
+  glyphOf?: (id: string) => ReactNode;
   onSelect?: (id: string) => void;
   selected?: string | null;
   highlight?: string | null;
@@ -285,7 +290,12 @@ export function PolygonMap({
           opacity="0.28"
           strokeDasharray="3 10"
         />
-        <PolygonEdges edges={edges} positions={positions} focus={focus} />
+        <PolygonEdges
+          edges={edges}
+          positions={positions}
+          focus={focus}
+          labelOf={labelOf}
+        />
       </svg>
 
       {placeIds.map((id, i) => {
@@ -336,7 +346,7 @@ export function PolygonMap({
             style={{
               left: pct(p.x),
               top: pct(p.y),
-              width: nodeW,
+              minWidth: nodeW,
               maxWidth: "26%",
             }}
           >
@@ -347,15 +357,27 @@ export function PolygonMap({
                   isSel ? "text-curtain/55" : "text-[var(--ink-faint)]"
                 )}
               >
-                0{i + 1}
+                {String(i + 1).padStart(2, "0")}
               </span>
               {canStay && (
                 <StayMark selected={isSel} density="corner" label="sm" />
               )}
             </span>
+            {glyphOf && (
+              <span
+                aria-hidden
+                className={cn(
+                  "flex justify-center",
+                  n >= 10 && "max-sm:hidden",
+                  isSel ? "text-[var(--curtain)]" : "text-[var(--amber-dim)]"
+                )}
+              >
+                {glyphOf(id)}
+              </span>
+            )}
             <span
               className={cn(
-                "w-full truncate px-0.5 font-display leading-tight",
+                "w-full whitespace-nowrap px-0.5 font-display leading-tight",
                 n >= 10
                   ? "text-[0.7rem] max-[360px]:text-[0.65rem] sm:text-[0.85rem]"
                   : n >= 8

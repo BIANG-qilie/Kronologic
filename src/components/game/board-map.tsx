@@ -41,23 +41,29 @@ export function BoardMap({
   const [hovered, setHovered] = useState<PlaceId | null>(null);
   const [planEl, setPlanEl] = useState<HTMLDivElement | null>(null);
   const byId = useMemo(() => new Map(scenario.places.map((p) => [p.id, p])), [scenario.places]);
-  const placeIds = useMemo(() => placeOrder(scenario), [scenario]);
+  const custom = scenario.custom;
+  const placeIds = useMemo(
+    () => (custom ? scenario.places.map((p) => p.id) : placeOrder(scenario)),
+    [custom, scenario]
+  );
   const layout = useMemo(() => layoutOf(scenario), [scenario]);
 
   const mode: "floor" | "polygon" =
-    layoutMode ?? (matrix != null ? "polygon" : "floor");
+    layoutMode ?? (matrix != null || custom ? "polygon" : "floor");
 
   const adjMatrix = useMemo(() => {
     if (matrix) return matrix;
+    if (custom) return custom.matrix;
     return adjacencyRecordToMatrix(scenario.adjacency, placeIds);
-  }, [matrix, scenario.adjacency, placeIds]);
+  }, [matrix, custom, scenario.adjacency, placeIds]);
 
   const staySet = useMemo(() => {
     if (stayIds?.length) return new Set(stayIds);
+    if (custom) return new Set(custom.stayIds);
     return new Set(
       placeIds.filter((id) => isStayPlace(adjMatrix, placeIds, id))
     );
-  }, [stayIds, placeIds, adjMatrix]);
+  }, [stayIds, custom, placeIds, adjMatrix]);
 
   const stayList = useMemo(() => [...staySet], [staySet]);
 
@@ -139,6 +145,7 @@ export function BoardMap({
         matrix={adjMatrix}
         stayIds={stayList}
         labelOf={(id) => byId.get(id as PlaceId)?.name ?? id}
+        glyphOf={(id) => <PlaceGlyph id={id as PlaceId} className="h-4 w-4 sm:h-5 sm:w-5" />}
         onSelect={onSelect as ((id: string) => void) | undefined}
         selected={selected}
         highlight={highlight}

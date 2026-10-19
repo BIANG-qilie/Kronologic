@@ -202,19 +202,23 @@ export function PlayClient({
             <p className="truncate font-display text-sm text-[var(--ink)] sm:text-base">
               {view.scenario.title}
             </p>
-            <p className="flex items-center gap-1.5 text-[11px] text-[var(--ink-muted)]">
+            <p className="flex min-w-0 items-center gap-1.5 whitespace-nowrap text-[11px] text-[var(--ink-muted)]">
               <span
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full",
+                  "h-1.5 w-1.5 shrink-0 rounded-full",
                   connected
                     ? "bg-[var(--green-win)]"
                     : "animate-pulse-soft bg-[var(--amber)]",
                 )}
                 title={connected ? "已同步" : "重连中"}
               />
-              {view.scenario.tier ? `${view.scenario.tier} · ` : ""}
-              <span className="font-mono tracking-[0.12em]">{view.code}</span> · 已问{" "}
-              <span className="tabular">{view.queryCountTotal}</span>
+              {view.scenario.tier && (
+                <span className="min-w-0 truncate">{view.scenario.tier} ·</span>
+              )}
+              <span className="shrink-0">
+                <span className="font-mono tracking-[0.12em]">{view.code}</span> · 已问{" "}
+                <span className="tabular">{view.queryCountTotal}</span>
+              </span>
             </p>
           </div>
           <span
