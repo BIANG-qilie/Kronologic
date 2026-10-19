@@ -46,15 +46,21 @@ describe("detective aggregation", () => {
 describe("detective comparator", () => {
   const s = (id: number, o: Partial<DetectiveTotals>) => aggregateDetective(t(id, o));
 
-  it("ranks win rate first, then green, white, asks", () => {
+  it("ranks win rate first, then green, asks, white, games", () => {
     const rows = [
       s(1, { wins: 2 }),
       s(2, { wins: 3 }),
       s(3, { wins: 2, greenSum: 16 }),
-      s(4, { wins: 2, greenSum: 16, whiteSum: 4 }),
-      s(5, { wins: 2, greenSum: 16, whiteSum: 4, querySum: 8 }),
+      s(4, { wins: 2, greenSum: 16, querySum: 8 }),
+      s(5, { wins: 2, greenSum: 16, querySum: 8, whiteSum: 4 }),
     ].sort(compareDetectiveStats);
     assert.deepEqual(rows.map((r) => r.userId), [2, 5, 4, 3, 1]);
+  });
+
+  it("fewer asks beats fewer white windows", () => {
+    const a = s(1, { querySum: 8, whiteSum: 20 });
+    const b = s(2, { querySum: 12, whiteSum: 0 });
+    assert.ok(compareDetectiveStats(a, b) < 0);
   });
 
   it("win rate beats fewer windows", () => {

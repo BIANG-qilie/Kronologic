@@ -95,13 +95,13 @@ function cmp(a: number, b: number): number {
   return Math.abs(a - b) < EPS ? 0 : a - b;
 }
 
-/** Higher win rate, then fewer green windows, fewer white windows, fewer asks; more games then user id break ties. */
+/** Higher win rate, then fewer green windows, fewer asks, fewer white windows, more games; user id breaks ties. */
 export function compareDetectiveStats(a: DetectiveStats, b: DetectiveStats): number {
   return (
     cmp(b.winRate, a.winRate) ||
     cmp(a.avgGreen, b.avgGreen) ||
-    cmp(a.avgWhite, b.avgWhite) ||
     cmp(a.avgQueries, b.avgQueries) ||
+    cmp(a.avgWhite, b.avgWhite) ||
     b.games - a.games ||
     a.userId - b.userId
   );
