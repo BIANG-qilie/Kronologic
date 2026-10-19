@@ -39,7 +39,7 @@ export interface ProfileRecord {
   queriesUsed: number;
   minQueries: number;
   isFirstClear: boolean;
-  kind: "level" | "custom";
+  kind: "level" | "custom" | "detective";
   customLabel: string | null;
   playedAt: string;
 }

@@ -300,9 +300,9 @@ export function RecordsPage() {
         ) : (
           <ol className="divide-y divide-ink-faint/50 border-y border-ink-faint/60">
             {profile.recent.map((r) => (
-              <li key={r.id} className="grid grid-cols-[3.25rem_1fr_auto] items-center gap-x-3 py-3 sm:grid-cols-[4.5rem_1fr_auto_auto] sm:gap-x-6">
-                {r.kind === "custom" ? (
-                  <span className="font-display text-base text-[var(--amber)]">自定义</span>
+              <li key={`${r.kind}-${r.id}`} className="grid grid-cols-[3.25rem_1fr_auto] items-center gap-x-3 py-3 sm:grid-cols-[4.5rem_1fr_auto_auto] sm:gap-x-6">
+                {r.kind !== "level" ? (
+                  <span className="font-display text-base text-[var(--amber)]">{r.kind === "custom" ? "自定义" : "探案"}</span>
                 ) : (
                   <span className="font-display text-lg text-[var(--ink)] tabular">
                     <span className="sr-only">第 </span>
@@ -324,8 +324,8 @@ export function RecordsPage() {
                       首通
                     </span>
                   )}
-                  {r.kind === "custom" && r.customLabel && (
-                    <span className="mt-0.5 block truncate text-[11px] text-[var(--ink-muted)]">{r.customLabel}</span>
+                  {r.kind !== "level" && r.customLabel && (
+                    <span className="mt-0.5 block break-words text-[11px] leading-snug text-[var(--ink-muted)]">{r.customLabel}</span>
                   )}
                   <span className="mt-0.5 block text-[11px] text-[var(--ink-muted)] sm:hidden">
                     {r.mode === "solo" ? "单人" : "多人"} · {timeFmt.format(new Date(r.playedAt))}

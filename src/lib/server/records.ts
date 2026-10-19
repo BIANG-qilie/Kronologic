@@ -1,6 +1,9 @@
 import { and, count, desc, eq, min, sql } from "drizzle-orm";
 import type { Db } from "@/lib/server/db";
-import { achievements, gameRecords, users } from "@/lib/server/db/schema";
+import { achievements, detectiveRecords, gameRecords, users } from "@/lib/server/db/schema";
+import { DEFAULT_BAND_MIN, DETECTIVE_CASES } from "@/lib/game/detective";
+import { getCustomDifficulty } from "@/lib/game/custom-level";
+import type { CustomDifficultyId } from "@/lib/game/types";
 import {
   achievementByCode,
   evaluateAchievements,
@@ -9,7 +12,15 @@ import {
   type GameOutcome,
 } from "@/lib/game/achievements";
 import type { LevelInfo } from "@/lib/game/levels";
-import type { Profile, SeatRecord } from "@/lib/account/types";
+import type { Profile, ProfileRecord, SeatRecord } from "@/lib/account/types";
+
+const RECENT_LIMIT = 20;
+
+/** "《夜茶的毒》 · 烧脑" for a detective row in personal history. */
+export function detectiveRecordLabel(caseId: string, difficulty: CustomDifficultyId): string {
+  const title = DETECTIVE_CASES.find((c) => c.id === caseId)?.title ?? caseId;
+  return `《${title}》 · ${getCustomDifficulty(difficulty)?.label ?? difficulty}`;
+}
 import { leaderboardScore } from "@/lib/game/leaderboard";
 
 export interface GameRecordInput extends GameOutcome {
@@ -161,7 +172,43 @@ export async function getProfile(db: Db, userId: number, levels: readonly LevelI
     .from(gameRecords)
     .where(eq(gameRecords.userId, userId))
     .orderBy(desc(gameRecords.playedAt), desc(gameRecords.id))
-    .limit(20);
+    .limit(RECENT_LIMIT);
+
+  const recentDetective = await db
+    .select()
+    .from(detectiveRecords)
+    .where(eq(detectiveRecords.userId, userId))
+    .orderBy(desc(detectiveRecords.playedAt), desc(detectiveRecords.id))
+    .limit(RECENT_LIMIT);
+
+  const history: ProfileRecord[] = [
+    ...recent.map((r) => ({
+      id: r.id,
+      level: r.level,
+      mode: r.mode,
+      result: r.result,
+      queriesUsed: r.queriesUsed,
+      minQueries: r.minQueries,
+      isFirstClear: r.isFirstClear,
+      kind: r.kind,
+      customLabel: r.customLabel,
+      playedAt: r.playedAt.toISOString(),
+    })),
+    ...recentDetective.map((r) => ({
+      id: r.id,
+      level: 0,
+      mode: (r.playerCount === 1 ? "solo" : "multi") as ProfileRecord["mode"],
+      result: r.result,
+      queriesUsed: r.queries,
+      minQueries: r.bandMin ?? DEFAULT_BAND_MIN[r.difficulty],
+      isFirstClear: false,
+      kind: "detective" as const,
+      customLabel: detectiveRecordLabel(r.caseId, r.difficulty),
+      playedAt: r.playedAt.toISOString(),
+    })),
+  ]
+    .sort((a, b) => b.playedAt.localeCompare(a.playedAt) || b.id - a.id)
+    .slice(0, RECENT_LIMIT);
 
   return {
     user: { id: user.id, username: user.username, createdAt: user.createdAt.toISOString() },
@@ -183,17 +230,6 @@ export async function getProfile(db: Db, userId: number, levels: readonly LevelI
     achievements: unlocked
       .filter((a) => achievementByCode(a.code))
       .map((a) => ({ code: a.code as AchievementCode, unlockedAt: a.unlockedAt.toISOString() })),
-    recent: recent.map((r) => ({
-      id: r.id,
-      level: r.level,
-      mode: r.mode,
-      result: r.result,
-      queriesUsed: r.queriesUsed,
-      minQueries: r.minQueries,
-      isFirstClear: r.isFirstClear,
-      kind: r.kind,
-      customLabel: r.customLabel,
-      playedAt: r.playedAt.toISOString(),
-    })),
+    recent: history,
   };
 }

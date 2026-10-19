@@ -148,4 +148,23 @@ describe("detective records", () => {
     const before = await getDetectiveLeaderboard(db, {}, u.id);
     assert.equal(before.me, null);
   });
+
+  it("detective and custom games both show in recent history, newest first", async () => {
+    const u = await createUser(db, "混合客", "lamp-det-7");
+    await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", result: "lose", queries: 9, playedAt: new Date("2026-03-01T10:00:00Z") }));
+    const req = parseCustomRequest({ nodeCount: 6, difficulty: "easy", seed: "CR2" });
+    const bundle = await ensureCustomLevel(req);
+    const { room, token } = createRoom(u.username, undefined, u.id, bundle);
+    startGame(room.code, token);
+    submitAnswers(room.code, token, Object.fromEntries(room.scenario.winQuestions.map((q) => [q.id, bundle.sealed.answers[q.id]])));
+    await room.recording;
+    const recent = (await getProfile(db, u.id, listLevels()))!.recent;
+    assert.deepEqual(recent.map((r) => r.kind), ["custom", "detective"]);
+    const det = recent[1];
+    assert.equal(det.result, "lose");
+    assert.equal(det.queriesUsed, 9);
+    assert.equal(det.isFirstClear, false);
+    assert.equal(det.customLabel, "《夜茶的毒》 · 烧脑");
+    assert.match(recent[0].customLabel ?? "", /《夜茶的毒》 · 6 地点 · 入门.*#CR2/);
+  });
 });
