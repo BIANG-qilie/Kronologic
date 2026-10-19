@@ -535,6 +535,7 @@ export function projectRoom(
 
   return {
     code: room.code,
+    detective: !!room.detective,
     phase: room.phase,
     scenarioId: room.scenarioId,
     scenario: room.scenario,

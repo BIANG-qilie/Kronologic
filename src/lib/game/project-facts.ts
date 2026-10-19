@@ -372,6 +372,18 @@ export function cellHasFacts(facts: CellFactLayers | undefined): boolean {
   );
 }
 
+/**
+ * Whether clues settle the cell so pencil marks are closed. A green count of
+ * two or more still leaves who was there open, so marks stay editable until
+ * every one of those people is named publicly.
+ */
+export function cellLocksInference(facts: CellFactLayers | undefined): boolean {
+  if (!cellHasFacts(facts)) return false;
+  const count = facts!.public.count;
+  if (count != null && count > 1 && facts!.public.letters.length < count) return false;
+  return true;
+}
+
 export function visitHasFacts(facts: VisitFactLayers | undefined): boolean {
   if (!facts) return false;
   return facts.public.count != null || facts.private.amongTimes.length > 0;

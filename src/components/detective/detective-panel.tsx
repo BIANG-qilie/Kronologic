@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Dices, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,22 @@ export function DetectivePanel() {
     setAuthKind(kind);
     setAuthOpen(true);
   };
+
+  const ticketsAsked = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (ticketsAsked.current == null) {
+      const url = new URL(window.location.href);
+      ticketsAsked.current = url.searchParams.get("tickets") === "1";
+      if (ticketsAsked.current) {
+        url.searchParams.delete("tickets");
+        window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      }
+    }
+    if (!ticketsAsked.current || account.status !== "ready") return;
+    ticketsAsked.current = false;
+    if (user) setDrawing(true);
+    else if (account.enabled) openAuth("login");
+  }, [account, user]);
 
   return (
     <div className="relative">

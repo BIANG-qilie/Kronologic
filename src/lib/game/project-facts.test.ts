@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   cellHasConflict,
   cellHasFacts,
+  cellLocksInference,
   visitHasFacts,
   mergeCellMarks,
   projectFacts,
@@ -296,6 +297,18 @@ describe("structured conflicts", () => {
 });
 
 describe("fact locks", () => {
+  it("keeps marks open while a green count of two or more leaves people unnamed", () => {
+    assert.equal(cellLocksInference(cell()), false);
+    assert.equal(cellLocksInference(cell({ count: 0 })), true);
+    assert.equal(cellLocksInference(cell({ count: 1 })), true);
+    assert.equal(cellLocksInference(cell({ count: 2 })), false);
+    assert.equal(cellLocksInference(cell({ count: 3 }, ["K"])), false);
+    assert.equal(cellLocksInference(cell({ count: 2, letters: ["A"] })), false);
+    assert.equal(cellLocksInference(cell({ count: 2, letters: ["A", "B"] })), true);
+    assert.equal(cellLocksInference(cell({ letters: ["A"] })), true);
+    assert.equal(cellLocksInference(cell({}, ["K"])), true);
+  });
+
   it("locks cells and visits that carry public or private facts", () => {
     assert.equal(cellHasFacts(cell()), false);
     assert.equal(cellHasFacts(cell({ count: 0 })), true);

@@ -194,6 +194,8 @@ export interface SubmitAnswer {
 
 export interface RoomPublicView {
   code: string;
+  /** Detective-mode room (random case and map, signed-in seats). */
+  detective?: boolean;
   phase: RoomPhase;
   scenarioId: string;
   scenario: ScenarioPublic;

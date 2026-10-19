@@ -17,7 +17,7 @@ import {
   type SuspectBoard as Board,
 } from "@/lib/game/notes-format";
 import {
-  cellHasFacts,
+  cellLocksInference,
   mergeCellMarks,
   projectFacts,
   visitHasFacts,
@@ -742,8 +742,8 @@ export function DeskTimeline({
                       mark={cellMarkOf(payload, activeTime, place)}
                       board={payload.board}
                       reachable={reachable}
-                      canEdit={layers.inference && !cellHasFacts(cellFacts) && cellAllowed(activeTime, place)}
-                      locked={cellHasFacts(cellFacts)}
+                      canEdit={layers.inference && !cellLocksInference(cellFacts) && cellAllowed(activeTime, place)}
+                      locked={cellLocksInference(cellFacts)}
                       open={editing?.time === activeTime && editing.place === place}
                       onOpenChange={(o) => setEditing(o ? { time: activeTime, place } : null)}
                       onChange={(mark) => setCell(activeTime, place, mark)}

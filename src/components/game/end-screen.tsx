@@ -12,6 +12,7 @@ import { markLevelCleared } from "@/lib/game/progress";
 import { customRequestToQuery } from "@/lib/game/custom-level";
 import { placeOrder, timesOf } from "@/lib/game/board";
 import { PlaceGlyph } from "./place-glyph";
+import { PolygonMap } from "./polygon-map";
 import { SeatRecordLine } from "@/components/account/seat-record";
 
 const LAST_LEVEL = 15;
@@ -21,6 +22,83 @@ const MEDAL = {
   silver: { label: "银放大镜", color: "#c9d1cc", glow: "rgba(201,209,204,0.45)" },
   copper: { label: "铜放大镜", color: "#c27c4e", glow: "rgba(194,124,78,0.45)" },
 } as const;
+
+function ReplayGraph({
+  view,
+  trajectory,
+  time,
+  isCrime,
+  crimePlace,
+  culprit,
+  victim,
+}: {
+  view: Pick<RoomPublicView, "scenario">;
+  trajectory: Trajectory;
+  time: number;
+  isCrime: boolean;
+  crimePlace: PlaceId | null;
+  culprit: string | null;
+  victim: PersonId | null;
+}) {
+  const custom = view.scenario.custom!;
+  const placeIds = view.scenario.places.map((p) => p.id);
+  const stay = new Set<string>(custom.stayIds);
+  return (
+    <PolygonMap
+      placeIds={placeIds}
+      matrix={custom.matrix}
+      stayIds={custom.stayIds}
+      labelOf={(id) => view.scenario.places.find((p) => p.id === id)?.name ?? id}
+      className={cn(
+        "aspect-square min-h-0 bg-transparent max-[360px]:min-h-0 sm:min-h-0",
+        isCrime && "[--curtain:var(--parchment)] [--ink-faint:rgba(26,36,32,0.3)] [--ink-muted:rgba(26,36,32,0.5)]"
+      )}
+      nodeWidth={placeIds.length >= 8 ? "22%" : "26%"}
+      renderNode={(id) => {
+        const here = view.scenario.people.filter((p) => trajectory[p.id]?.[String(time)] === id);
+        const hot = crimePlace === id;
+        return (
+          <div
+            title={view.scenario.places.find((p) => p.id === id)?.name}
+            className={cn(
+              "relative flex aspect-square w-full flex-wrap content-center items-center justify-center gap-x-0.5 rounded-[2px] font-mono text-[11px] font-semibold leading-tight",
+              hot
+                ? "bg-[var(--amber)] text-[var(--curtain)] shadow-[0_0_24px_rgba(212,161,90,0.7)]"
+                : isCrime
+                  ? "bg-[var(--parchment)] text-[var(--ink-deep)] shadow-[inset_0_0_0_1px_rgba(26,36,32,0.25)]"
+                  : "bg-[var(--stage)] shadow-[inset_0_0_0_1px_var(--ink-faint)]"
+            )}
+          >
+            {stay.has(id) && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--amber)]"
+              />
+            )}
+            {here.length === 0 && (
+              <PlaceGlyph
+                id={id as PlaceId}
+                className={cn("h-3 w-3", isCrime ? "text-ink-deep/30" : "text-[var(--ink-faint)]")}
+              />
+            )}
+            {here.map((p) => (
+              <span
+                key={p.id}
+                className={cn(
+                  "px-px",
+                  !isCrime && "text-[var(--ink-muted)]",
+                  (p.id === culprit || p.id === victim) && !hot && !isCrime && "text-[var(--ink)]"
+                )}
+              >
+                {p.letter}
+              </span>
+            ))}
+          </div>
+        );
+      }}
+    />
+  );
+}
 
 export function Replay({
   view,
@@ -56,6 +134,17 @@ export function Replay({
               <span className="font-display text-lg italic leading-none">{t}</span>
               {isCrime && <span className="text-[10px] tracking-[0.2em] text-[var(--amber-dim)]">案发</span>}
             </p>
+            {view.scenario.custom ? (
+              <ReplayGraph
+                view={view}
+                trajectory={trajectory}
+                time={t}
+                isCrime={isCrime}
+                crimePlace={isCrime ? crime?.place ?? null : null}
+                culprit={culprit}
+                victim={victim}
+              />
+            ) : (
             <div className="grid grid-cols-3 gap-1">
               {placeOrder(view.scenario).map((place) => {
                 const here = view.scenario.people.filter((p) => trajectory[p.id]?.[String(t)] === place);
@@ -96,6 +185,7 @@ export function Replay({
                 );
               })}
             </div>
+            )}
           </li>
         );
       })}
@@ -153,7 +243,9 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
         >
           {level != null && <span className="mr-3 text-[var(--ink-muted)]">{levelLabel(level)}</span>}
           {custom && view.scenario.tier && (
-            <span className="mr-3 text-[var(--ink-muted)]">{view.scenario.tier}</span>
+            <span className="mr-3 text-[var(--ink-muted)]">
+              {view.detective ? view.scenario.tier.replace(/^自定义/, "探案模式") : view.scenario.tier}
+            </span>
           )}
           {kicker}
         </p>
@@ -187,7 +279,7 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
 
         {custom && (
           <p className="rise mt-6 text-[11px] tracking-[0.2em] text-[var(--ink-muted)]" style={{ ["--i" as string]: 7 }}>
-            自定义关卡 · 不计排行榜
+            {view.detective ? "探案模式 · 成绩计入探案排行榜" : "自定义关卡 · 不计排行榜"}
             <span className="mx-2 text-[var(--ink-faint)]">/</span>
             种子 <span className="font-mono tracking-[0.14em] text-[var(--ink)]">{custom.request.seed}</span>
           </p>
@@ -241,8 +333,13 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
               victim={view.revealVictimId}
             />
             <div className="rise mt-4 flex items-center gap-3" style={{ ["--i" as string]: 12 }}>
-              <span className="text-[11px] text-ink-muted/70">房间位置</span>
-              <div className="grid grid-cols-3 gap-px overflow-hidden rounded-[2px] bg-ink-faint/60 text-[11px] text-[var(--ink-muted)]">
+              <span className="text-[11px] text-ink-muted/70">{view.scenario.custom ? "地点图标" : "房间位置"}</span>
+              <div
+                className={cn(
+                  "gap-px overflow-hidden rounded-[2px] bg-ink-faint/60 text-[11px] text-[var(--ink-muted)]",
+                  view.scenario.custom ? "flex flex-wrap" : "grid grid-cols-3"
+                )}
+              >
                 {placeOrder(view.scenario).map((id) => (
                   <span key={id} className="flex items-center gap-1 bg-[var(--curtain)] px-2 py-1">
                     <PlaceGlyph id={id} className="h-3.5 w-3.5" />
@@ -263,7 +360,14 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
             <span className="mx-2 text-[var(--ink-faint)]">/</span>
             全场共问 {view.queryCountTotal} 次
           </p>
-          <div className="flex flex-wrap items-center gap-2 max-sm:grid max-sm:w-full max-sm:grid-cols-2 max-sm:[&>*:last-child]:order-first max-sm:[&>*:last-child]:col-span-2 max-sm:[&>*:only-child]:col-span-2">
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-2 max-sm:grid max-sm:w-full max-sm:[&>*:last-child]:order-first",
+              custom
+                ? "max-sm:grid-cols-1"
+                : "max-sm:grid-cols-2 max-sm:[&>*:last-child]:col-span-2 max-sm:[&>*:only-child]:col-span-2"
+            )}
+          >
             {!(!custom && isWin && !nextLevel) && (
               <Button
                 variant="ghost"
@@ -284,30 +388,19 @@ export function EndScreen({ view }: { view: RoomPublicView }) {
               </Button>
             )}
             {custom ? (
-              <>
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  className="min-h-12"
-                  onClick={() => {
-                    clearSession();
-                    window.location.href = `/custom?${customRequestToQuery(custom.request)}`;
-                  }}
-                >
-                  同一局再来
-                </Button>
-                <Button
-                  size="lg"
-                  className="group min-h-12"
-                  onClick={() => {
-                    clearSession();
-                    window.location.href = `/custom?${customRequestToQuery(custom.request, false)}`;
-                  }}
-                >
-                  换个种子再排
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Button>
-              </>
+              <Button
+                size="lg"
+                className="group min-h-12"
+                onClick={() => {
+                  clearSession();
+                  window.location.href = view.detective
+                    ? "/?mode=detective&tickets=1"
+                    : `/custom?${customRequestToQuery(custom.request, false)}`;
+                }}
+              >
+                {view.detective ? "再探一案" : "换个种子再排"}
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
             ) : (
               <Button
                 size="lg"
