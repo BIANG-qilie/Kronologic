@@ -344,7 +344,7 @@ export function DetectiveDrawStage({
         </div>
 
         <p className="mt-4 text-center text-[11px] leading-relaxed text-[var(--ink-muted)]">
-          随机地图：{DETECTIVE_NODE_MIN}–{DETECTIVE_NODE_MAX} 个地点，单向通道与可停留地点随机出现。极限场凭烧脑三枚金放大镜入场；同房好友也须登录。
+          选择探案难度，本案为随机地图随机案件。在场玩家都需登录才可游玩。
         </p>
       </div>
     </div>,
