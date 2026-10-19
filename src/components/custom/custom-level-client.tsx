@@ -275,6 +275,13 @@ export function CustomLevelClient() {
   const [gen, setGen] = useState<{ req: CustomLevelRequest; status: GeneratingStatus } | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    const t = window.setTimeout(() => setNotice(null), 3200);
+    return () => window.clearTimeout(t);
+  }, [notice]);
   const busy = !!gen && gen.status.kind !== "error";
   const running = gen?.status.kind === "running";
   const [failure, setFailure] = useState<Failure | null>(null);
@@ -342,6 +349,7 @@ export function CustomLevelClient() {
     abortRef.current = ac;
     setGen({ req, status: { kind: "running" } });
     setFailure(null);
+    setNotice(null);
     const fail = (f: Failure) => {
       setFailure(f);
       const stage = f.field === "difficulty" ? 3 : f.field ? 0 : undefined;
@@ -378,6 +386,7 @@ export function CustomLevelClient() {
     abortRef.current?.abort();
     abortRef.current = null;
     setGen(null);
+    setNotice("已取消，设置都还在");
   }
 
   function reroll() {
@@ -435,7 +444,7 @@ export function CustomLevelClient() {
           </p>
         </header>
 
-        <div className="grid gap-x-12 gap-y-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <div className="grid gap-x-12 gap-y-10 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:grid-cols-[minmax(0,6fr)_minmax(0,5fr)]">
           <Section index="01" title="案件" className="md:col-start-1" style={{ ["--i" as string]: 3 }}>
             <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="案件">
               {CUSTOM_CASES.map((c) => {
@@ -766,8 +775,10 @@ export function CustomLevelClient() {
                 </>
               )}
             </Button>
-            <p className="mt-2 text-center text-xs text-[var(--ink-muted)] md:text-left">
-              {resume
+            <p className="mt-2 text-center text-xs text-[var(--ink-muted)] md:text-left" aria-live="polite">
+              {notice ? (
+                <span className="animate-fade-up inline-block text-[var(--amber)]">{notice}</span>
+              ) : resume
                   ? `开房会放弃房间 ${resume.code}`
                   : "不计排行榜与战绩"}
             </p>

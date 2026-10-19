@@ -4,7 +4,6 @@ import { useState } from "react";
 import type { PlaceDef, PlaceId } from "@/lib/game/types";
 import { PolygonMap } from "@/components/game/polygon-map";
 import { PlaceGlyph } from "@/components/game/place-glyph";
-import { StayMark } from "@/components/game/map-passage";
 import { cn } from "@/lib/utils";
 
 function LegendMidArrow() {
@@ -36,7 +35,9 @@ export function MapLegend({ className }: { className?: string }) {
         单向 · 只能顺箭头走
       </li>
       <li className="inline-flex items-center gap-2">
-        <StayMark label="never" />
+        <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--amber)]" aria-hidden>
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--curtain)]" />
+        </span>
         可停留 · 下一时刻可原地不动
       </li>
     </ul>

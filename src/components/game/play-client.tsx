@@ -213,7 +213,7 @@ export function PlayClient({
                 title={connected ? "已同步" : "重连中"}
               />
               {view.scenario.tier && (
-                <span className="min-w-0 truncate">{view.scenario.tier} ·</span>
+                <span className="min-w-0 truncate max-sm:hidden">{view.scenario.tier} ·</span>
               )}
               <span className="shrink-0">
                 <span className="font-mono tracking-[0.12em]">{view.code}</span> · 已问{" "}
