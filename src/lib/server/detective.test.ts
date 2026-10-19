@@ -7,6 +7,7 @@ import {
   DetectiveAuthError,
   assertDetectivePlayer,
   getDetectiveLeaderboard,
+  getExpertUnlock,
   recordDetectiveResult,
   type DetectiveRecordInput,
 } from "./detective";
@@ -14,6 +15,9 @@ import { createRoom, joinRoom, setScenario, startGame, submitAnswers } from "./r
 import { ensureCustomLevel } from "./custom-levels";
 import { customLevelId, parseCustomRequest } from "@/lib/game/custom-level";
 import { getDefaultScenarioId } from "@/lib/game/scenarios";
+import { getProfile } from "./records";
+import { getLevelLeaderboard, getSummaryLeaderboard } from "./leaderboard";
+import { listLevels } from "@/lib/game/scenarios";
 
 describe("detective permissions", () => {
   it("refuses guests", () => {
@@ -99,5 +103,49 @@ describe("detective records", () => {
     const board = await getDetectiveLeaderboard(db, { difficulty: "easy" }, u.id);
     assert.equal(board.me?.games, 1);
     assert.equal(board.me?.wins, 1);
+  });
+
+  it("unlocks expert and writes achievements once, from hard golds", async () => {
+    const u = await createUser(db, "探戊", "lamp-det-5");
+    const first = await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", rating: "gold", queries: 12, bandMin: 8 }));
+    assert.deepEqual(first, ["detective_first_night"]);
+    await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", rating: "silver", queries: 12 }));
+    await recordDetectiveResult(db, rec(u.id, { difficulty: "normal", rating: "gold", queries: 12 }));
+    await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", result: "lose", rating: null }));
+    assert.equal((await getExpertUnlock(db, u.id)).remaining, 2);
+    await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", rating: "gold", queries: 12 }));
+    const third = await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", rating: "gold", queries: 12 }));
+    assert.deepEqual(third, ["detective_gold_three"]);
+    assert.ok((await getExpertUnlock(db, u.id)).unlocked);
+    const again = await recordDetectiveResult(db, rec(u.id, { difficulty: "hard", rating: "gold", queries: 12 }));
+    assert.deepEqual(again, []);
+    const terse = await recordDetectiveResult(db, rec(u.id, { difficulty: "expert", rating: "gold", queries: 10, bandMin: 10 }));
+    assert.deepEqual(terse, ["detective_expert", "detective_terse"]);
+  });
+
+  it("custom levels land in personal history but never on the boards", async () => {
+    const u = await createUser(db, "自定客", "lamp-det-6");
+    const req = parseCustomRequest({ nodeCount: 6, difficulty: "easy", seed: "CR1" });
+    const bundle = await ensureCustomLevel(req);
+    const { room, token } = createRoom(u.username, undefined, u.id, bundle);
+    startGame(room.code, token);
+    const answers = Object.fromEntries(room.scenario.winQuestions.map((q) => [q.id, bundle.sealed.answers[q.id]]));
+    submitAnswers(room.code, token, answers);
+    await room.recording;
+    assert.equal(room.players[0].record?.status, "saved");
+    const profile = await getProfile(db, u.id, listLevels());
+    assert.equal(profile?.recent.length, 1);
+    assert.equal(profile?.recent[0].kind, "custom");
+    assert.equal(profile?.recent[0].isFirstClear, false);
+    assert.match(profile?.recent[0].customLabel ?? "", /夜茶的毒.*6 地点.*#CR1/);
+    assert.equal(profile?.totals.cleared, 0);
+    const summary = await getSummaryLeaderboard(db, 1, u.id);
+    assert.equal(summary.me, null);
+    for (let level = 1; level <= 15; level++) {
+      const board = await getLevelLeaderboard(db, level, 1, u.id);
+      assert.equal(board.me, null);
+    }
+    const before = await getDetectiveLeaderboard(db, {}, u.id);
+    assert.equal(before.me, null);
   });
 });

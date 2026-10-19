@@ -3,10 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { ArrowRight, RotateCcw, X } from "lucide-react";
+import { ArrowRight, Lock, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SlotReel, type ReelItem } from "./slot-reel";
-import { DETECTIVE_CASES, DETECTIVE_DIFFICULTIES, DETECTIVE_NODE_MAX, DETECTIVE_NODE_MIN } from "@/lib/game/detective";
+import {
+  DETECTIVE_CASES,
+  DETECTIVE_DIFFICULTIES,
+  DETECTIVE_NODE_MAX,
+  DETECTIVE_NODE_MIN,
+  type ExpertUnlock,
+} from "@/lib/game/detective";
 import type { CustomDifficultyId } from "@/lib/game/types";
 import { useMedia } from "@/hooks/use-media";
 import { clearSession, saveSession } from "@/hooks/use-room";
@@ -78,6 +84,18 @@ export function DetectiveDrawStage({
   const reduced = useMedia("(prefers-reduced-motion: reduce)");
   const [stage, setStage] = useState<Stage>({ kind: "pick" });
   const [stopped, setStopped] = useState(0);
+  const [unlock, setUnlock] = useState<ExpertUnlock | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    fetch("/api/detective", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => live && d?.expert && setUnlock(d.expert))
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, []);
   const abortRef = useRef<AbortController | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -193,23 +211,43 @@ export function DetectiveDrawStage({
             <div className="min-w-0 flex-1 rounded-[3px] bg-[#120c06] px-2.5 py-3 shadow-[inset_0_0_24px_rgba(0,0,0,0.9)] sm:px-4 sm:py-4">
               {stage.kind === "pick" ? (
                 <div>
-                  <p className="text-center font-display text-lg text-[#f3e6c8] sm:text-xl">挑一张票，难度由你定</p>
-                  <p className="mt-1 text-center text-xs text-[#b39b74]">案件与地图交给命运；战绩记在「{username}」名下</p>
+                  <p className="text-center font-display text-lg text-[#f3e6c8] sm:text-xl">挑选本场的命运门票</p>
+                  <p className="mt-1 text-center text-xs text-[#b39b74]">持票人「{username}」</p>
                   <div className="mt-4 grid grid-cols-2 gap-2.5" role="group" aria-label="难度">
-                    {DETECTIVE_DIFFICULTIES.map((d, i) => (
-                      <button
-                        key={d.id}
-                        type="button"
-                        onClick={() => draw(d.id)}
-                        className="ticket-stub group relative flex min-h-[5.5rem] flex-col items-center justify-center px-3 py-2.5 text-center transition-transform duration-200 hover:-translate-y-0.5 active:scale-[0.97] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe2a3]"
-                      >
-                        <span className="font-mono text-[9px] tracking-[0.3em] text-[#8f5418]">ADMIT · {String(i + 1).padStart(2, "0")}</span>
-                        <span className="mt-0.5 font-display text-2xl leading-tight">{d.label}</span>
-                        <span className="mt-0.5 text-[11px] text-[#6b5332]">
-                          最少 {d.min}–{d.max} 问 · {d.compare}
-                        </span>
-                      </button>
-                    ))}
+                    {DETECTIVE_DIFFICULTIES.map((d, i) => {
+                      const expert = d.id === "expert";
+                      const locked = expert && !unlock?.unlocked;
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          disabled={locked}
+                          aria-describedby={locked ? "expert-lock" : undefined}
+                          onClick={() => draw(d.id)}
+                          className={cn(
+                            "ticket-stub group relative flex min-h-[5.5rem] flex-col items-center justify-center px-3 py-2.5 text-center transition-transform duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffe2a3]",
+                            locked ? "cursor-not-allowed opacity-55 grayscale-[0.6]" : "hover:-translate-y-0.5 active:scale-[0.97]"
+                          )}
+                        >
+                          <span className="flex items-center gap-1 font-mono text-[9px] tracking-[0.3em] text-[#8f5418]">
+                            {locked && <Lock className="h-2.5 w-2.5" aria-hidden />}
+                            ADMIT · {String(i + 1).padStart(2, "0")}
+                          </span>
+                          <span className="mt-0.5 font-display text-2xl leading-tight">{d.label}</span>
+                          {locked ? (
+                            <span id="expert-lock" className="mt-0.5 text-[11px] text-[#6b5332]">
+                              {unlock
+                                ? `烧脑场再拿 ${unlock.remaining} 枚金放大镜`
+                                : "正在查验票根…"}
+                            </span>
+                          ) : (
+                            <span className="mt-0.5 text-[11px] text-[#6b5332]">
+                              {expert ? "你大可以试试" : `最少 ${d.min}–${d.max} 问 · ${d.compare}`}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ) : (
@@ -306,7 +344,7 @@ export function DetectiveDrawStage({
         </div>
 
         <p className="mt-4 text-center text-[11px] leading-relaxed text-[var(--ink-muted)]">
-          随机地图：{DETECTIVE_NODE_MIN}–{DETECTIVE_NODE_MAX} 个地点，单向通道与可停留地点随机出现。同房好友也须登录才能入座。
+          随机地图：{DETECTIVE_NODE_MIN}–{DETECTIVE_NODE_MAX} 个地点，单向通道与可停留地点随机出现。极限场凭烧脑三枚金放大镜入场；同房好友也须登录。
         </p>
       </div>
     </div>,

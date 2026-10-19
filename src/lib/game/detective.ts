@@ -1,6 +1,7 @@
 import { CUSTOM_CASES } from "./custom-cases";
 import { CUSTOM_DIFFICULTIES, getCustomDifficulty, randomSeed } from "./custom-level";
 import type { CustomDifficultyId, CustomLevelRequest } from "./types";
+import { DETECTIVE_ACHIEVEMENTS } from "./achievements";
 
 /** Cases the detective draw can land on. New custom cases join automatically. */
 export const DETECTIVE_CASES = CUSTOM_CASES.map((c) => ({
@@ -131,4 +132,61 @@ export function rankDetective(
     if (mine) me = { ...mine, rank: ranked.find((r) => r.userId === userId)?.rank ?? null };
   }
   return { ranked: ranked.slice(0, top), me };
+}
+
+/** Gold magnifiers on 烧脑 needed before 极限 can be drawn. */
+export const EXPERT_UNLOCK_GOLDS = 3;
+
+export interface ExpertUnlock {
+  unlocked: boolean;
+  golds: number;
+  remaining: number;
+}
+
+export function expertUnlock(golds: number): ExpertUnlock {
+  const remaining = Math.max(0, EXPERT_UNLOCK_GOLDS - golds);
+  return { unlocked: remaining === 0, golds, remaining };
+}
+
+/** Whether a player with `unlock` may draw at `difficulty`. */
+export function canDrawDifficulty(difficulty: string, unlock: ExpertUnlock): boolean {
+  return difficulty !== "expert" || unlock.unlocked;
+}
+
+export const DETECTIVE_WINS_FOR_REGULAR = 10;
+
+/** Fallback ask floor per difficulty when a record carries none. */
+export const DEFAULT_BAND_MIN: Record<CustomDifficultyId, number> = { easy: 4, normal: 6, hard: 8, expert: 10 };
+
+export function bandMinFor(difficulty: CustomDifficultyId): number {
+  return getCustomDifficulty(difficulty)?.min ?? DEFAULT_BAND_MIN[difficulty];
+}
+
+export interface DetectiveOutcome {
+  difficulty: CustomDifficultyId;
+  result: "win" | "lose" | "eliminated";
+  rating: "gold" | "silver" | "copper" | null;
+  queries: number;
+  bandMin: number | null;
+}
+
+/** Totals after this game has been counted. */
+export interface DetectiveHistory {
+  wins: number;
+  hardGolds: number;
+  unlocked: ReadonlySet<string>;
+}
+
+type DetectiveCode = (typeof DETECTIVE_ACHIEVEMENTS)[number];
+
+const DETECTIVE_RULES: Record<DetectiveCode, (o: DetectiveOutcome, h: DetectiveHistory) => boolean> = {
+  detective_first_night: (o) => o.result === "win",
+  detective_gold_three: (_o, h) => h.hardGolds >= EXPERT_UNLOCK_GOLDS,
+  detective_expert: (o) => o.result === "win" && o.difficulty === "expert",
+  detective_terse: (o) => o.result === "win" && o.queries <= (o.bandMin ?? DEFAULT_BAND_MIN[o.difficulty]),
+  detective_regular: (_o, h) => h.wins >= DETECTIVE_WINS_FOR_REGULAR,
+};
+
+export function evaluateDetectiveAchievements(o: DetectiveOutcome, h: DetectiveHistory): DetectiveCode[] {
+  return DETECTIVE_ACHIEVEMENTS.filter((code) => !h.unlocked.has(code) && DETECTIVE_RULES[code](o, h));
 }

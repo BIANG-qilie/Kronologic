@@ -59,6 +59,10 @@ export const gameRecords = pgTable(
     ownWhiteCount: integer("own_white_count").notNull().default(0),
     /** Board score: solo = own_queries; multi = own_queries + green + own_white. */
     score: integer("score").notNull().default(0),
+    /** "custom" rows show in personal history only: never on boards, never a first clear. */
+    kind: text("kind", { enum: ["level", "custom"] }).notNull().default("level"),
+    /** Custom-level parameters and seed, e.g. "夜茶的毒 · 8 地点 · 进阶 · 单向 2 · #SEED". */
+    customLabel: text("custom_label"),
     playedAt: timestamp("played_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -101,6 +105,10 @@ export const detectiveRecords = pgTable(
     levelId: text("level_id").notNull(),
     playerCount: integer("player_count").notNull(),
     result: text("result", { enum: ["win", "lose", "eliminated"] }).notNull(),
+    /** Magnifier earned on a win by this seat's own asks; null when the seat did not win. */
+    rating: text("rating", { enum: ["gold", "silver", "copper"] }),
+    /** Ask floor of the difficulty band at draw time. */
+    bandMin: integer("band_min"),
     greenCount: integer("green_count").notNull(),
     whiteCount: integer("white_count").notNull(),
     queries: integer("queries").notNull(),

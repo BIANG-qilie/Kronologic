@@ -6,6 +6,9 @@ import {
   DETECTIVE_NODE_MAX,
   DETECTIVE_NODE_MIN,
   aggregateDetective,
+  canDrawDifficulty,
+  evaluateDetectiveAchievements,
+  expertUnlock,
   compareDetectiveStats,
   rankDetective,
   rollDetectiveRequest,
@@ -95,5 +98,56 @@ describe("detective draw", () => {
       assert.equal(r.difficulty, "normal");
       assert.equal(r.oneWayCount, null);
     }
+  });
+});
+
+describe("detective achievements and unlock", () => {
+  const base = { difficulty: "normal" as const, result: "win" as const, rating: "silver" as const, queries: 9, bandMin: 6 };
+  const h = (o: Partial<{ wins: number; hardGolds: number; unlocked: Set<string> }> = {}) => ({
+    wins: 1,
+    hardGolds: 0,
+    unlocked: new Set<string>(),
+    ...o,
+  });
+
+  it("first night needs a win, not a loss", () => {
+    assert.deepEqual(evaluateDetectiveAchievements(base, h()), ["detective_first_night"]);
+    assert.deepEqual(evaluateDetectiveAchievements({ ...base, result: "lose", rating: null }, h({ wins: 0 })), []);
+  });
+
+  it("never repeats an unlocked achievement", () => {
+    assert.deepEqual(evaluateDetectiveAchievements(base, h({ unlocked: new Set(["detective_first_night"]) })), []);
+  });
+
+  it("gold three at three hard golds, same count as the expert unlock", () => {
+    assert.ok(!evaluateDetectiveAchievements(base, h({ hardGolds: 2 })).includes("detective_gold_three"));
+    assert.ok(evaluateDetectiveAchievements(base, h({ hardGolds: 3 })).includes("detective_gold_three"));
+    assert.equal(expertUnlock(2).remaining, 1);
+    assert.ok(!canDrawDifficulty("expert", expertUnlock(2)));
+    assert.ok(canDrawDifficulty("expert", expertUnlock(3)));
+    assert.ok(canDrawDifficulty("hard", expertUnlock(0)));
+  });
+
+  it("expert needs a win on expert", () => {
+    assert.ok(evaluateDetectiveAchievements({ ...base, difficulty: "expert" }, h()).includes("detective_expert"));
+    assert.ok(!evaluateDetectiveAchievements({ ...base, difficulty: "hard" }, h()).includes("detective_expert"));
+    assert.ok(
+      !evaluateDetectiveAchievements({ ...base, difficulty: "expert", result: "eliminated", rating: null }, h()).includes(
+        "detective_expert"
+      )
+    );
+  });
+
+  it("terse uses the recorded band floor, else the default", () => {
+    assert.ok(evaluateDetectiveAchievements({ ...base, queries: 6 }, h()).includes("detective_terse"));
+    assert.ok(!evaluateDetectiveAchievements({ ...base, queries: 7 }, h()).includes("detective_terse"));
+    assert.ok(evaluateDetectiveAchievements({ ...base, difficulty: "hard", queries: 8, bandMin: null }, h()).includes("detective_terse"));
+    assert.ok(!evaluateDetectiveAchievements({ ...base, difficulty: "easy", queries: 5, bandMin: null }, h()).includes("detective_terse"));
+    assert.ok(!evaluateDetectiveAchievements({ ...base, queries: 3, result: "lose", rating: null }, h()).includes("detective_terse"));
+  });
+
+  it("regular at ten wins", () => {
+    assert.ok(!evaluateDetectiveAchievements(base, h({ wins: 9 })).includes("detective_regular"));
+    assert.ok(evaluateDetectiveAchievements(base, h({ wins: 10 })).includes("detective_regular"));
   });
 });

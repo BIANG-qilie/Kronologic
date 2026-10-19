@@ -32,9 +32,9 @@ describe("first clear", () => {
 });
 
 describe("achievements", () => {
-  it("has eight unique codes", () => {
-    assert.equal(ACHIEVEMENTS.length, 8);
-    assert.equal(new Set(ACHIEVEMENTS.map((a) => a.code)).size, 8);
+  it("has thirteen unique codes", () => {
+    assert.equal(ACHIEVEMENTS.length, 13);
+    assert.equal(new Set(ACHIEVEMENTS.map((a) => a.code)).size, 13);
   });
 
   it("初登场 on any finished game, even a loss", () => {

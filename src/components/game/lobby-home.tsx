@@ -514,7 +514,7 @@ export function LobbyHome() {
                         <Shuffle className="h-4 w-4 shrink-0 text-[var(--amber)]" aria-hidden />
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm text-[var(--ink)]">自定义关卡</span>
-                          <span className="block text-[11px] text-[var(--ink-muted)]">随机地图，自选案件与难度，不计战绩</span>
+                          <span className="block text-[11px] text-[var(--ink-muted)]">随机地图，自选案件与难度，不计排行榜</span>
                         </span>
                         <ArrowRight className="h-4 w-4 shrink-0 text-[var(--amber)] transition-transform group-hover:translate-x-1" aria-hidden />
                       </Link>
@@ -664,12 +664,6 @@ export function LobbyHome() {
               1–4 人 · 凭房间码入座 · 无需注册
               {account.status === "ready" && account.enabled && "，登录可记战绩"}
             </span>
-            <Link
-              href="/custom"
-              className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
-            >
-              自定义关卡
-            </Link>
             <Link
               href="/map-lab"
               className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"

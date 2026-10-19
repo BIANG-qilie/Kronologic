@@ -22,6 +22,20 @@
       "when": 1792432800000,
       "tag": "0002_detective_records",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792436400000,
+      "tag": "0003_detective_rating",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792440000000,
+      "tag": "0004_custom_records",
+      "breakpoints": true
     }
   ]
 }

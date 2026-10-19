@@ -2,9 +2,16 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/server/auth/current";
 import { createRoom, projectRoom } from "@/lib/server/rooms";
 import { customLevelErrorResponse, ensureCustomLevel } from "@/lib/server/custom-levels";
-import { assertDetectivePlayer, DetectiveAuthError } from "@/lib/server/detective";
+import { assertDetectivePlayer, DetectiveAuthError, getExpertUnlock } from "@/lib/server/detective";
+import { getDb } from "@/lib/server/db";
 import { CustomLevelError, customLevelId } from "@/lib/game/custom-level";
-import { DETECTIVE_CASES, isDetectiveDifficulty, rollDetectiveRequest } from "@/lib/game/detective";
+import {
+  DETECTIVE_CASES,
+  canDrawDifficulty,
+  expertUnlock,
+  isDetectiveDifficulty,
+  rollDetectiveRequest,
+} from "@/lib/game/detective";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -24,6 +31,16 @@ export async function POST(req: Request) {
   const difficulty = body?.difficulty;
   if (!isDetectiveDifficulty(difficulty)) {
     return NextResponse.json({ error: "先选一个难度" }, { status: 400 });
+  }
+  if (difficulty === "expert") {
+    const db = await getDb().catch(() => null);
+    const unlock = db ? await getExpertUnlock(db, user.id) : expertUnlock(0);
+    if (!canDrawDifficulty(difficulty, unlock)) {
+      return NextResponse.json(
+        { error: `极限还锁着：在烧脑再拿 ${unlock.remaining} 次金放大镜`, unlock },
+        { status: 403 }
+      );
+    }
   }
 
   let lastError: unknown = null;
@@ -59,4 +76,12 @@ export async function POST(req: Request) {
     }
   }
   return customLevelErrorResponse(lastError);
+}
+
+/** Which difficulties the signed-in player may draw. */
+export async function GET() {
+  const user = await currentUser();
+  if (!user) return NextResponse.json({ error: "探案模式要先登录" }, { status: 401 });
+  const db = await getDb().catch(() => null);
+  return NextResponse.json({ expert: db ? await getExpertUnlock(db, user.id) : expertUnlock(0) });
 }

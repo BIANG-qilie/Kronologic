@@ -14,7 +14,21 @@ export const ACHIEVEMENTS = [
   { code: "quick_draw", title: "抢答者", description: "多人局里第一个交卷并答对" },
   { code: "comeback", title: "绝境翻盘", description: "多人局里他人先交卷后，在 12 秒内答对" },
   { code: "prologue", title: "开场白", description: "走完第 0 关 · 序幕" },
+  { code: "detective_first_night", title: "首夜", description: "探案模式里第一次破案，幕布为你落下" },
+  { code: "detective_gold_three", title: "金边三夜", description: "烧脑场累计三枚金放大镜，极限场的门为你开了" },
+  { code: "detective_expert", title: "你大可以试试", description: "在极限场破案。你试了，而且成了" },
+  { code: "detective_terse", title: "惜字", description: "问数不超过本场难度下限就破案，一句废话也没有" },
+  { code: "detective_regular", title: "熟客", description: "探案模式累计破案 10 局，前排座位给你留着" },
 ] as const;
+
+/** Earned only through detective-mode games (see `evaluateDetectiveAchievements`). */
+export const DETECTIVE_ACHIEVEMENTS = [
+  "detective_first_night",
+  "detective_gold_three",
+  "detective_expert",
+  "detective_terse",
+  "detective_regular",
+] as const satisfies readonly AchievementCode[];
 
 /** Unlocked outside a recorded game (see `unlockAchievement`). */
 export const PROLOGUE_ACHIEVEMENT = "prologue" satisfies AchievementCode;
@@ -64,6 +78,11 @@ const RULES: Record<AchievementCode, (o: GameOutcome, clearedAfter: ReadonlySet<
     o.msAfterFirstSubmit != null &&
     o.msAfterFirstSubmit <= COMEBACK_WINDOW_MS,
   prologue: () => false,
+  detective_first_night: () => false,
+  detective_gold_three: () => false,
+  detective_expert: () => false,
+  detective_terse: () => false,
+  detective_regular: () => false,
 };
 
 /** Achievements this game newly unlocks, in display order. */

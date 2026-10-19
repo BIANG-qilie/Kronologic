@@ -28,7 +28,7 @@ export function DetectivePanel() {
       <p className="text-[11px] tracking-[0.32em] text-[var(--amber)]">探案模式 · 随机开演</p>
       <h3 className="mt-2 font-display text-[1.7rem] leading-tight text-[var(--ink)]">今晚演哪一出，抽了才知道</h3>
       <p className="mt-2 text-sm leading-[1.8] text-[var(--ink-muted)]">
-        你只挑难度。案件从 {DETECTIVE_CASES.length} 出剧目里抽，地图随机铺 {DETECTIVE_NODE_MIN}–{DETECTIVE_NODE_MAX} 个地点，单向通道与可停留地点也随机。每局计入探案榜。
+        你选难度，其余交给幕后。灯一灭，戏就开场。
       </p>
 
       <dl className="mt-4 grid grid-cols-3 border-y border-dashed border-ink-faint/80 py-2.5 text-center">
