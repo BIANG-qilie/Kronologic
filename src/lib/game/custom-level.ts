@@ -3,7 +3,7 @@ import {
   hashSeed,
   mulberry32,
   sampleWorld,
-  screenDraft,
+  screenDraftSteps,
   type ScreenStats,
   type WorldContext,
 } from "./generate-case";
@@ -321,6 +321,10 @@ export type GenerateCustomOptions = {
    * result, so a level that generates is still reproducible.
    */
   deadlineMs?: number;
+  /** Stops the search between steps; the half-built level is thrown away. */
+  signal?: AbortSignal;
+  /** Called after every solver screen (diagnostics and tests). */
+  onScreen?: () => void;
 };
 
 export type CustomLevelResult = {
@@ -342,7 +346,18 @@ export class CustomLevelExhausted extends CustomLevelError {
   }
 }
 
-/** The search itself; yields after every solver screen so callers can breathe. */
+export class CustomLevelAborted extends CustomLevelError {
+  constructor() {
+    super("排演已取消", undefined, false);
+    this.name = "CustomLevelAborted";
+  }
+}
+
+function throwIfAborted(signal: AbortSignal | undefined) {
+  if (signal?.aborted) throw new CustomLevelAborted();
+}
+
+/** The search itself; yields after every solver call so callers can breathe. */
 function* searchCustomLevel(
   req: CustomLevelRequest,
   opts: GenerateCustomOptions
@@ -362,6 +377,7 @@ function* searchCustomLevel(
   const stats = emptyScreenStats();
 
   for (let variant = 0; variant < maxMaps && Date.now() < deadline; variant++) {
+    throwIfAborted(opts.signal);
     let map: CustomMap;
     try {
       map = buildCustomMap(req, variant);
@@ -380,8 +396,12 @@ function* searchCustomLevel(
     let screened = 0;
     for (let a = 0; a < screensPerMap * 40 && screened < screensPerMap; a++) {
       if (Date.now() > deadline) break;
+      throwIfAborted(opts.signal);
       const sample = sampleWorld(rng, ctx, openRange);
-      if (!sample) continue;
+      if (!sample) {
+        if (a % 20 === 19) yield;
+        continue;
+      }
       screened++;
       tried++;
       const trajectory: Trajectory = {};
@@ -403,7 +423,14 @@ function* searchCustomLevel(
           answers,
           steps,
         });
-      const steps = screenDraft(build(band.min), (s) => s >= band.min && s <= band.max, build, stats);
+      const steps = yield* screenDraftSteps(
+        build(band.min),
+        (s) => s >= band.min && s <= band.max,
+        build,
+        stats
+      );
+      opts.onScreen?.();
+      throwIfAborted(opts.signal);
       if (steps !== null) return { bundle: build(steps), steps, tried, stats };
       yield;
     }
@@ -429,16 +456,25 @@ export function generateCustomLevel(
   }
 }
 
+/** Hand the event loop back; setImmediate skips the 1ms timer clamp where it exists. */
+function breathe(): Promise<void> {
+  return new Promise<void>((resolve) =>
+    typeof setImmediate === "function" ? setImmediate(resolve) : setTimeout(resolve, 0)
+  );
+}
+
 /** Same as {@link generateCustomLevel}, but hands the event loop back between screens. */
 export async function generateCustomLevelAsync(
   req: CustomLevelRequest,
   opts: GenerateCustomOptions = {}
 ): Promise<CustomLevelResult> {
+  throwIfAborted(opts.signal);
   const it = searchCustomLevel(req, opts);
   for (;;) {
     const step = it.next();
     if (step.done) return step.value;
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    await breathe();
+    throwIfAborted(opts.signal);
   }
 }
 

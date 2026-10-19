@@ -1,7 +1,8 @@
 import {
   bandsFromGreedy,
   findConsistentAnswers,
-  greedyMinQueries,
+  drain,
+  greedyMinQueriesSteps,
   observationsFromSealed,
   validateWithSolver,
 } from "./solver";
@@ -228,6 +229,19 @@ export function screenDraft(
   withBands: (steps: number) => ScenarioBundle,
   stats?: ScreenStats
 ): number | null {
+  return drain(screenDraftSteps(draft, acceptSteps, withBands, stats));
+}
+
+/**
+ * {@link screenDraft} as a generator that yields after every solver call, so
+ * async callers can breathe and honour cancellation mid-screen.
+ */
+export function* screenDraftSteps(
+  draft: ScenarioBundle,
+  acceptSteps: (steps: number) => boolean,
+  withBands: (steps: number) => ScenarioBundle,
+  stats?: ScreenStats
+): Generator<void, number | null, void> {
   const fail = (gate: keyof ScreenStats) => {
     if (stats) stats[gate]++;
     return null;
@@ -236,11 +250,13 @@ export function screenDraft(
     limitAnswers: 8,
   });
   if (openingAnswers.length <= 1) return fail("opening");
+  yield;
 
   const full = findConsistentAnswers(draft, observationsFromSealed(draft), {
     limitAnswers: 4,
   });
   if (full.length !== 1) return fail("fullInfo");
+  yield;
   if (
     full[0].who !== draft.sealed.answers.who ||
     full[0].where !== draft.sealed.answers.where ||
@@ -257,10 +273,12 @@ export function screenDraft(
       samples: 2500,
     });
     if (left.length <= 1) return fail("singleLock");
+    yield;
   }
 
-  const { steps } = greedyMinQueries(draft);
+  const { steps } = yield* greedyMinQueriesSteps(draft);
   if (!acceptSteps(steps)) return fail("steps");
+  yield;
 
   const report = validateWithSolver(withBands(steps));
   if (!report.ok) return fail("report");

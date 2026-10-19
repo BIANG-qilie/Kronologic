@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const request = parseCustomRequest(body ?? {});
-    const bundle = await ensureCustomLevel(request);
+    const bundle = await ensureCustomLevel(request, req.signal);
     return NextResponse.json({ level: bundle.public });
   } catch (e) {
     return customLevelErrorResponse(e);

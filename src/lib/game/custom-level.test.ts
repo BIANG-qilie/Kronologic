@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   CUSTOM_DIFFICULTIES,
   CUSTOM_NODE_DEFAULT,
+  CustomLevelAborted,
   CustomLevelError,
   CustomLevelExhausted,
   buildCustomMap,
@@ -189,5 +190,34 @@ describe("custom level links", () => {
   it("drops the seed for a fresh roll", () => {
     const req = parseCustomRequest({ seed: "KEEP" });
     assert.ok(!customRequestToQuery(req, false).includes("KEEP"));
+  });
+});
+
+describe("cancelling generation", () => {
+  const slow = parseCustomRequest({ nodeCount: 6, difficulty: "expert", oneWay: true, stay: true, seed: "T3" });
+
+  it("refuses to start with an aborted signal", async () => {
+    const ac = new AbortController();
+    ac.abort();
+    await assert.rejects(generateCustomLevelAsync(slow, { signal: ac.signal }), (e: unknown) => e instanceof CustomLevelAborted);
+  });
+
+  it("stops mid-search, keeps the event loop free and does no more work", async () => {
+    const ac = new AbortController();
+    let screens = 0;
+    let ticks = 0;
+    const ticker = setInterval(() => ticks++, 1);
+    const run = generateCustomLevelAsync(slow, { signal: ac.signal, onScreen: () => screens++ });
+    await new Promise((r) => setTimeout(r, 250));
+    const abortedAt = Date.now();
+    ac.abort();
+    await assert.rejects(run, (e: unknown) => e instanceof CustomLevelAborted && !e.retryable);
+    const lag = Date.now() - abortedAt;
+    clearInterval(ticker);
+    assert.ok(lag < 2000, `took ${lag}ms to stop`);
+    assert.ok(ticks > 5, `event loop starved (${ticks} ticks)`);
+    const after = screens;
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal(screens, after);
   });
 });

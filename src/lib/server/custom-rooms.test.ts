@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { parseCustomRequest } from "@/lib/game/custom-level";
-import { ensureCustomLevel } from "./custom-levels";
+import { CustomLevelAborted, customLevelId, parseCustomRequest } from "@/lib/game/custom-level";
+import { customLevelCacheHas, customLevelJobCount, ensureCustomLevel } from "./custom-levels";
 import { createRoom, joinRoom, projectRoom, startGame, submitAnswers } from "./rooms";
 import { recordRoomResults } from "./room-records";
 
@@ -35,5 +35,46 @@ describe("custom-level rooms", () => {
 
     await recordRoomResults(room, () => {});
     for (const p of room.players) assert.equal(p.record, null);
+  });
+});
+
+describe("cancelling a shared custom-level job", () => {
+  it("keeps going while anyone still waits", async () => {
+    const req = parseCustomRequest({ nodeCount: 7, difficulty: "easy", oneWay: true, stay: true, seed: "SHARE1" });
+    const leaver = new AbortController();
+    const a = ensureCustomLevel(req, leaver.signal);
+    const b = ensureCustomLevel(req, new AbortController().signal);
+    leaver.abort();
+    await assert.rejects(a, (e: unknown) => e instanceof CustomLevelAborted);
+    const bundle = await b;
+    assert.equal(bundle.public.id, customLevelId(req));
+    assert.ok(customLevelCacheHas(customLevelId(req)));
+  });
+
+  it("stops the search and caches nothing once every waiter has left", async () => {
+    const req = parseCustomRequest({ nodeCount: 6, difficulty: "expert", oneWay: true, stay: true, seed: "T3" });
+    const id = customLevelId(req);
+    let screens = 0;
+    const first = new AbortController();
+    const second = new AbortController();
+    const a = ensureCustomLevel(req, first.signal, { onScreen: () => screens++ });
+    const b = ensureCustomLevel(req, second.signal);
+    assert.equal(customLevelJobCount(), 1);
+
+    await new Promise((r) => setTimeout(r, 150));
+    first.abort();
+    await assert.rejects(a, (e: unknown) => e instanceof CustomLevelAborted);
+    assert.equal(customLevelJobCount(), 1, "one waiter left, the search must go on");
+
+    await new Promise((r) => setTimeout(r, 150));
+    second.abort();
+    await assert.rejects(b, (e: unknown) => e instanceof CustomLevelAborted);
+    assert.equal(customLevelJobCount(), 0);
+
+    await new Promise((r) => setTimeout(r, 1500));
+    const settled = screens;
+    await new Promise((r) => setTimeout(r, 400));
+    assert.equal(screens, settled, "search kept running after everyone left");
+    assert.ok(!customLevelCacheHas(id));
   });
 });

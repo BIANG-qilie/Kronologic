@@ -574,10 +574,27 @@ function obsKey(o: QueryObservation): string {
     : `pp:${o.placeId}:${o.personId}`;
 }
 
-export function greedyMinQueries(bundle: ScenarioBundle): {
-  steps: number;
-  queries: QueryObservation[];
-} {
+export type GreedyResult = { steps: number; queries: QueryObservation[] };
+
+/** Runs a step generator to completion synchronously. */
+export function drain<T>(gen: Generator<void, T, void>): T {
+  for (;;) {
+    const r = gen.next();
+    if (r.done) return r.value;
+  }
+}
+
+export function greedyMinQueries(bundle: ScenarioBundle): GreedyResult {
+  return drain(greedyMinQueriesSteps(bundle));
+}
+
+/**
+ * {@link greedyMinQueries} as a generator that yields after every solver call,
+ * so async callers can breathe and honour cancellation between them.
+ */
+export function* greedyMinQueriesSteps(
+  bundle: ScenarioBundle
+): Generator<void, GreedyResult, void> {
   const remaining = observationsFromSealed(bundle).sort((a, b) => {
     if (a.kind !== b.kind) return a.kind === "place_time" ? -1 : 1;
     return obsKey(a).localeCompare(obsKey(b));
@@ -588,6 +605,7 @@ export function greedyMinQueries(bundle: ScenarioBundle): {
     limitAnswers: 10,
     samples: 2500,
   });
+  yield;
 
   while (answers.length > 1 && remaining.length && queries.length < 24) {
     let best: QueryObservation | null = null;
@@ -599,6 +617,7 @@ export function greedyMinQueries(bundle: ScenarioBundle): {
         limitAnswers: 10,
         samples: 2000,
       });
+      yield;
       if (next.length < bestSize) {
         bestSize = next.length;
         best = cand;
@@ -614,6 +633,7 @@ export function greedyMinQueries(bundle: ScenarioBundle): {
       limitAnswers: 10,
       samples: 3000,
     });
+    yield;
   }
 
   return { steps: queries.length, queries };

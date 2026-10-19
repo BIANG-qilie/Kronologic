@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     if (body.custom) {
       let bundle;
       try {
-        bundle = await ensureCustomLevel(parseCustomRequest(body.custom));
+        bundle = await ensureCustomLevel(parseCustomRequest(body.custom), req.signal);
       } catch (e) {
         return customLevelErrorResponse(e);
       }
