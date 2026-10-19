@@ -92,5 +92,6 @@ export default {
   plugins: [
     require("tailwindcss-animate"),
     plugin(({ addVariant }) => addVariant("coarse", "@media (pointer: coarse)")),
+    plugin(({ addVariant }) => addVariant("can-hover", "@media (hover: hover) and (pointer: fine)")),
   ],
 } satisfies Config;

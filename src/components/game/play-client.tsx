@@ -13,7 +13,6 @@ import {
 } from "@/hooks/use-room";
 import { QueryPanel } from "@/components/game/query-panel";
 import { RoomLobby } from "@/components/game/room-lobby";
-import { DeskMapPanel } from "@/components/game/desk-map-panel";
 import { EndScreen } from "@/components/game/end-screen";
 import { CaseLog } from "@/components/game/case-log";
 import { SubmitDialog } from "@/components/game/submit-dialog";
@@ -353,12 +352,9 @@ export function PlayClient({
 
           <TabsContent
             value="desk"
-            className="grid gap-10 pt-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:gap-10"
+            className="grid gap-10 pt-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:gap-10"
           >
             <div className="min-w-0">
-              <div className="lg:hidden">
-                <DeskMapPanel scenario={view.scenario} variant="inline" />
-              </div>
               <div id="reveal-panel" className="scroll-mt-24" />
               <DeskTimeline
                 view={view}
@@ -375,10 +371,7 @@ export function PlayClient({
                 }}
               />
             </div>
-            <div className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto lg:pr-1">
-              <div className="max-lg:hidden">
-                <DeskMapPanel scenario={view.scenario} variant="sidebar" />
-              </div>
+            <div className="lg:sticky lg:top-24 lg:self-start">
               <CaseLog view={view} />
             </div>
           </TabsContent>

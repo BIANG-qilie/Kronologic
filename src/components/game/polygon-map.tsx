@@ -249,6 +249,8 @@ export function PolygonMap({
   isEnabled,
   className,
   markerPrefix: _markerPrefix = "poly-map",
+  renderNode,
+  nodeClassName,
 }: {
   placeIds: readonly string[];
   matrix: AdjacencyMatrix;
@@ -262,6 +264,12 @@ export function PolygonMap({
   className?: string;
   /** Kept for call-site compatibility; mid-arrows no longer use SVG markers. */
   markerPrefix?: string;
+  /**
+   * Replaces the built-in plaque with caller content; the map still owns
+   * placement, plaque measurement and hover/focus lighting of outgoing edges.
+   */
+  renderNode?: (id: string, state: { index: number; reachable: boolean; focused: boolean }) => ReactNode;
+  nodeClassName?: string;
 }) {
   void _markerPrefix;
   const [hovered, setHovered] = useState<string | null>(null);
@@ -397,6 +405,25 @@ export function PolygonMap({
         const stayLit = canStay && focus === id && lit.canStay;
         const label = labelOf(id);
         const interactive = !!onSelect;
+
+        if (renderNode) {
+          return (
+            <div
+              key={id}
+              ref={nodeRef(id)}
+              data-place={id}
+              data-reachable={isNeighbor ? "" : undefined}
+              onMouseEnter={() => setHovered(id)}
+              onMouseLeave={() => setHovered(null)}
+              onFocus={() => setHovered(id)}
+              onBlur={() => setHovered(null)}
+              className={cn("group/node absolute z-[1] -translate-x-1/2 -translate-y-1/2", nodeClassName)}
+              style={{ left: pct(p.x), top: pct(p.y), width: n >= 8 ? "clamp(4.25rem, 15%, 6.5rem)" : "clamp(4.5rem, 17%, 7.5rem)" }}
+            >
+              {renderNode(id, { index: i, reachable: isNeighbor, focused: focus === id })}
+            </div>
+          );
+        }
 
         return (
           <button

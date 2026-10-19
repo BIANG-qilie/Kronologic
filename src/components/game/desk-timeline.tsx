@@ -44,7 +44,9 @@ import { FloorPlan, planAspect } from "./floor-plan";
 import { MapPassage } from "./map-passage";
 import { layoutOf, placeOrder, timesOf } from "@/lib/game/board";
 import { adjacencyRecordToMatrix } from "@/lib/game/trajectory-kernel";
-import { edgeKindBetween, type EdgeKind } from "@/lib/game/map-generator";
+import { edgeKindBetween, isStayPlace, type EdgeKind } from "@/lib/game/map-generator";
+import { PolygonMap } from "./polygon-map";
+import { MapLegend } from "@/components/custom/custom-map-preview";
 
 const LAYER_NAME: Record<MarkSource, string> = {
   public: "绿窗",
@@ -144,6 +146,9 @@ function cellMarkOf(payload: NotesPayloadV3, time: TimeId, place: PlaceId): Cell
   return payload.inference.cells[String(time)]?.[place] ?? emptyCellMark();
 }
 
+/** Letters a graph plaque shows before hover / focus reveals the rest. */
+const PREVIEW_PEOPLE = 4;
+
 function RoomCell({
   view,
   time,
@@ -154,6 +159,7 @@ function RoomCell({
   open,
   canEdit,
   locked,
+  reachable,
   onOpenChange,
   onChange,
 }: {
@@ -166,6 +172,8 @@ function RoomCell({
   open: boolean;
   canEdit: boolean;
   locked: boolean;
+  /** Lit as a move target of the hovered / open room. */
+  reachable?: boolean;
   onOpenChange: (open: boolean) => void;
   onChange: (mark: CellMark) => void;
 }) {
@@ -189,9 +197,14 @@ function RoomCell({
           data-tutorial={`cell-${time}-${place}`}
           title={locked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
           className={cn(
-            "relative z-10 flex h-full min-h-0 flex-col items-center overflow-hidden rounded-sm border bg-[var(--parchment)] px-1.5 py-1.5 transition-colors sm:px-2 sm:py-2",
+            "relative z-10 flex min-h-[3.75rem] w-full flex-col items-center overflow-hidden rounded-[3px] border bg-[var(--parchment)] px-1 pb-1.5 pt-1 shadow-[0_10px_24px_-16px_rgba(26,36,32,0.75)] transition-[border-color,box-shadow,background-color] duration-200 motion-reduce:transition-none sm:min-h-[5.25rem] sm:px-1.5 sm:pb-2 sm:pt-1.5",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--parchment)]",
             canEdit ? "cursor-pointer hover:border-ink-deep/45" : "cursor-default",
-            open ? "border-[var(--amber)]" : "border-ink-deep/25",
+            open
+              ? "border-[var(--amber)] shadow-[0_0_0_1px_var(--amber),0_14px_30px_-14px_rgba(176,122,48,0.8)]"
+              : reachable
+                ? "border-[var(--amber-dim)] bg-[#e0d2ae]"
+                : "border-ink-deep/25",
             placeVerdict === "target" && "border-2 border-[var(--amber-dim)] bg-[#dcc596]",
             placeVerdict === "excluded" && "opacity-45"
           )}
@@ -202,7 +215,8 @@ function RoomCell({
               title="推理与线索冲突"
             />
           )}
-          {count && (
+          <span className="mb-1 flex w-full items-center justify-center gap-1 text-[11px] leading-tight text-[var(--ink-deep)] sm:text-xs">
+            {count && (
             <Tip
               label={
                 count.inferred != null
@@ -210,27 +224,29 @@ function RoomCell({
                   : `${count.value} 人 · ${sourcesLabel(count.sources)}`
               }
             >
-              <span className="absolute left-1 top-1">
+              <span className="shrink-0">
                 <GlyphToken sources={count.sources} size="sm" conflict={count.inferred != null}>
                   {count.value}
                 </GlyphToken>
               </span>
             </Tip>
-          )}
-          <span className="mb-1 flex w-full items-center justify-center gap-1 text-[11px] text-[var(--ink-deep)]">
+            )}
             {placeVerdict === "target" ? (
               <Crosshair className="h-3.5 w-3.5 text-[var(--amber-dim)]" aria-hidden />
             ) : (
-              <PlaceGlyph id={place} className="h-3.5 w-3.5 opacity-70" />
+              <PlaceGlyph id={place} className={cn("h-3.5 w-3.5 shrink-0 opacity-70", count && "max-sm:hidden")} />
             )}
-            <span className={cn(placeVerdict === "excluded" && "line-through")}>{name}</span>
+            <span className={cn("truncate font-medium", placeVerdict === "excluded" && "line-through")}>{name}</span>
           </span>
-          <div className="flex min-h-[2rem] flex-wrap items-center justify-center gap-1">
-            {merged.people.map((p) => {
+          <div className="flex min-h-[1.5rem] flex-wrap items-center justify-center gap-0.5 sm:gap-1">
+            {merged.people.length === 0 && !count && (
+              <span className="h-1 w-1 rounded-full bg-ink-deep/25" aria-hidden />
+            )}
+            {merged.people.map((p, i) => {
               const v = board.people[p.person];
               return (
                 <Tip key={p.person} label={`${p.person} · ${sourcesLabel(p.sources)}`}>
-                  <span>
+                  <span className={cn(i >= PREVIEW_PEOPLE && "hidden can-hover:group-hover/node:inline-flex group-focus-within/node:inline-flex")}>
                     <GlyphToken
                       sources={p.sources}
                       dim={v === "excluded"}
@@ -242,10 +258,15 @@ function RoomCell({
                 </Tip>
               );
             })}
+            {merged.people.length > PREVIEW_PEOPLE && (
+              <span className="font-mono text-[10px] text-ink-deep/60 can-hover:group-hover/node:hidden group-focus-within/node:hidden">
+                +{merged.people.length - PREVIEW_PEOPLE}
+              </span>
+            )}
           </div>
           {merged.absent.length > 0 && (
             <Tip label={`推理 · 不在这里：${merged.absent.join("、")}`}>
-              <span className="mt-auto font-mono text-[10px] tracking-wider text-mark-inference/80 line-through">
+              <span className="mt-auto max-w-full truncate font-mono text-[10px] tracking-wider text-mark-inference/80 line-through">
                 {merged.absent.join(" ")}
               </span>
             </Tip>
@@ -452,6 +473,13 @@ export function DeskTimeline({
   const layout = layoutOf(view.scenario);
   const order = placeOrder(view.scenario);
   const edgeKind = useEdgeKind(view);
+  const graph = useMemo(() => {
+    const custom = view.scenario.custom;
+    const placeIds = custom ? (view.scenario.places.map((p) => p.id) as PlaceId[]) : placeOrder(view.scenario);
+    const matrix = custom ? custom.matrix : adjacencyRecordToMatrix(view.scenario.adjacency, placeIds);
+    const stayIds = custom ? custom.stayIds : placeIds.filter((id) => isStayPlace(matrix, placeIds, id));
+    return { placeIds, matrix, stayIds, staySet: new Set<string>(stayIds) };
+  }, [view.scenario]);
   const restricted = !!allowedTargets;
   const cellAllowed = (time: TimeId, place: PlaceId) =>
     !allowedTargets || allowedTargets.cells.some((c) => c.time === time && c.place === place);
@@ -648,31 +676,51 @@ export function DeskTimeline({
             ))}
           </div>
 
-          <div data-tutorial="floor" className="relative max-h-[440px] w-full" style={{ aspectRatio: planAspect(layout) }}>
-            <FloorGrid
-              layout={layout}
-              edgeKind={edgeKind}
-              room={(place) => (
-                <RoomCell
-                  key={place}
-                  view={view}
-                  time={activeTime}
-                  place={place}
-                  merged={mergedFor(activeTime, place)}
-                  mark={cellMarkOf(payload, activeTime, place)}
-                  board={payload.board}
-                  canEdit={
-                    layers.inference &&
-                    !cellHasFacts(facts.cells[String(activeTime)]?.[place]) &&
-                    cellAllowed(activeTime, place)
-                  }
-                  locked={cellHasFacts(facts.cells[String(activeTime)]?.[place])}
-                  open={editing?.time === activeTime && editing.place === place}
-                  onOpenChange={(o) => setEditing(o ? { time: activeTime, place } : null)}
-                  onChange={(mark) => setCell(activeTime, place, mark)}
-                />
-              )}
+          <div
+            data-tutorial="floor"
+            className="relative mx-auto w-full max-w-[34rem] [--curtain:var(--parchment)] [--ink-faint:rgba(26,36,32,0.3)] [--ink-muted:rgba(26,36,32,0.5)] [--ink:var(--ink-deep)]"
+          >
+            <PolygonMap
+              placeIds={graph.placeIds}
+              matrix={graph.matrix}
+              stayIds={graph.stayIds}
+              labelOf={(id) => placeLabel(view, id)}
+              selected={editing?.time === activeTime ? editing.place : null}
+              className="min-h-[310px] max-[360px]:min-h-[310px]"
+              nodeClassName="transition-transform duration-200 ease-out will-change-transform motion-reduce:transition-none can-hover:hover:z-20 can-hover:hover:scale-[1.2] focus-within:z-20 can-hover:focus-within:scale-[1.2]"
+              renderNode={(id, { reachable }) => {
+                const place = id as PlaceId;
+                const cellFacts = facts.cells[String(activeTime)]?.[place];
+                return (
+                  <>
+                    <RoomCell
+                      view={view}
+                      time={activeTime}
+                      place={place}
+                      merged={mergedFor(activeTime, place)}
+                      mark={cellMarkOf(payload, activeTime, place)}
+                      board={payload.board}
+                      reachable={reachable}
+                      canEdit={layers.inference && !cellHasFacts(cellFacts) && cellAllowed(activeTime, place)}
+                      locked={cellHasFacts(cellFacts)}
+                      open={editing?.time === activeTime && editing.place === place}
+                      onOpenChange={(o) => setEditing(o ? { time: activeTime, place } : null)}
+                      onChange={(mark) => setCell(activeTime, place, mark)}
+                    />
+                    {graph.staySet.has(place) && (
+                      <span
+                        aria-hidden
+                        title="可停留"
+                        className="pointer-events-none absolute -right-1.5 -top-1.5 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--amber)] ring-2 ring-[var(--parchment)]"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full bg-[var(--parchment)]" />
+                      </span>
+                    )}
+                  </>
+                );
+              }}
             />
+            <MapLegend className="mt-1 justify-center gap-x-4 text-[10px] text-ink-deep/70 sm:text-[11px]" />
           </div>
 
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-ink-deep/70">
