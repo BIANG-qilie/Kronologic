@@ -165,8 +165,7 @@ export function DetectiveLeaderboard({
           <p className="mt-4 max-w-2xl text-sm leading-[1.9] text-[var(--ink-muted)]">
             排序依次看：<span className="text-[var(--ink)]">平均胜率</span>高者在前；同胜率比
             <span className="text-[var(--green-win)]">平均绿窗</span>少、再比平均问数少、再比
-            <span className="text-[#f3e6c8]">平均白窗</span>少，最后局数多者在前。在当前筛选下满{" "}
-            <span className="text-[var(--ink)]">{DETECTIVE_MIN_GAMES}</span> 局才上榜，免得一局百分百霸榜。
+            <span className="text-[#f3e6c8]">平均白窗</span>少，最后局数多者在前。
           </p>
         </header>
 
