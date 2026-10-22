@@ -13,7 +13,7 @@ import { AuthDialog } from "./auth-dialog";
 export function AccountMenu({ className }: { className?: string }) {
   const account = useAccount();
   const pathname = usePathname();
-  const onBoard = pathname === "/leaderboard";
+  const onBoard = pathname === "/leaderboard" || pathname.startsWith("/leaderboard/");
   const onMe = pathname === "/me";
   const [authOpen, setAuthOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
