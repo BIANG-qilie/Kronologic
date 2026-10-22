@@ -56,7 +56,7 @@ const timeFmt = new Intl.DateTimeFormat("zh-CN", {
   minute: "2-digit",
 });
 
-const LEDE = "只记各关首次通关。单人比提问；多人比提问 + 绿窗 + 本人白窗。越少越前。";
+const LEDE = "只记各关首次通关。单人比提问；多人比提问 + 公开信息 + 本人私有信息。越少越前。";
 
 function LevelTable({
   top,
@@ -84,7 +84,11 @@ function LevelTable({
         <th className="w-14 pb-3 pr-2 font-normal">名次</th>
         <th className="pb-3 pr-3 font-normal">称呼</th>
         <th className="w-[4.75rem] pb-3 pr-0 text-right font-normal sm:pr-3">得分</th>
-        {multi && <th className="hidden w-[7.5rem] pb-3 pr-3 text-right font-normal sm:table-cell">提问 / 绿 / 白</th>}
+        {multi && (
+          <th className="hidden w-[8.75rem] pb-3 pr-3 text-right font-normal tracking-normal sm:table-cell">
+            问 / 公开 / 私有
+          </th>
+        )}
         <th className="hidden w-[6.5rem] pb-3 font-normal sm:table-cell">达成</th>
       </BoardHead>
       <tbody>
@@ -175,7 +179,7 @@ function MeBar({
         extra={
           players > 1 ? (
             <p className="w-full font-mono text-xs text-[var(--ink-muted)] tabular">
-              提问 {meLevel.ownQueries} · 绿窗 {meLevel.greenCount} · 白窗 {meLevel.ownWhiteCount}
+              提问 {meLevel.ownQueries} · 公开信息 {meLevel.greenCount} · 私有信息 {meLevel.ownWhiteCount}
             </p>
           ) : null
         }

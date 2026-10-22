@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useAccount } from "@/hooks/use-account";
 import { AccountMenu } from "@/components/account/account-menu";
 import { DetectivePanel } from "@/components/detective/detective-panel";
+import { ReleaseNotes } from "@/components/game/release-notes";
 import {
   apiJson,
   loadSession,
@@ -277,8 +278,8 @@ export function LobbyHome() {
             >
               <span className="block text-[var(--ink)]">六时，六地，六人。</span>
               <span className="block">
-                <span className="text-[var(--green-win)]">绿窗</span>亮给全场，
-                <span className="text-[#f3e6c8]">白窗</span>只亮给你。
+                <span className="text-[var(--green-win)]">公开信息</span>亮给全场，
+                <span className="text-[#f3e6c8]">私有信息</span>只亮给你。
               </span>
               <span className="block">抢先拼出案发那一刻。</span>
             </p>
@@ -577,14 +578,14 @@ export function LobbyHome() {
           <aside className="md:col-span-5 md:pt-24">
             <div className="rise relative" style={{ ["--i" as string]: 3 }}>
               <LampMatrix className="mx-auto max-w-[22rem] md:max-w-none" />
-              <div className="mt-6 flex items-center justify-center gap-5 text-[11px] text-[var(--ink-muted)] md:justify-start md:pl-12">
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] text-[var(--ink-muted)] md:justify-start md:pl-12">
                 <span className="inline-flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[var(--green-win)] shadow-[0_0_8px_rgba(111,191,138,0.8)]" />
-                  绿窗 · 全场可见
+                  公开信息 · 全场可见
                 </span>
                 <span className="inline-flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-[#f3e6c8] shadow-[0_0_8px_rgba(243,230,200,0.7)]" />
-                  白窗 · 只给你
+                  私有信息 · 只给你
                 </span>
               </div>
             </div>
@@ -616,11 +617,11 @@ export function LobbyHome() {
             {[
               [
                 "提问一间房",
-                "配一个时间，绿窗公布房里几人，白窗私下告诉你其中一位；配一个人物，绿窗公布此人来过几次，白窗告诉你其中一次的时间。白窗没有内容时不计次，再问一次。",
+                "配一个时间，公开信息公布房里几人，私有信息只告诉你其中一位；配一个人物，公开信息公布此人来过几次，私有信息告诉你其中一次的时间。私有信息没有内容时不计次，再问一次。",
               ],
               [
                 "落笔推理",
-                "在羊皮纸上标出每个时刻谁在哪、有几人。绿窗、白窗、推理三层叠在同一张图上；已有绿窗或白窗线索的格子，推理标记不可再改。",
+                "在羊皮纸上标出每个时刻谁在哪、有几人。公开信息、私有信息、推理三层叠在同一张图上；已有公开信息或私有信息线索的格子，推理标记不可再改。",
               ],
               [
                 "抢先交卷",
@@ -637,6 +638,8 @@ export function LobbyHome() {
             ))}
           </ol>
         </section>
+
+        <ReleaseNotes />
 
         <footer className="flex flex-col gap-4 border-t border-ink-faint/60 pb-[max(2rem,env(safe-area-inset-bottom))] pt-8 text-[11px] text-ink-muted/80 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between sm:gap-6">
           <div className="space-y-1.5">
@@ -664,6 +667,12 @@ export function LobbyHome() {
               1–4 人 · 凭房间码入座 · 无需注册
               {account.status === "ready" && account.enabled && "，登录可记战绩"}
             </span>
+            <Link
+              href="#updates"
+              className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"
+            >
+              版本更新
+            </Link>
             <Link
               href="/map-lab"
               className="inline-flex min-h-11 items-center text-amber/80 underline-offset-4 transition-colors hover:text-[var(--amber)] hover:underline"

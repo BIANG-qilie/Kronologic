@@ -242,8 +242,8 @@ export type MarkSource = "public" | "private" | "inference";
 export const SOURCE_ORDER: MarkSource[] = ["public", "private", "inference"];
 
 export const SOURCE_LABEL: Record<MarkSource, string> = {
-  public: "绿窗",
-  private: "白窗",
+  public: "公开信息",
+  private: "私有信息",
   inference: "推理",
 };
 

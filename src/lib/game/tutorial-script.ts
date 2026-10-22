@@ -78,7 +78,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         tab: "desk",
         target: "latest-clue",
         focusTime: 2,
-        text: "绿窗：时间 2 的妆室里有 1 人，全桌都看得见。白窗：其中有 P，只亮给你一个人。",
+        text: "公开信息：时间 2 的妆室里有 1 人，全桌都看得见。私有信息：其中有 P，只亮给你一个人。",
       },
     ],
   },
@@ -92,7 +92,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         tab: "desk",
         target: "cell-2-dress",
         focusTime: 2,
-        text: "线索已经自动记在桌上：圆圈是绿窗的人数，方框是白窗告诉你的人。",
+        text: "线索已经自动记在桌上：圆圈是公开信息的人数，方框是私有信息告诉你的人。",
       },
       {
         kind: "mark",
@@ -111,7 +111,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       {
         kind: "ask",
         id: "ask-hall-p",
-        text: "房间也可以配人物：绿窗是这个人整晚来过几次。问「正厅 × P」。",
+        text: "房间也可以配人物：公开信息是这个人整晚来过几次。问「正厅 × P」。",
         ask: { kind: "place_person", placeId: "hall", personId: "P" },
       },
       {
@@ -120,7 +120,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         tab: "desk",
         target: "latest-clue",
         focusTime: 2,
-        text: "绿窗 0 次：P 从没进过正厅，白窗也就没有内容。白窗为空时不计次，马上再问一次。",
+        text: "公开信息 0 次：P 从没进过正厅，私有信息也就没有内容。私有信息为空时不计次，马上再问一次。",
       },
       {
         kind: "ask",
@@ -134,7 +134,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         tab: "desk",
         target: "latest-clue",
         focusTime: 2,
-        text: "绿窗 1 次：P 整晚只进过妆室一次。白窗：那一次就是时间 2。",
+        text: "公开信息 1 次：P 整晚只进过妆室一次。私有信息：那一次就是时间 2。",
       },
     ],
   },
@@ -251,15 +251,15 @@ export const SUBMIT_FEEDBACK: Record<string, { correct: string; hints: [string, 
   who: {
     correct: "对，是裴砚（P）。",
     hints: [
-      "白窗告诉过你：时间 2 的妆室里那个人是谁？",
-      "时间 2 的妆室，绿窗是 1 人，白窗是 P。只有一个人，就是单独。",
+      "私有信息告诉过你：时间 2 的妆室里那个人是谁？",
+      "时间 2 的妆室，公开信息是 1 人，私有信息是 P。只有一个人，就是单独。",
     ],
     reveal: "答案是裴砚（P）。时间 2 的妆室只有他一个人；时间 1 和时间 3，妆室里都是安澄和唐珀两个人，不算单独。",
   },
   when: {
     correct: "对，是时间 2。",
     hints: [
-      "再看一眼时间 2 的绿窗人数。",
+      "再看一眼时间 2 的公开信息人数。",
       "时间 1 的妆室是安澄和唐珀两个人，不算单独；时间 2 的妆室只有 1 个人。",
     ],
     reveal: "答案是时间 2。只有这一刻，妆室里只有一个人——P。时间 1 和时间 3 都是安澄和唐珀一起在里面。",
@@ -291,11 +291,11 @@ export const DEBRIEF = {
   recap: [
     {
       title: "提问",
-      body: "房间 × 时间：绿窗公布几人，白窗私下告诉你其中一位。房间 × 人物：绿窗公布来过几次，白窗告诉你其中一次。白窗为空不计次，再问一次。",
+      body: "房间 × 时间：公开信息公布几人，私有信息只告诉你其中一位。房间 × 人物：公开信息公布来过几次，私有信息告诉你其中一次。私有信息为空不计次，再问一次。",
     },
     {
       title: "记笔记",
-      body: "圆圈是绿窗，方框是白窗，菱形是你的推理。每到下一个时间，每个人都要走进相邻的房间，不能原地不动。",
+      body: "圆圈是公开信息，方框是私有信息，菱形是你的推理。每到下一个时间，每个人都要走进相邻的房间，不能原地不动。",
     },
     {
       title: "交卷",

@@ -128,7 +128,7 @@ describe("tutorial script", () => {
     assert.equal(judgeAnswer("when", "2", "2", 0, 0).type, "correct");
     const first = judgeAnswer("when", "2", "1", 0, 0);
     assert.equal(first.type, "hint");
-    assert.match(first.text, /时间 2 的绿窗人数/);
+    assert.match(first.text, /时间 2 的公开信息人数/);
     const second = judgeAnswer("when", "2", "3", 1, 1);
     assert.equal(second.type, "hint");
     assert.equal(second.type === "hint" && second.left, 0);

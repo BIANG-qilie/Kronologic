@@ -51,10 +51,10 @@ export function CaseLog({ view }: { view: RoomPublicView }) {
                   </p>
                   <p className="mt-0.5 text-[11px] text-ink-muted/80">
                     {q.askerNickname}
-                    {q.askAgain && <span className="ml-2 text-[var(--ink-muted)]">白窗为空 · 不计次</span>}
+                    {q.askAgain && <span className="ml-2 text-[var(--ink-muted)]">私有信息为空 · 不计次</span>}
                     {priv && (
                       <span className="ml-2 text-[#f3e6c8]">
-                        白窗 · {q.kind === "place_time" ? `其中有 ${tag(priv)}` : `其中一次在时间 ${priv}`}
+                        私有信息 · {q.kind === "place_time" ? `其中有 ${tag(priv)}` : `其中一次在时间 ${priv}`}
                       </span>
                     )}
                   </p>

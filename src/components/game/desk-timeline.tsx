@@ -49,8 +49,8 @@ import { PolygonMap } from "./polygon-map";
 import { MapLegend } from "@/components/custom/custom-map-preview";
 
 const LAYER_NAME: Record<MarkSource, string> = {
-  public: "绿窗",
-  private: "白窗",
+  public: "公开信息",
+  private: "私有信息",
   inference: "推理",
 };
 
@@ -78,19 +78,19 @@ function LatestClueStrip({ view }: { view: RoomPublicView }) {
     <div data-tutorial="latest-clue" className="mb-4 border-b border-ink-deep/15 pb-3 text-[var(--ink-deep)]">
       <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs">
         <span className="font-mono font-semibold text-[var(--mark-public)]">
-          绿窗{" "}
+          公开信息{" "}
           {(() => {
             const n = /^x?(\d+)$/i.exec(latest.sharedLabel)?.[1];
             return n != null ? `${n} ${latest.kind === "place_time" ? "人" : "次"}` : latest.sharedLabel;
           })()}
         </span>
         <span className="text-ink-deep/80">{q}</span>
-        {latest.askAgain && <span className="text-ink-deep/65">白窗为空 · 不计次</span>}
+        {latest.askAgain && <span className="text-ink-deep/65">私有信息为空 · 不计次</span>}
         {privateClue && privateClue.privateLabel && privateClue.privateLabel !== "—" && (
           <span className="rounded-sm bg-[var(--stage)] px-1.5 py-0.5 text-[var(--parchment)]">
             {latest.kind === "place_time"
-              ? `白窗 · 其中有 ${personLabel(view, privateClue.privateLabel)}`
-              : `白窗 · 其中一次在时间 ${privateClue.privateLabel}`}
+              ? `私有信息 · 其中有 ${personLabel(view, privateClue.privateLabel)}`
+              : `私有信息 · 其中一次在时间 ${privateClue.privateLabel}`}
           </span>
         )}
       </div>
@@ -202,7 +202,7 @@ function RoomCell({
           aria-label={`时间${time} ${name}`}
           aria-disabled={!canEdit}
           data-tutorial={`cell-${time}-${place}`}
-          title={locked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
+          title={locked ? "这一格已有公开信息或私有信息线索，推理标记不可再改" : undefined}
           className={cn(
             "relative z-10 flex min-h-[3.75rem] w-full flex-col items-center overflow-hidden rounded-[3px] border bg-[var(--parchment)] px-1 pb-1.5 pt-1 shadow-[0_10px_24px_-16px_rgba(26,36,32,0.75)] transition-[border-color,box-shadow,background-color] duration-200 motion-reduce:transition-none sm:min-h-[5.25rem] sm:px-1.5 sm:pb-2 sm:pt-1.5",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--amber)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--parchment)]",
@@ -227,7 +227,7 @@ function RoomCell({
             <Tip
               label={
                 count.inferred != null
-                  ? `绿窗 ${count.value} 人 · 你推的是 ${count.inferred}`
+                  ? `公开信息 ${count.value} 人 · 你推的是 ${count.inferred}`
                   : `${count.value} 人 · ${sourcesLabel(count.sources)}`
               }
             >
@@ -856,7 +856,7 @@ export function DeskTimeline({
                                     type="button"
                                     aria-label={`${person.name}（${person.letter}）到访${placeLabel(view, pid)}`}
                                     aria-disabled={visitLocked}
-                                    title={visitLocked ? "这一格已有绿窗或白窗线索，推理标记不可再改" : undefined}
+                                    title={visitLocked ? "这一格已有公开信息或私有信息线索，推理标记不可再改" : undefined}
                                     className={cn(
                                       "mx-auto flex min-h-11 w-full flex-col items-center justify-center gap-0.5 rounded-sm sm:min-h-8 coarse:min-h-11",
                                       visitLocked ? "cursor-default" : "hover:bg-ink-deep/5"
@@ -866,7 +866,7 @@ export function DeskTimeline({
                                       <Tip
                                         label={
                                           conflict
-                                            ? `绿窗 ${pub} 次 · 你推的是 ${inferred}`
+                                            ? `公开信息 ${pub} 次 · 你推的是 ${inferred}`
                                             : `${shown} 次 · ${sourcesLabel(sources)}`
                                         }
                                       >
@@ -880,7 +880,7 @@ export function DeskTimeline({
                                       <span className="h-1 w-1 rounded-full bg-ink-deep/30" />
                                     )}
                                     {among.length > 0 && (
-                                      <Tip label={`白窗 · 其中一次在时间 ${among.join("、")}`}>
+                                      <Tip label={`私有信息 · 其中一次在时间 ${among.join("、")}`}>
                                         <span className="inline-flex items-center gap-0.5 text-[9px] text-[var(--mark-private)]">
                                           <span className="relative inline-block h-2.5 w-2.5">
                                             <SourceGlyph sources={["private"]} thin />

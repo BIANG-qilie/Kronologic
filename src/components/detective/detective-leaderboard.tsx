@@ -50,8 +50,8 @@ const avg = (v: number) => v.toFixed(1);
 const LEDE = (
   <>
     排序依次看：<span className="text-[var(--ink)]">平均胜率</span>高者在前；同胜率比
-    <span className="text-[var(--green-win)]">平均绿窗</span>少、再比平均问数少、再比
-    <span className="text-[#f3e6c8]">平均白窗</span>少，最后局数多者在前。
+    <span className="text-[var(--green-win)]">平均公开信息</span>少、再比平均问数少、再比
+    <span className="text-[#f3e6c8]">平均私有信息</span>少，最后局数多者在前。
   </>
 );
 
@@ -79,9 +79,9 @@ function StatsTable({
         <th className="w-14 pb-3 pr-2 font-normal">名次</th>
         <th className="pb-3 pr-3 font-normal">侦探</th>
         <th className="w-[4.75rem] pb-3 pr-0 text-right font-normal sm:pr-3">胜率</th>
-        <th className="hidden w-16 pb-3 pr-3 text-right font-normal text-green-win/90 sm:table-cell">均绿窗</th>
+        <th className="hidden w-16 pb-3 pr-3 text-right font-normal text-green-win/90 sm:table-cell">均公开</th>
         <th className="hidden w-16 pb-3 pr-3 text-right font-normal sm:table-cell">均问数</th>
-        <th className="hidden w-16 pb-3 pr-3 text-right font-normal sm:table-cell">均白窗</th>
+        <th className="hidden w-16 pb-3 pr-3 text-right font-normal sm:table-cell">均私有</th>
         <th className="hidden w-14 pb-3 text-right font-normal sm:table-cell">局数</th>
       </BoardHead>
       <tbody>
@@ -93,7 +93,7 @@ function StatsTable({
               <NameTd
                 name={row.username}
                 mine={mine}
-                meta={`${row.wins}/${row.games} 胜 · 绿 ${avg(row.avgGreen)} · 问 ${avg(row.avgQueries)} · 白 ${avg(row.avgWhite)}`}
+                meta={`${row.wins}/${row.games} 胜 · 公开 ${avg(row.avgGreen)} · 问 ${avg(row.avgQueries)} · 私有 ${avg(row.avgWhite)}`}
               />
               <MetricTd>{pct(row.winRate)}</MetricTd>
               <ExtraTd className="text-[var(--green-win)]">{avg(row.avgGreen)}</ExtraTd>
@@ -231,7 +231,7 @@ export function DetectiveLeaderboard({
             }
             extra={
               <p className="w-full font-mono text-xs text-[var(--ink-muted)] tabular">
-                {me.games} 局 · 绿窗 {avg(me.avgGreen)} · 问数 {avg(me.avgQueries)} · 白窗 {avg(me.avgWhite)}
+                {me.games} 局 · 公开信息 {avg(me.avgGreen)} · 问数 {avg(me.avgQueries)} · 私有信息 {avg(me.avgWhite)}
               </p>
             }
           />
@@ -242,7 +242,7 @@ export function DetectiveLeaderboard({
               再打 {DETECTIVE_MIN_GAMES - me.games} 局即可上榜
             </p>
             <p className="w-full font-mono text-xs text-[var(--ink-muted)] tabular">
-              {me.games} 局 · 胜率 {pct(me.winRate)} · 绿窗 {avg(me.avgGreen)} · 白窗 {avg(me.avgWhite)} · 问数{" "}
+              {me.games} 局 · 胜率 {pct(me.winRate)} · 公开信息 {avg(me.avgGreen)} · 私有信息 {avg(me.avgWhite)} · 问数{" "}
               {avg(me.avgQueries)}
             </p>
           </div>

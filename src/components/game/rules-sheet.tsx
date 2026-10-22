@@ -20,18 +20,18 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <>
         选一个房间，再配一个时间或一个人物。
         <br />
-        <b className="font-medium text-[var(--ink)]">房间 × 时间</b>：绿窗公布这一刻房里几人，白窗私下告诉你其中一位。
+        <b className="font-medium text-[var(--ink)]">房间 × 时间</b>：公开信息公布这一刻房里几人，私有信息只告诉你其中一位。
         <br />
-        <b className="font-medium text-[var(--ink)]">房间 × 人物</b>：绿窗公布此人整晚来过几次，白窗私下告诉你其中一次的时间。
+        <b className="font-medium text-[var(--ink)]">房间 × 人物</b>：公开信息公布此人整晚来过几次，私有信息只告诉你其中一次的时间。
       </>
     ),
   },
   {
-    title: "绿窗与白窗",
+    title: "公开信息与私有信息",
     body: (
       <>
-        <span className="text-[var(--green-win)]">绿窗</span>亮给全场，
-        <span className="text-[#f3e6c8]">白窗</span>只亮给提问的人。白窗没有内容时不计次，提问者马上再问一次。
+        <span className="text-[var(--green-win)]">公开信息</span>亮给全场，
+        <span className="text-[#f3e6c8]">私有信息</span>只亮给提问的人。私有信息没有内容时不计次，提问者马上再问一次。
       </>
     ),
   },
@@ -45,8 +45,8 @@ const SECTIONS: { title: string; body: React.ReactNode }[] = [
       <span className="block space-y-1.5">
         {(
           [
-            ["public", "圆圈", "绿窗线索"],
-            ["private", "方框", "白窗线索"],
+            ["public", "圆圈", "公开信息"],
+            ["private", "方框", "私有信息"],
             ["inference", "菱形", "你自己的推理"],
           ] as const
         ).map(([s, shape, meaning]) => (

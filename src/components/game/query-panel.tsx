@@ -90,7 +90,7 @@ export function QueryPanel({
         </p>
         <p className="max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
           {askAgain
-            ? "上一问白窗没有内容，不计次。"
+            ? "上一问私有信息没有内容，不计次。"
             : "先去桌面推理，轮到你时这里会亮起。"}
         </p>
       </div>
@@ -161,15 +161,15 @@ export function QueryPanel({
       <div className="space-y-6 sm:space-y-8">
         {askAgain && (
           <p className="animate-fade-up rounded-[3px] bg-green-win/10 px-4 py-2.5 text-sm text-[var(--green-win)]">
-            上一问白窗没有内容，不计次，再问一次。
+            上一问私有信息没有内容，不计次，再问一次。
           </p>
         )}
         <Step n={1} title="提问方式">
           <div className="grid grid-cols-2 gap-2" role="radiogroup" data-tutorial="query-kind">
             {(
               [
-                ["place_time", "房间 × 时间", "绿窗：几人 · 白窗：一个人"],
-                ["place_person", "房间 × 人物", "绿窗：几次 · 白窗：一个时间"],
+                ["place_time", "房间 × 时间", "公开信息：几人 · 私有信息：一个人"],
+                ["place_person", "房间 × 人物", "公开信息：几次 · 私有信息：一个时间"],
               ] as const
             ).map(([k, label, hint]) => (
               <button

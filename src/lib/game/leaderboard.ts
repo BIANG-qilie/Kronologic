@@ -12,14 +12,14 @@ export interface ScoreParts {
   ownWhiteCount: number;
 }
 
-/** 1 人局只比提问；2/3/4 人局再加绿窗与本人白窗（均越少越前）。 */
+/** 1 人局只比提问；2/3/4 人局再加公开信息与本人私有信息（均越少越前）。 */
 export function leaderboardScore(playerCount: number, parts: ScoreParts): number {
   const { ownQueries, greenCount, ownWhiteCount } = parts;
   if (playerCount <= 1) return ownQueries;
   return ownQueries + greenCount + ownWhiteCount;
 }
 
-/** 非空白窗：有实质 privateLabel（不是 "—" / 空）。 */
+/** 非空私有信息：有实质 privateLabel（不是 "—" / 空）。 */
 export function isNonEmptyWhite(privateLabel: string | null | undefined): boolean {
   const label = (privateLabel ?? "").trim();
   return label.length > 0 && label !== "—";

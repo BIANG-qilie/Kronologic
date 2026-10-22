@@ -34,7 +34,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "灯序 · 时间推理",
-  description: "六时，六地，六人。绿窗亮给全场，白窗只亮给你。抢先拼出案发那一刻。",
+  description: "六时，六地，六人。公开信息亮给全场，私有信息只亮给你。抢先拼出案发那一刻。",
 };
 
 export const viewport: Viewport = {

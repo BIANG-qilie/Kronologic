@@ -224,7 +224,7 @@ describe("mergeCellMarks", () => {
     assert.deepEqual(merged.people, [
       { person: "A", sources: ["public", "private", "inference"] },
     ]);
-    assert.equal(sourcesLabel(merged.people[0].sources), "绿窗 + 白窗 + 推理");
+    assert.equal(sourcesLabel(merged.people[0].sources), "公开信息 + 私有信息 + 推理");
   });
 
   it("keeps distinct people apart and labels pairs", () => {
@@ -237,7 +237,7 @@ describe("mergeCellMarks", () => {
       merged.people.map((p) => [p.person, sourcesLabel(p.sources)]),
       [
         ["M", "推理"],
-        ["R", "白窗 + 推理"],
+        ["R", "私有信息 + 推理"],
       ]
     );
     assert.deepEqual(merged.count, { value: 2, sources: ["public", "inference"] });
